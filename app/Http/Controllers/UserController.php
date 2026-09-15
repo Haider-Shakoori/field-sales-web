@@ -158,6 +158,10 @@ class UserController extends Controller
 
         $user->update(['is_active' => ! $user->is_active]);
 
+        if (! $user->is_active) {
+            $user->tokens()->delete();
+        }
+
         AuditLogger::log($user->is_active ? 'user.activated' : 'user.deactivated', $user, [], [
             'is_active' => $user->is_active,
         ]);

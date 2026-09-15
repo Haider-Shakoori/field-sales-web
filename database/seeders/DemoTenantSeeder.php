@@ -3,8 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Branch;
+use App\Models\Device;
+use App\Models\Salesman;
+use App\Models\Supervisor;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\FieldProfiles\EmployeeCodeGenerator;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 
@@ -84,6 +88,75 @@ class DemoTenantSeeder extends Seeder
             );
 
             $user->assignRole($role, $tenant->id);
+
+            if ($role === 'supervisor') {
+                $this->upsertSupervisor($tenant, $user);
+            }
+
+            if ($role === 'salesman') {
+                $this->upsertSalesman($tenant, $slug, $user);
+            }
         }
+    }
+
+    private function upsertSupervisor(Tenant $tenant, User $user): void
+    {
+        $code = EmployeeCodeGenerator::nextSupervisorCode($tenant->id);
+
+        Supervisor::updateOrCreate(
+            ['tenant_id' => $tenant->id, 'employee_code' => $code],
+            [
+                'user_id' => $user->id,
+                'first_name' => $user->name,
+                'phone' => '+93 70 111 2222',
+                'is_active' => true,
+            ],
+        );
+    }
+
+    private function upsertSalesman(Tenant $tenant, string $slug, User $user): void
+    {
+        $code = EmployeeCodeGenerator::nextSalesmanCode($tenant->id);
+
+        $salesman = Salesman::updateOrCreate(
+            ['tenant_id' => $tenant->id, 'employee_code' => $code],
+            [
+                'user_id' => $user->id,
+                'first_name' => $user->name,
+                'phone' => '+93 70 333 4444',
+                'email' => $user->email,
+                'hire_date' => now()->subMonths(6),
+                'designation' => 'Field Sales Rep',
+                'is_active' => true,
+            ],
+        );
+
+        $deviceUuid = $this->deterministicUuid('device:'.$slug);
+        $installationId = $this->deterministicUuid('installation:'.$slug);
+
+        Device::updateOrCreate(
+            ['installation_uuid' => $installationId],
+            [
+                'tenant_id' => $tenant->id,
+                'user_id' => $user->id,
+                'salesman_id' => $salesman->id,
+                'device_uuid' => $deviceUuid,
+                'device_model' => 'Samsung Galaxy S24',
+                'manufacturer' => 'Samsung',
+                'android_version' => '14',
+                'app_version' => config('tenancy.mobile.min_app_version'),
+                'push_token' => 'demo_push_token_'.$slug,
+                'is_active' => true,
+                'registered_at' => now()->subDays(7),
+                'last_seen_at' => now()->subMinutes(30),
+            ],
+        );
+    }
+
+    private function deterministicUuid(string $seed): string
+    {
+        $hash = md5($seed);
+
+        return substr($hash, 0, 8).'-'.substr($hash, 8, 4).'-'.substr($hash, 12, 4).'-'.substr($hash, 16, 4).'-'.substr($hash, 20, 12);
     }
 }

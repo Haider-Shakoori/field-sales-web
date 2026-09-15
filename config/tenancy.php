@@ -78,4 +78,19 @@ return [
         'auditor' => 'Auditor',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Mobile Device Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Settings for mobile device registration, policies, and app version enforcement.
+    | Tenant-level overrides can be set via company settings (mobile.* keys).
+    |
+    */
+    'mobile' => [
+        'min_app_version' => env('MOBILE_MIN_APP_VERSION', '1.0.0'),
+        'upgrade_url' => env('MOBILE_UPGRADE_URL', 'https://example.com/update'),
+        'one_device_per_salesman' => true,
+    ],
+
 ];

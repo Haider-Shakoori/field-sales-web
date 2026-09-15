@@ -7,8 +7,11 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SalesmanController;
+use App\Http\Controllers\SupervisorController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +39,24 @@ Route::middleware('auth')->group(function () {
     Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
+
+    Route::get('salesmen', [SalesmanController::class, 'index'])->name('salesmen.index');
+    Route::get('salesmen/create', [SalesmanController::class, 'create'])->name('salesmen.create');
+    Route::post('salesmen', [SalesmanController::class, 'store'])->name('salesmen.store');
+    Route::get('salesmen/{salesman}', [SalesmanController::class, 'show'])->name('salesmen.show');
+    Route::put('salesmen/{salesman}', [SalesmanController::class, 'update'])->name('salesmen.update');
+    Route::delete('salesmen/{salesman}/deactivate', [SalesmanController::class, 'deactivate'])->name('salesmen.deactivate');
+
+    Route::get('supervisors', [SupervisorController::class, 'index'])->name('supervisors.index');
+    Route::get('supervisors/create', [SupervisorController::class, 'create'])->name('supervisors.create');
+    Route::post('supervisors', [SupervisorController::class, 'store'])->name('supervisors.store');
+    Route::get('supervisors/{supervisor}', [SupervisorController::class, 'show'])->name('supervisors.show');
+    Route::put('supervisors/{supervisor}', [SupervisorController::class, 'update'])->name('supervisors.update');
+    Route::delete('supervisors/{supervisor}/deactivate', [SupervisorController::class, 'deactivate'])->name('supervisors.deactivate');
+
+    Route::get('devices', [DeviceController::class, 'index'])->name('devices.index');
+    Route::get('devices/{device}', [DeviceController::class, 'show'])->name('devices.show');
+    Route::delete('devices/{device}/revoke', [DeviceController::class, 'revoke'])->name('devices.revoke');
 
     Route::get('branches', [BranchController::class, 'index'])->name('branches.index');
     Route::get('branches/create', [BranchController::class, 'create'])->name('branches.create');

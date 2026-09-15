@@ -5,13 +5,19 @@ namespace App\Providers;
 use App\Models\AuditLog;
 use App\Models\Branch;
 use App\Models\CompanySetting;
+use App\Models\Device;
 use App\Models\Role;
+use App\Models\Salesman;
+use App\Models\Supervisor;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Policies\AuditLogPolicy;
 use App\Policies\BranchPolicy;
 use App\Policies\CompanySettingPolicy;
+use App\Policies\DevicePolicy;
 use App\Policies\RolePolicy;
+use App\Policies\SalesmanPolicy;
+use App\Policies\SupervisorPolicy;
 use App\Policies\TenantPolicy;
 use App\Policies\UserPolicy;
 use App\Support\Tenancy\TenantContext;
@@ -32,6 +38,9 @@ class TenancyServiceProvider extends AuthServiceProvider
         CompanySetting::class => CompanySettingPolicy::class,
         Role::class => RolePolicy::class,
         AuditLog::class => AuditLogPolicy::class,
+        Salesman::class => SalesmanPolicy::class,
+        Supervisor::class => SupervisorPolicy::class,
+        Device::class => DevicePolicy::class,
     ];
 
     /**

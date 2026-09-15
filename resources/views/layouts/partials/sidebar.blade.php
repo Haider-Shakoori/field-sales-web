@@ -7,6 +7,9 @@
         'Operations' => [
             ['label' => 'Users', 'route' => 'users.index', 'icon' => 'users', 'can' => 'users:view'],
             ['label' => 'Branches', 'route' => 'branches.index', 'icon' => 'branches', 'can' => 'branches:view'],
+            ['label' => 'Salesmen', 'route' => 'salesmen.index', 'icon' => 'salesmen', 'can' => 'salesmen:view'],
+            ['label' => 'Supervisors', 'route' => 'supervisors.index', 'icon' => 'users', 'can' => 'supervisors:view'],
+            ['label' => 'Devices', 'route' => 'devices.index', 'icon' => 'devices', 'can' => 'devices:view'],
         ],
         'Company' => [
             ['label' => 'Company Settings', 'route' => 'settings.company.edit', 'icon' => 'settings', 'can' => 'settings:view'],

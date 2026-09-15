@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnforceMinimumAppVersion;
+use App\Http\Middleware\EnsureActiveDevice;
 use App\Http\Middleware\InitializeTenancy;
 use App\Support\Http\ApiResponse;
 use App\Support\Tenancy\TenantContextMissingException;
@@ -22,6 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             InitializeTenancy::class,
+        ]);
+
+        $middleware->alias([
+            'device.active' => EnsureActiveDevice::class,
+            'app.version' => EnforceMinimumAppVersion::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -20,21 +20,32 @@ class RbacSeeder extends Seeder
             'dashboard:view', 'users:view', 'users:manage', 'branches:view',
             'branches:manage', 'roles:view', 'roles:manage', 'settings:view',
             'settings:manage', 'audit:view', 'tenants:manage',
+            'salesmen:view', 'salesmen:create', 'salesmen:update', 'salesmen:deactivate',
+            'supervisors:view', 'supervisors:create', 'supervisors:update', 'supervisors:deactivate',
+            'devices:view', 'devices:revoke',
         ],
         'owner' => [
             'dashboard:view', 'users:view', 'users:manage', 'branches:view',
             'branches:manage', 'roles:view', 'roles:manage', 'settings:view',
             'settings:manage', 'audit:view',
+            'salesmen:view', 'salesmen:create', 'salesmen:update', 'salesmen:deactivate',
+            'supervisors:view', 'supervisors:create', 'supervisors:update', 'supervisors:deactivate',
+            'devices:view', 'devices:revoke',
         ],
         'company_admin' => [
             'dashboard:view', 'users:view', 'users:manage', 'branches:view',
             'branches:manage', 'roles:view', 'settings:view', 'settings:manage', 'audit:view',
+            'salesmen:view', 'salesmen:create', 'salesmen:update', 'salesmen:deactivate',
+            'supervisors:view', 'supervisors:create', 'supervisors:update', 'supervisors:deactivate',
+            'devices:view', 'devices:revoke',
         ],
         'sales_manager' => [
             'dashboard:view', 'users:view', 'branches:view', 'roles:view',
+            'salesmen:view', 'salesmen:update', 'supervisors:view', 'devices:view',
         ],
         'supervisor' => [
             'dashboard:view', 'users:view', 'branches:view',
+            'salesmen:view', 'devices:view',
         ],
         'salesman' => [
             'dashboard:view',

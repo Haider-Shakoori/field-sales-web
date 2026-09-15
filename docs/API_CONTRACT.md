@@ -471,14 +471,24 @@ X-RateLimit-Reset: 1704067200
 {
   "success": true,
   "data": {
-    "id": 10,
-    "uuid": "abc-123",
-    "status": "active",
-    "registered_at": "2025-01-15T10:30:00Z",
-    "last_heartbeat_at": "2025-01-15T10:30:00Z"
+    "token": "<device-bound Sanctum token>",
+    "device": {
+      "id": ...,
+      "uuid": ...,
+      "status": "active",
+      "registered_at": "...",
+      "last_heartbeat_at": "..."
+    }
   }
 }
 ```
+
+**Note:** The registration endpoint returns a newly issued device-bound Sanctum mobile token. Re-registering an existing device rotates the device token: previously issued token(s) for that device are invalidated and a new token is returned. The client must securely replace its stored token with the newly returned token.
+
+- **Token**: A device-bound Sanctum mobile token. It is returned only at initial registration or when the device token is rotated.
+- **Subsequent requests**: Must include `Authorization: Bearer <token>` (the Sanctum token issued at registration).
+- **Device identification**: The device is additionally identified by the documented request headers `X-Device-UUID` and `X-Installation-UUID`.
+- **Device revocation**: Revoking the device (DELETE `/api/v1/devices/{device_id}`) invalidates the bound device token.
 
 **PUT /api/v1/devices/{device_id}/heartbeat — Request:**
 
