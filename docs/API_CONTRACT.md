@@ -32,6 +32,7 @@
 - **Versioned** — all endpoints under `/api/v1/...`
 - **JSON:API-inspired envelope** — consistent `success`, `data`, `meta`, `error` keys
 - **Consistent error handling** — uniform error codes and messages across all endpoints
+- **Offline-first from initial release** — create endpoints accept client-generated `offline_uuid` for idempotent sync; the API contract is defined assuming the Android app runs offline-first from day one (local SQLite, local-first writes, client UUIDs, basic sync queue, `pending`/`synced`/`failed` record states). Advanced sync hardening (conflict resolution, retry/backoff, tombstones, bulk sync, recovery) is a later enhancement
 - **Idempotent operations** — safe retries for offline sync using idempotency keys
 - **Rate limiting** — per-device and per-IP limits with clear headers
 - **Device identification** — client sends device headers on every request
@@ -2518,6 +2519,7 @@ X-Idempotency-Key: {uuid}
 - Server stores idempotency key with response for **24 hours**
 - Same key + same request body = same response (no duplicate creation)
 - Used for: orders, collections, expenses, visit check-ins, GPS uploads
+- `offline_uuid` and `X-Idempotency-Key` are part of the initial API contract (the Offline-First Foundation ships with release one), not a later phase. Advanced conflict detection and resolution are deferred to the Sync Engine phase.
 
 ### Conflict Detection
 
@@ -2645,6 +2647,8 @@ Content-Type: application/json
 ---
 
 ## 11. Sync Protocol
+
+The sync endpoints consume the basic sync queue from the Offline-First Foundation (local-first writes, `pending`/`synced`/`failed` states, client UUIDs). Advanced sync processing (conflict resolution, retry/backoff, tombstones, bulk sync, recovery, sync hardening) is deferred to a later phase. The endpoints themselves are part of the initial API contract.
 
 ### Push (Client → Server)
 

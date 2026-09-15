@@ -3,6 +3,7 @@
 > **Status:** PLANNING ONLY
 > **Last Updated:** 2025-01-15
 > **Target Platform:** Flutter Android (SQLite local DB, REST API backend)
+> **Mobile contract:** Offline-first applies **from the initial Android release**, not a later phase. The Offline-First Foundation ships with release one: local SQLite database, local-first write strategy, client UUIDs, basic sync queue, connectivity state, and per-record `pending` / `synced` / `failed` sync states. The advanced capabilities described in this design (conflict resolution, retry/backoff, bulk sync, tombstones, duplicate handling, recovery, sync hardening) are delivered by the later Sync Engine phase on top of that foundation.
 
 ---
 
@@ -82,6 +83,10 @@ The field sales mobile application operates in a market (Afghanistan) where inte
 | Manager approvals | Full | None | Requires connectivity |
 | Push notifications | Full | None | Requires connectivity |
 | GPS tracking | Full | Full | Bulk upload when online |
+
+### Foundation vs Advanced Sync
+
+The Offline-First Foundation (ship with the initial Android release) establishes: local SQLite database, local-first write strategy, client UUIDs, basic sync queue, connectivity state, and per-record `pending` / `synced` / `failed` sync states. The full scope of this design document — conflict resolution (§5), retry/backoff (§8), tombstones, cursor/checkpoint management, bulk synchronization, duplicate handling, recovery, and sync hardening — is delivered by the later Sync Engine phase and intentionally deferred beyond the first release.
 
 ---
 
@@ -1376,6 +1381,8 @@ Resolution:
 | `synced` | Successfully synced to server | Terminal (until next local edit) |
 | `conflict` | Sync conflict detected, needs resolution | `resolved` or `synced` |
 | `failed` | Sync failed after max retries | Manual intervention or `pending` (reset) |
+
+> **Foundation scope:** The initial Android release ships a simplified three-state version: `pending`, `synced`, and `failed`. The `syncing`, `conflict`, and `resolved` transitions are part of the advanced Sync Engine phase.
 
 ### 6.3 State Transitions in Code
 

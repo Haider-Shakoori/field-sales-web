@@ -68,7 +68,7 @@ A modern, cloud-based Field Sales Management and Salesman GPS Tracking platform 
 | Backend API | Laravel 13 / PHP 8.5 / MySQL 8 |
 | Authentication | Laravel Sanctum (API tokens + SPA sessions) |
 | API Style | RESTful JSON API |
-| Mobile App | Flutter (Android-first) |
+| Mobile App | Flutter (Android-first). **Offline-first from the initial implementation** — local SQLite, local-first writes, client UUIDs, basic sync queue, connectivity state, and `pending`/`synced`/`failed` record states ship with the first Android release. |
 | Admin Panel | Blade + Tailwind CSS + Alpine.js |
 | Hosting | Laravel Cloud |
 
@@ -353,7 +353,7 @@ The command center for company administrators.
 
 | Constraint | Impact | Mitigation |
 |-----------|--------|-----------|
-| **Offline-first mobile** | Salesmen operate in areas with unreliable or no internet. Data must be captured offline and synced seamlessly. | Local SQLite storage on device, UUID-based conflict resolution, background sync with retry logic. |
+| **Offline-first mobile** | Salesmen operate in areas with unreliable or no internet. Data must be captured offline and synced seamlessly. Offline capability is core to the **initial** Android app, not a later phase. | Initial release: local SQLite storage on device, local-first writes with client-generated UUIDs, basic sync queue, connectivity state, and per-record `pending`/`synced`/`failed` states. Advanced sync (conflict resolution, retry/backoff, tombstones, bulk sync, recovery) is delivered by the later Sync Engine batch. |
 | **Afghanistan initial market** | Connectivity challenges, varying GPS reliability in urban and rural areas, limited smartphone specs, diverse languages. | Lightweight app design, configurable GPS accuracy thresholds, battery-efficient tracking, English primary with Dari/Pashto UI planned. |
 | **Flutter Android app** | Mobile app is developed and deployed separately from the backend API. | Clean, well-documented REST API contract. API-first design with versioning. |
 | **No inventory coupling in V1** | The platform focuses on field operations, not warehouse or inventory management. | Orders capture product/quantity/price but do not validate against real-time inventory. Inventory integration is a future concern. |
@@ -376,7 +376,7 @@ The following features are explicitly excluded from the initial release to maint
 | **Full multi-language (i18n)** | English primary for V1. Dari/Pashto UI translation is planned but not blocking. | V1.x |
 | **WhatsApp/SMS integration** | Valuable for notifications but requires third-party partnerships and setup complexity. | V2 |
 | **Advanced analytics / BI** | V1 covers standard reports. Advanced BI, predictive analytics, and custom dashboards are future enhancements. | V2+ |
-| **Offline-first conflict resolution UI** | Basic UUID-based sync in V1. Sophisticated conflict resolution UI for simultaneous edits is deferred. | V1.x |
+| **Offline-first conflict resolution UI** | Offline-first capture (local writes + sync) is included in the initial Android app. Only the sophisticated conflict-resolution UX for simultaneous edits is deferred. | V1.x |
 | **Custom report builder** | Standard report suite covers V1 needs. Drag-and-drop custom report builder is a significant feature. | V2+ |
 | **Multi-currency** | Single currency (Afghan Afghani) in V1. Multi-currency support for international markets. | V2 |
 

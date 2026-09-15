@@ -1,5 +1,9 @@
 <?php
 
+use App\Models\Tenant;
+use App\Models\User;
+use App\Support\Tenancy\TenantContext;
+use Database\Seeders\RbacSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,7 +19,7 @@ use Tests\TestCase;
 */
 
 pest()->extend(TestCase::class)
- // ->use(RefreshDatabase::class)
+    ->use(RefreshDatabase::class)
     ->in('Feature');
 
 /*
@@ -47,4 +51,54 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Seed the RBAC catalog (roles + permissions).
+ */
+function seedRbac(): void
+{
+    (new RbacSeeder)->run();
+}
+
+/**
+ * Create a tenant (skipping factories' implicit state).
+ */
+function makeTenant(array $attributes = []): Tenant
+{
+    return Tenant::factory()->create($attributes);
+}
+
+/**
+ * Create a user assigned a single role on the given tenant.
+ */
+function makeUser(Tenant $tenant, string $role = 'owner', array $attributes = []): User
+{
+    return withTenantContext($tenant, function () use ($tenant, $role, $attributes): User {
+        $user = User::factory()->create(array_merge([
+            'password' => 'Password123!',
+        ], $attributes));
+
+        $user->assignRole($role, $tenant->id);
+
+        return $user;
+    });
+}
+
+/**
+ * Run a callback inside a tenant context without HTTP middleware,
+ * restoring the previous context afterwards.
+ */
+function withTenantContext(Tenant $tenant, callable $callback): mixed
+{
+    return app(TenantContext::class)->withTenant($tenant, $callback);
+}
+
+/**
+ * Run a callback inside the explicit platform context without HTTP middleware,
+ * restoring the previous context afterwards.
+ */
+function withPlatformContext(callable $callback): mixed
+{
+    return app(TenantContext::class)->withSystemContext($callback);
 }

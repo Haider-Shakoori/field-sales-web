@@ -19,7 +19,7 @@ A modern multi-tenant Field Sales / Salesman GPS Tracking SaaS platform, initial
 | Backend | Laravel 13, PHP 8.5, MySQL 8 |
 | Auth | Laravel Sanctum |
 | Admin Panel | Blade + Tailwind CSS 4 + Alpine.js |
-| Mobile | Flutter (Android, separate project) |
+| Mobile | Flutter (Android — created in Batch 6 as `field-sales-mobile`) |
 | Cache/Queue | Redis |
 | Build | Vite |
 | Testing | Pest |
@@ -63,22 +63,27 @@ A modern multi-tenant Field Sales / Salesman GPS Tracking SaaS platform, initial
 
 ## Implementation Batches Overview
 
+> From Batch 6 onward, implementation batches may modify **both** separate repositories: backend (`field-sales-api`) and Flutter mobile app (`field-sales-mobile`). They remain separate apps and Git repos, but are part of the same roadmap.
+
 ```
-Batch  1: Foundation & Tenancy          ████░░░░░░░░░░░░░░░░ Core
-Batch  2: Roles, Permissions & Users    ████░░░░░░░░░░░░░░░░ Core
-Batch  3: Sales Team & Devices          ████░░░░░░░░░░░░░░░░ Core
-Batch  4: Customers & Territories       ████░░░░░░░░░░░░░░░░ Core
-Batch  5: Products & Price Lists        ████░░░░░░░░░░░░░░░░ Core
-Batch  6: Attendance & Work Sessions    ████░░░░░░░░░░░░░░░░ Core
-Batch  7: GPS Tracking Core             ████░░░░░░░░░░░░░░░░ Critical
-Batch  8: Customer Visits               ████░░░░░░░░░░░░░░░░ Critical
-Batch  9: Orders                        ████░░░░░░░░░░░░░░░░ Core
-Batch 10: Collections                   ████░░░░░░░░░░░░░░░░ Core
-Batch 11: Expenses & Targets            ████░░░░░░░░░░░░░░░░ Core
-Batch 12: Sync Engine & Offline         ████░░░░░░░░░░░░░░░░ Critical
-Batch 13: Admin Dashboard & Live Map    ████░░░░░░░░░░░░░░░░ UI
-Batch 14: Notifications & Reporting     ████░░░░░░░░░░░░░░░░ Features
-Batch 15: BusinessOS Integration        ░░░░░░░░░░░░░░░░░░░░ Optional
+Batch  1: Foundation & Tenancy            ████░░░░░░░░░░░░░░░░ Core
+Batch  2: Roles, Permissions & Users      ████░░░░░░░░░░░░░░░░ Core
+Batch  3: Sales Team & Devices            ████░░░░░░░░░░░░░░░░ Core
+Batch  4: Customers, Territories & Routes ████░░░░░░░░░░░░░░░░ Core
+Batch  5: Products, Price Lists & API Prep ████░░░░░░░░░░░░░░░ Core
+Batch  6: Flutter Android Foundation &    ████░░░░░░░░░░░░░░░░ Critical
+          Offline-First Core
+Batch  7: Attendance & GPS Tracking Core  ████░░░░░░░░░░░░░░░░ Critical
+Batch  8: Customer Visits & Geofencing    ████░░░░░░░░░░░░░░░░ Critical
+Batch  9: Orders                          ████░░░░░░░░░░░░░░░░ Core
+Batch 10: Collections                     ████░░░░░░░░░░░░░░░░ Core
+Batch 11: Expenses & Targets              ████░░░░░░░░░░░░░░░░ Core
+Batch 12: Offline Sync Engine Hardening   ████░░░░░░░░░░░░░░░░ Critical
+Batch 13: Admin Dashboard, Live Map &     ████░░░░░░░░░░░░░░░░ UI
+          Mobile Refinement
+Batch 14: Notifications, Alerts, Reports & ████░░░░░░░░░░░░░░░ Features
+          Final E2E QA
+Batch 15: BusinessOS Integration          ░░░░░░░░░░░░░░░░░░░░ Optional
 ```
 
 ---
@@ -87,7 +92,7 @@ Batch 15: BusinessOS Integration        ░░░░░░░░░░░░░�
 
 1. **GPS Volume** — Millions of location points require careful indexing, partitioning, and archival planning
 2. **Offline Sync Reliability** — Conflict resolution edge cases need thorough testing with real-world connectivity patterns
-3. **Flutter Timeline** — Mobile app developed externally; API contract must be stable before mobile development begins
+3. **Cross-project Laravel/Flutter coordination** — Backend API contracts and mobile implementation must remain synchronized; a drift between the API and the app blocks every batch from Batch 6 onward
 4. **Afghanistan Connectivity** — Intermittent internet requires robust offline-first design and retry mechanisms
 5. **Multi-Tenant Isolation** — Single data leak across tenants is catastrophic; requires rigorous policy enforcement
 

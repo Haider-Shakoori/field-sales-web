@@ -150,7 +150,8 @@ Branch assignment is historical — the audit trail is preserved when a user's b
 
 - One Laravel Policy per domain entity (`Customer`, `Order`, `Visit`, `Expense`, etc.).
 - `before()` method grants Super Admin unrestricted access.
-- Tenant scope is applied via an Eloquent global scope and cannot be bypassed.
+- Tenant scope is applied via an Eloquent global scope and **cannot be bypassed outside an explicit platform/system context** (fail-closed).
+- **Role storage (source of truth):** `model_has_roles` (tenant-scoped pivot). The `users.role` column is a **denormalized mirror** maintained automatically for display/convenience — authorization never reads it.
 - Branch scope is applied within policies where relevant.
 
 ---
@@ -161,8 +162,11 @@ Branch assignment is historical — the audit trail is preserved when a user's b
 
 - Every business table carries a `tenant_id` foreign key.
 - A global Eloquent scope applies `WHERE tenant_id = ?` to all queries automatically.
-- The scope is registered on each tenant-aware model and cannot be removed by application code.
-- Cross-tenant queries are impossible through Eloquent or the Query Builder.
+- The scope is **fail-closed** (three states):
+  - **Tenant** — a concrete tenant is active; the scope appends `WHERE tenant_id = ?`.
+  - **Platform (explicit bypass)** — entered only through guarded APIs (`enterPlatformForUser` for the HTTP super admin, `enterSystemContext` for trusted seeders/console/auth bootstrap); company users are rejected.
+  - **Uninitialized** — no context; accessing a tenant-owned model throws `TenantContextMissingException` instead of silently escaping isolation.
+- Cross-tenant queries are impossible through Eloquent or the Query Builder unless an explicit platform/system context is deliberately activated.
 
 ### API-Level Isolation
 
@@ -179,7 +183,7 @@ Branch assignment is historical — the audit trail is preserved when a user's b
 ### Job/Queue Isolation
 
 - Every job carries `tenant_id` in its payload.
-- Job middleware sets the tenant context before execution.
+- Job middleware must explicitly initialize the tenant context (or an explicit platform/system context) before executing any tenant-owned model queries — the fail-closed scope refuses to infer context.
 - No cross-tenant job processing occurs.
 
 ### Cache Isolation

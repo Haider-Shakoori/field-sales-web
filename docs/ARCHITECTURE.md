@@ -86,10 +86,14 @@ A multi-tenant SaaS platform for managing field sales teams in Afghanistan. The 
 ### Implementation Plan
 
 - Every business table includes a `tenant_id` foreign key.
-- Global Eloquent scope on all models automatically appends `WHERE tenant_id = ?`.
-- Middleware resolves the current tenant from the authenticated user's token.
-- All database queries execute within tenant context — no unscoped queries permitted.
-- Queued jobs carry `tenant_id` for execution context.
+- Global Eloquent scope on all tenant-owned models filters every query by the active tenant.
+- Tenant context is **fail-closed** (three states):
+  - **Tenant** — a concrete tenant is active; the scope appends `WHERE tenant_id = ?`.
+  - **Platform (explicit bypass)** — entered only through guarded APIs (`enterPlatformForUser` for the HTTP super admin, `enterSystemContext` for trusted seeders/console/auth bootstrap); company users are rejected.
+  - **Uninitialized** — no context; accessing a tenant-owned model throws `TenantContextMissingException` instead of silently escaping isolation.
+- Middleware resolves the current tenant from the authenticated user (guest requests run in the Uninitialized state; platform super admins run in the explicit Platform state).
+- All database queries execute within a tenant context or an explicit platform/system context — unscoped queries are impossible outside a deliberate bypass.
+- Queued jobs must establish their tenant context explicitly before touching tenant-owned models (a job receiving `tenant_id` resolves and tries the tenant, or opts into an explicit platform/system context); the fail-closed scope refuses to infer one.
 - File storage paths are prefixed by `tenant_id`.
 - Cache keys include `tenant_id` for isolation.
 
@@ -97,14 +101,16 @@ A multi-tenant SaaS platform for managing field sales teams in Afghanistan. The 
 
 | Rule | Description |
 |---|---|
-| Query scoping | All business queries are automatically scoped to the active tenant via global scopes |
+| Query scoping | All tenant-owned queries are automatically scoped to the active tenant via global scopes |
+| **Fail-closed scope** | Missing context **throws** (`TenantContextMissingException`); it never silently runs unscoped |
 | API resolution | Tenant is resolved from the Sanctum auth token on every API request |
+| Platform bypass | Only `isSuperAdmin` users can enter the explicit Platform context; company users are rejected |
 | Admin access | Admin users may access multiple tenants with explicit tenant selection |
 | Cross-tenant | Cross-tenant data access is strictly prohibited |
 | Audit logging | All mutations capture tenant context in audit trails |
 | File isolation | File storage paths are partitioned by `tenant_id` |
 | Cache isolation | Cache keys include `tenant_id` prefix |
-| Queue isolation | Jobs carry `tenant_id` and resolve context before execution |
+| Queue isolation | Jobs carry `tenant_id` and must initialize their tenant/system context before querying |
 
 ---
 
@@ -379,15 +385,19 @@ resources/views/
 
 ### Offline-First Design
 
-The Flutter app is designed for unreliable connectivity in Afghanistan. All critical data operations work offline with background synchronization.
+The Flutter app is **offline-first from its initial implementation**. It is designed for unreliable connectivity in Afghanistan: all critical data operations work offline with background synchronization.
 
-**Core principles:**
+**Core principles (ship with the initial Android release — the Offline-First Foundation):**
 - Local SQLite database mirrors relevant server data
-- Sync engine with queue-based upload/download
-- UUID-based entity creation on device (no server round-trip needed)
-- Conflict resolution: server-authoritative for most fields
-- Background GPS collection during active work sessions
-- Batch GPS upload when connectivity is available
+- Local-first write strategy — the device is the source of truth while offline (with local SQLite)
+- Client-generated UUIDs for every offline-created entity (no server round-trip needed)
+- Basic sync queue (outbox) with a simple connectivity check
+- Per-record sync states: `pending` / `synced` / `failed`
+
+**Deferred to the later Sync Engine phase (advanced sync):**
+- Advanced conflict resolution (server-authoritative merge policies, tombstones, cursor/checkpoint management)
+- Retry/backoff, bulk synchronization, bulk GPS upload optimization, duplicate handling and recovery
+- Sync hardening (logging, monitoring, dead-letter handling)
 
 ### Local SQLite Entities
 
@@ -793,6 +803,7 @@ fs:rate:device:abc123         → Rate limit for device token abc123
 | **Model** | Role-Based Access Control (RBAC) |
 | **Permission format** | `resource:action` strings (e.g., `customers:view`, `orders:create`) |
 | **Roles** | Owner, Sales Manager, Supervisor, Salesman, Read-only |
+| **Role storage (source of truth)** | `model_has_roles` (tenant-scoped pivot). `users.role` is a **denormalized mirror** maintained automatically for display/convenience — authorization never reads it |
 | **Policies** | One policy per domain entity, registered in `AuthServiceProvider` |
 | **Branch scoping** | Managers and supervisors are scoped to their branch's data |
 | **Tenant scoping** | All roles are scoped to a single tenant |
@@ -1135,7 +1146,7 @@ This section records the explicit architectural decisions made during Batch 0 pl
 
 ## ADR-004: Flutter Android App
 
-**Decision:** The mobile app is a separate Flutter project targeting Android first.
+**Decision:** The mobile app is a separate Flutter project targeting Android first, and is **offline-first from its initial implementation** (not a later phase).
 
 **Context:** Field salesmen need an offline-first Android application. iOS was considered but excluded from V1.
 
@@ -1144,7 +1155,7 @@ This section records the explicit architectural decisions made during Batch 0 pl
 - Offline-first local storage (SQLite via drift/floor) fits the domain
 - The API contract (`APIs/CONTRACT.md`) is the boundary — backend is fully decoupled from the app
 
-**Consequences:** The mobile app is developed separately. The API contract must be stable before significant mobile work begins. Backend work in this repo does not build Flutter code.
+**Consequences:** The mobile app is developed separately. The initial Android release ships the Offline-First Foundation (local SQLite, local-first writes, client UUIDs, basic sync queue, connectivity state, `pending`/`synced`/`failed` record states). The API contract must be stable before significant mobile work begins. Backend work in this repo does not build Flutter code.
 
 ## ADR-005: REST API with Laravel Sanctum
 
@@ -1175,7 +1186,7 @@ This section records the explicit architectural decisions made during Batch 0 pl
 
 ## ADR-007: Offline-First Strategy
 
-**Decision:** The mobile app is offline-first: all critical operations (visits, orders, collections, expenses, GPS) work without connectivity and sync later.
+**Decision:** The mobile app is offline-first: all critical operations (visits, orders, collections, expenses, GPS) work without connectivity and sync later. Offline-first applies **from the initial app implementation** — the Offline-First Foundation (local SQLite database, local-first write strategy, client UUIDs, basic sync queue, connectivity state, per-record `pending`/`synced`/`failed` states) ships with the first Android release, not a later phase.
 
 **Context:** Afghan field connectivity is intermittent. Losing a sale or visit because of poor signal is unacceptable.
 
@@ -1184,7 +1195,7 @@ This section records the explicit architectural decisions made during Batch 0 pl
 - Sync is transparent and backgrounded
 - Company requirements (offline-first is a hard requirement)
 
-**Consequences:** Every write entity has an `offline_uuid`. Sync engine, retry/backoff, and conflict resolution are central pieces. See `OFFLINE_SYNC_DESIGN.md`.
+**Consequences:** Every write entity has an `offline_uuid` on release one. Advanced sync (conflict resolution, retry/backoff, bulk sync, tombstones, duplicate handling, recovery, sync hardening) is a later batch that extends — not introduces — the offline-first foundation. See `OFFLINE_SYNC_DESIGN.md`.
 
 ## ADR-008: UUID + Idempotency Strategy
 
