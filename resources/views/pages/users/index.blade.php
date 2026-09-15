@@ -12,6 +12,21 @@
         @endif
     </x-ui.page-header>
 
+    @if ($branches->isNotEmpty())
+        <form method="GET" action="{{ route('users.index') }}" class="surface-card p-4">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <x-ui.input name="search" label="Search" :value="request('search')" placeholder="Name or email" />
+                <x-ui.select name="role" label="Role" :value="request('role')" :options="['' => 'Any role'] + ($roles ?? [])" />
+                <x-ui.select name="branch" label="Branch" :value="request('branch')" :options="['' => 'Any branch'] + $branches->mapWithKeys(fn ($b) => [$b->id => $b->name])->all()" />
+                <x-ui.select name="status" label="Status" :value="request('status')" :options="['' => 'Any status', 'active' => 'Active', 'inactive' => 'Inactive']" />
+            </div>
+            <div class="mt-4 flex items-center justify-end gap-2">
+                <x-ui.button href="{{ route('users.index') }}" variant="ghost" type="button">Clear</x-ui.button>
+                <x-ui.button type="submit" icon="search">Filter</x-ui.button>
+            </div>
+        </form>
+    @endif
+
     <x-ui.card>
         @if ($users->isEmpty())
             <x-ui.empty-state title="No users"
@@ -31,6 +46,7 @@
                             <th class="px-3 py-3 font-semibold">Name</th>
                             <th class="px-3 py-3 font-semibold">Email</th>
                             <th class="px-3 py-3 font-semibold">Role</th>
+                            <th class="px-3 py-3 font-semibold">Branch</th>
                             <th class="px-3 py-3 font-semibold">Status</th>
                             <th class="px-3 py-3 font-semibold">Last login</th>
                             <th class="px-3 py-3 text-right font-semibold"></th>
@@ -51,6 +67,7 @@
                                 <td class="px-3 py-3">
                                     <x-ui.status-badge status="role" :label="ucfirst(str_replace('_', ' ', $user->role))" />
                                 </td>
+                                <td class="px-3 py-3 text-gray-500 dark:text-gray-400">{{ $user->branch?->name ?? '—' }}</td>
                                 <td class="px-3 py-3">
                                     <x-ui.status-badge :status="$user->is_active ? 'active' : 'inactive'" :label="$user->is_active ? 'Active' : 'Inactive'" />
                                 </td>

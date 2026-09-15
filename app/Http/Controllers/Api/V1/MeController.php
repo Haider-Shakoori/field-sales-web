@@ -13,7 +13,7 @@ class MeController extends Controller
     public function show(): JsonResponse
     {
         $user = request()->user();
-        $user->load('tenant');
+        $user->load(['tenant', 'branch']);
 
         return ApiResponse::success([
             'user' => new UserResource($user),

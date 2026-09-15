@@ -1,6 +1,6 @@
 # Field Sales SaaS — Development Roadmap
 
-> **Status:** Batch 1 (Foundation & Tenancy) **COMPLETE**. Batch 2+ planning only.
+> **Status:** Batch 1 (Foundation & Tenancy) and **Batch 2 (Roles, Permissions & User Management)** **COMPLETE**. Batch 3+ planning only.
 > **Stack:** Laravel 13 · PHP 8.5 · MySQL 8 · Sanctum · Blade + Tailwind + Alpine admin panel · Flutter Android app (`field-sales-mobile`, created in **Batch 6**)
 
 > **Dual-repository scope:** From Batch 6 onward, relevant implementation batches may modify BOTH separate repositories:
@@ -85,6 +85,24 @@ Multi-tenant foundation working with authentication end-to-end. ✅
 
 **Goal:** Implement role-based access control, permission system, and user management CRUD.
 
+> **Status: ✅ COMPLETE** — Role management CRUD + permission matrix UI, user CRUD with tenant-safe role/branch assignment, audit logging + UI, and targeted security tests have all been delivered. See the Batch 2 delivery report for full details.
+
+### Architectural deviations (documented)
+
+Two schema additions were required beyond Batch 1's design and are documented here as intentional deviations:
+
+1. **`roles.tenant_id`** (`database/migrations/2026_09_15_164625_add_tenant_id_to_roles_table.php`): nullable FK to `tenants.id`. `NULL` = protected *system* roles shared across all tenants (`super_admin`, `owner`, `sales_manager`, `salesman`, `accountant`); a non-null value = a tenant's *custom* role, visible/assignable only inside that tenant. Company admins can create/edit/delete only their own tenant's custom roles; system roles are view-only (marked **Protected** in the UI).
+2. **`users.branch_id`** (`database/migrations/2026_09_15_164626_add_branch_id_to_users_table.php`): nullable FK to `branches.id`, matching the existing API `user` object contract (`branch_id`). Branch/role inputs are validated tenant-safe (closure + `Rule::exists` with `tenant_id` scoping).
+
+Additional behavior introduced:
+
+- `config('tenancy.sensitive_permissions')` = `['users:manage', 'roles:manage', 'settings:manage']` require an Alpine confirmation modal when granted to a custom role.
+- `config('tenancy.platform_permissions')` = `['tenants:manage']` can never be granted to a company custom role (super admin only).
+- Company custom-role names are lowercase underscores (`/^[a-z][a-z0-9_]*$/`), must not shadow a system role, and are unique per tenant.
+- Inactive users are rejected at login; a user cannot change their own role; the last active `owner` of a tenant cannot be deactivated or demoted.
+- `RoleController::destroy` refuses to delete any role that still has users (`Role::userCount()`).
+- Audit events are recorded for role and permission changes (`role.created`, `role.updated`, `role.permissions.changed`, `role.deleted`) and user changes (`user.created`, `user.updated`, `user.role.changed`, `user.branch.changed`, `user.deactivated`, `user.role.deactivated`) and surfaced via `GET /audit`.
+
 ### Scope
 
 - Role and Permission models
@@ -96,26 +114,30 @@ Multi-tenant foundation working with authentication end-to-end. ✅
 - Branch assignment for users
 - Audit logging foundation
 
+> **Delivered:** RBAC models (Role, Permission, ModelHasRole) from Batch 1 reused as planned — no duplicate RBAC was introduced. Batch 2 focused on role management CRUD + permission matrix, tenant-safe user CRUD, and the audit foundation.
+
 ### Dependencies
 
 - Batch 1
 
 ### Files / Modules
 
-- `app/Domains/Identity/` — Roles, Permissions, Policies
-- `app/Http/Requests/` — User requests
-- `app/Http/Controllers/` — `UserController`
-- `database/migrations/` — Roles, permissions tables
+- `app/Http/Requests/` — `StoreUserRequest`, `UpdateUserRequest`, `StoreRoleRequest`, `UpdateRoleRequest`
+- `app/Http/Controllers/` — `UserController`, `RoleController`, `AuditLogController`
+- `app/Policies/` — `RolePolicy`, `UserPolicy`
+- `database/migrations/` — `add_tenant_id_to_roles_table`, `add_branch_id_to_users_table` (deviations)
+- `resources/views/` — `pages/users/*`, `pages/settings/roles/*`, `components/ui/permission-matrix`, `pages/audit/index`
 
 ### Verification
 
-- Can create roles and assign permissions
-- Users can only access permitted resources
-- Audit logs created for user changes
+- Can create roles and assign permissions ✅
+- Users can only access permitted resources ✅
+- Audit logs created for user changes ✅
+- 47 feature tests passing (`UserManagementTest`, `RoleManagementTest`, `PageRenderTest` + existing Batch 1 suites) ✅
 
 ### Completion Criteria
 
-RBAC functional with user management.
+RBAC functional with user management. ✅
 
 ---
 

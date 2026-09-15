@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -45,7 +46,16 @@ Route::middleware('auth')->group(function () {
 
     Route::get('settings/company', [CompanySettingsController::class, 'edit'])->name('settings.company.edit');
     Route::put('settings/company', [CompanySettingsController::class, 'update'])->name('settings.company.update');
-    Route::get('settings/roles', [RoleController::class, 'index'])->name('settings.roles.index');
 
-    Route::get('platform', [PlatformController::class, 'index'])->name('platform.index');
+    Route::get('settings/roles', [RoleController::class, 'index'])->name('settings.roles.index');
+    Route::get('settings/roles/create', [RoleController::class, 'create'])->name('settings.roles.create');
+    Route::post('settings/roles', [RoleController::class, 'store'])->name('settings.roles.store');
+    Route::get('settings/roles/{role}', [RoleController::class, 'show'])->name('settings.roles.show');
+    Route::get('settings/roles/{role}/edit', [RoleController::class, 'edit'])->name('settings.roles.edit');
+    Route::put('settings/roles/{role}', [RoleController::class, 'update'])->name('settings.roles.update');
+    Route::delete('settings/roles/{role}', [RoleController::class, 'destroy'])->name('settings.roles.destroy');
+
+    Route::get('audit', [AuditLogController::class, 'index'])->name('audit.index');
+
+    Route::get('platform', [PlatformController::class, 'index'])->name('platform.index')->middleware('can:tenants:manage');
 });

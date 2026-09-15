@@ -31,6 +31,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Platform-Only Permissions
+    |--------------------------------------------------------------------------
+    |
+    | Permissions that may only be assigned by a platform super admin. Company
+    | custom roles cannot grant these, and they are hidden from the permission
+    | matrix shown to company users.
+    |
+    */
+    'platform_permissions' => [
+        'tenants:manage',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sensitive Permissions
+    |--------------------------------------------------------------------------
+    |
+    | Permission toggles that require an explicit confirmation in the UI
+    | before they are saved, due to their security impact.
+    |
+    */
+    'sensitive_permissions' => [
+        'users:manage',
+        'roles:manage',
+        'settings:manage',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Company Roles
     |--------------------------------------------------------------------------
     |

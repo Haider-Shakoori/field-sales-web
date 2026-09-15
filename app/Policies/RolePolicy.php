@@ -14,12 +14,30 @@ class RolePolicy
 
     public function view(User $user, Role $role): bool
     {
-        return $user->hasPermission('roles:view') || $user->hasPermission('roles:manage');
+        if (! ($user->hasPermission('roles:view') || $user->hasPermission('roles:manage'))) {
+            return false;
+        }
+
+        return $role->isSystem() || $role->isOwnedBy($user->tenant_id);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->hasPermission('roles:manage');
     }
 
     public function update(User $user, Role $role): bool
     {
-        return $user->isSuperAdmin() || $user->hasPermission('roles:manage');
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        return $user->hasPermission('roles:manage') && $role->isOwnedBy($user->tenant_id);
+    }
+
+    public function delete(User $user, Role $role): bool
+    {
+        return $this->update($user, $role);
     }
 
     public function assign(User $user): bool

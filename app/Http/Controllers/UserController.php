@@ -2,21 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\UpdateUserRequest;
+use App\Models\Branch;
+use App\Models\Role;
 use App\Models\User;
 use App\Support\Audit\AuditLogger;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
 class UserController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('viewAny', User::class);
 
-        $query = User::query()->with('tenant');
+        $query = User::query()->with(['tenant', 'branch']);
 
         if (TenantContext::hasContext()) {
             $query->where('tenant_id', TenantContext::currentId());
@@ -24,35 +27,49 @@ class UserController extends Controller
             $query->whereNull('tenant_id');
         }
 
-        $users = $query->orderBy('name')->paginate(20);
+        if ($search = $request->string('search')->trim()->toString()) {
+            $query->where(fn ($q) => $q
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%"));
+        }
 
-        return view('pages.users.index', compact('users'));
+        if ($role = $request->string('role')->toString()) {
+            $query->where('role', $role);
+        }
+
+        if ($branch = $request->string('branch')->toString()) {
+            $query->where('branch_id', $branch);
+        }
+
+        if ($status = $request->string('status')->toString()) {
+            $query->where('is_active', $status === 'active');
+        }
+
+        $users = $query->orderBy('name')->paginate(20)->withQueryString();
+
+        $roles = $this->assignableRoles();
+        $branches = TenantContext::hasContext() ? Branch::orderBy('name')->get() : collect();
+
+        return view('pages.users.index', compact('users', 'roles', 'branches'));
     }
 
     public function create(): View
     {
         $this->authorize('create', User::class);
 
-        $roles = $this->companyRoles();
+        $roles = $this->assignableRoles();
+        $branches = Branch::orderBy('name')->get();
 
-        return view('pages.users.create', compact('roles'));
+        return view('pages.users.create', compact('roles', 'branches'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreUserRequest $request): RedirectResponse
     {
-        $this->authorize('create', User::class);
-
         $tenantId = TenantContext::currentId();
 
         abort_if($tenantId === null, 403, 'A tenant context is required to create users.');
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:50'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'in:'.implode(',', array_keys(config('tenancy.roles')))],
-        ]);
+        $data = $request->validated();
 
         $user = User::create([
             'name' => $data['name'],
@@ -60,6 +77,7 @@ class UserController extends Controller
             'phone' => $data['phone'] ?? null,
             'password' => $data['password'],
             'tenant_id' => $tenantId,
+            'branch_id' => $data['branch_id'] ?? null,
             'is_active' => true,
         ]);
 
@@ -69,6 +87,7 @@ class UserController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'role' => $data['role'],
+            'branch_id' => $data['branch_id'] ?? null,
         ]);
 
         return redirect()->route('users.index')->with('status', 'User created.');
@@ -78,37 +97,57 @@ class UserController extends Controller
     {
         $this->authorize('view', $user);
 
-        return view('pages.users.show', compact('user'));
+        $user->load('branch');
+
+        $roles = $this->assignableRoles();
+        $branches = Branch::orderBy('name')->get();
+
+        return view('pages.users.show', compact('user', 'roles', 'branches'));
     }
 
-    public function update(Request $request, User $user): RedirectResponse
+    public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
-        $this->authorize('update', $user);
-
         $tenantId = TenantContext::currentId();
 
         abort_if($tenantId === null || $user->tenant_id !== $tenantId, 403);
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'phone' => ['nullable', 'string', 'max:50'],
-            'role' => ['required', 'in:'.implode(',', array_keys(config('tenancy.roles')))],
-        ]);
+        $data = $request->validated();
+
+        $oldRole = $user->role;
+        $oldBranch = $user->branch_id;
 
         $user->fill([
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
-        ])->save();
+            'branch_id' => $data['branch_id'] ?? null,
+        ]);
+
+        if ($data['password'] ?? null) {
+            $user->password = $data['password'];
+        }
+
+        $user->save();
 
         if (! $user->hasRole($data['role'])) {
             $user->assignRole($data['role'], $tenantId);
+
+            AuditLogger::log('user.role.changed', $user, ['role' => $oldRole], ['role' => $data['role']]);
         }
 
-        AuditLogger::log('user.updated', $user, [], $this->trackedChanges($user, $data));
+        if ($oldBranch !== ($data['branch_id'] ?? null)) {
+            AuditLogger::log('user.branch.changed', $user, ['branch_id' => $oldBranch], ['branch_id' => $data['branch_id'] ?? null]);
+        }
 
-        return back()->with('status', 'User updated.');
+        AuditLogger::log('user.updated', $user, [], [
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => $user->role,
+            'branch_id' => $user->branch_id,
+        ]);
+
+        return redirect()->route('users.show', $user)->with('status', 'User updated.');
     }
 
     public function deactivate(User $user): RedirectResponse
@@ -127,26 +166,21 @@ class UserController extends Controller
     }
 
     /**
-     * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
-     */
-    private function trackedChanges(User $user, array $data): array
-    {
-        return [
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone' => $user->phone,
-            'role' => $data['role'],
-        ];
-    }
-
-    /**
-     * Available assignable roles.
+     * Roles assignable by the current user: company system roles plus custom
+     * roles owned by the tenant. Platform roles are excluded.
      *
      * @return array<string, string>
      */
-    private function companyRoles(): array
+    private function assignableRoles(): array
     {
-        return config('tenancy.roles');
+        $roles = collect(config('tenancy.roles'));
+
+        Role::query()
+            ->where('tenant_id', TenantContext::currentId())
+            ->orderBy('name')
+            ->get()
+            ->each(fn (Role $role) => $roles->put($role->name, ucfirst(str_replace('_', ' ', $role->name))));
+
+        return $roles->all();
     }
 }

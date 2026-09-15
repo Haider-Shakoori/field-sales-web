@@ -11,9 +11,10 @@
         'Company' => [
             ['label' => 'Company Settings', 'route' => 'settings.company.edit', 'icon' => 'settings', 'can' => 'settings:view'],
             ['label' => 'Roles & Permissions', 'route' => 'settings.roles.index', 'icon' => 'shield', 'can' => 'roles:view'],
+            ['label' => 'Audit Logs', 'route' => 'audit.index', 'icon' => 'clock', 'can' => 'audit:view'],
         ],
         'Platform' => [
-            ['label' => 'Platform Dashboard', 'route' => 'platform.index', 'icon' => 'platform', 'can' => null],
+            ['label' => 'Platform Dashboard', 'route' => 'platform.index', 'icon' => 'platform', 'can' => 'tenants:manage'],
         ],
     ];
 @endphp

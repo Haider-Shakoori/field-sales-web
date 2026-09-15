@@ -17,7 +17,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'phone', 'role', 'is_active', 'tenant_id'])]
+#[Fillable(['name', 'email', 'password', 'phone', 'role', 'is_active', 'tenant_id', 'branch_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -45,6 +45,11 @@ class User extends Authenticatable
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class, 'tenant_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function modelRoles(): BelongsToMany
@@ -109,8 +114,12 @@ class User extends Authenticatable
      */
     public function assignRole(Role|string $role, ?int $tenantId = null): void
     {
-        $role = $role instanceof Role ? $role : Role::where('name', $role)->firstOrFail();
         $tenantId ??= $this->tenant_id;
+
+        if (is_string($role)) {
+            $role = Role::resolveAssignable($role, $tenantId)
+                ?? throw new \InvalidArgumentException("Role [{$role}] is not assignable in this tenant.");
+        }
 
         DB::transaction(function () use ($role, $tenantId): void {
             $this->modelRoles()->detach();

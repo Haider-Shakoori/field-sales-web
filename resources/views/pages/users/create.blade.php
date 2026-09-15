@@ -28,6 +28,11 @@
                              :value="old('role')"
                              :options="$roles"
                              required />
+
+                <x-ui.select name="branch_id"
+                             label="Branch"
+                             :value="old('branch_id')"
+                             :options="$branches->mapWithKeys(fn ($b) => [$b->id => $b->name])->prepend('No branch', '')->all()" />
             </div>
 
             <x-slot:footer>

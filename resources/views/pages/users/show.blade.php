@@ -29,6 +29,10 @@
                         <dd><x-ui.status-badge status="role" :label="ucfirst(str_replace('_', ' ', $user->role))" /></dd>
                     </div>
                     <div class="flex justify-between">
+                        <dt class="text-gray-400 dark:text-gray-500">Branch</dt>
+                        <dd class="text-gray-700 dark:text-gray-300">{{ $user->branch?->name ?? '—' }}</dd>
+                    </div>
+                    <div class="flex justify-between">
                         <dt class="text-gray-400 dark:text-gray-500">Status</dt>
                         <dd>
                             <x-ui.status-badge :status="$user->is_active ? 'active' : 'inactive'" :label="$user->is_active ? 'Active' : 'Inactive'" />
@@ -59,11 +63,21 @@
                                 <x-ui.input name="email" type="email" label="Email address" :value="old('email', $user->email)" required />
                                 <x-ui.input name="phone" label="Phone" :value="old('phone', $user->phone)" />
                             </div>
-                            <x-ui.select name="role"
-                                         label="Role"
-                                         :value="old('role', $user->role)"
-                                         :options="\config('tenancy.roles')"
-                                         required />
+                            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                                <x-ui.select name="role"
+                                             label="Role"
+                                             :value="old('role', $user->role)"
+                                             :options="$roles"
+                                             required />
+                                <x-ui.select name="branch_id"
+                                             label="Branch"
+                                             :value="old('branch_id', $user->branch_id)"
+                                             :options="$branches->mapWithKeys(fn ($b) => [$b->id => $b->name])->prepend('No branch', '')->all()" />
+                            </div>
+                            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                                <x-ui.input name="password" type="password" label="New password (optional)" autocomplete="new-password" placeholder="Leave blank to keep current" />
+                                <x-ui.input name="password_confirmation" type="password" label="Confirm new password" autocomplete="new-password" placeholder="••••••••" />
+                            </div>
                         </div>
 
                         <x-slot:footer>
