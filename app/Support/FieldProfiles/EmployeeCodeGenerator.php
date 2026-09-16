@@ -11,19 +11,26 @@ final class EmployeeCodeGenerator
 
     private const PREFIX_SUPERVISOR = 'SUP-';
 
+    private const PREFIX_CUSTOMER = 'CUS-';
+
     private const PADDING = 6;
 
     public static function nextSalesmanCode(int $tenantId, ?string $manual = null): string
     {
-        return self::generate(self::PREFIX_SALESMAN, 'salesmen', $tenantId, $manual);
+        return self::generate(self::PREFIX_SALESMAN, 'salesmen', 'employee_code', $tenantId, $manual);
     }
 
     public static function nextSupervisorCode(int $tenantId, ?string $manual = null): string
     {
-        return self::generate(self::PREFIX_SUPERVISOR, 'supervisors', $tenantId, $manual);
+        return self::generate(self::PREFIX_SUPERVISOR, 'supervisors', 'employee_code', $tenantId, $manual);
     }
 
-    private static function generate(string $prefix, string $table, int $tenantId, ?string $manual): string
+    public static function nextCustomerCode(int $tenantId, ?string $manual = null): string
+    {
+        return self::generate(self::PREFIX_CUSTOMER, 'customers', 'code', $tenantId, $manual);
+    }
+
+    private static function generate(string $prefix, string $table, string $column, int $tenantId, ?string $manual): string
     {
         $manual = $manual !== null ? trim($manual) : null;
 
@@ -39,8 +46,8 @@ final class EmployeeCodeGenerator
 
             $max = DB::table($table)
                 ->where('tenant_id', $tenantId)
-                ->where('employee_code', 'like', $prefix.'%')
-                ->max('employee_code');
+                ->where($column, 'like', $prefix.'%')
+                ->max($column);
 
             $seq = 1;
             if ($max !== null) {
@@ -55,7 +62,7 @@ final class EmployeeCodeGenerator
 
                 $exists = DB::table($table)
                     ->where('tenant_id', $tenantId)
-                    ->where('employee_code', $code)
+                    ->where($column, $code)
                     ->exists();
 
                 if (! $exists) {
@@ -63,7 +70,7 @@ final class EmployeeCodeGenerator
                 }
             }
 
-            throw new \RuntimeException('Unable to generate unique employee code after 10000 attempts.');
+            throw new \RuntimeException('Unable to generate unique code after 10000 attempts.');
         } finally {
             $lock->release();
         }

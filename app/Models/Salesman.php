@@ -60,4 +60,35 @@ class Salesman extends Model
     {
         return $this->hasMany(Device::class);
     }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(SalesmanAssignment::class)->orderByDesc('effective_from');
+    }
+
+    public function currentAssignment()
+    {
+        return $this->hasOne(SalesmanAssignment::class)
+            ->where(function ($query) {
+                $query->whereNull('effective_to')
+                    ->orWhere('effective_to', '>=', now()->startOfDay());
+            })
+            ->where('effective_from', '<=', now()->endOfDay())
+            ->latest('effective_from');
+    }
+
+    public function currentTerritory()
+    {
+        return $this->currentAssignment()->with('territory')->first()?->territory;
+    }
+
+    public function currentRoute()
+    {
+        return $this->currentAssignment()->with('route')->first()?->route;
+    }
+
+    public function currentSupervisor()
+    {
+        return $this->currentAssignment()->with('supervisor')->first()?->supervisor;
+    }
 }

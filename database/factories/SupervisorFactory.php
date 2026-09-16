@@ -3,8 +3,10 @@
 namespace Database\Factories;
 
 use App\Models\Supervisor;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 class SupervisorFactory extends Factory
 {
@@ -13,7 +15,10 @@ class SupervisorFactory extends Factory
     public function definition(): array
     {
         return [
-            'employee_code' => 'SUP-'.str()->random(6),
+            'tenant_id' => Tenant::factory(),
+            'uuid' => Str::uuid(),
+            'user_id' => User::factory(),
+            'employee_code' => 'SUP-'.Str::random(6),
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'phone' => fake()->phoneNumber(),
@@ -39,6 +44,13 @@ class SupervisorFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'user_id' => $user?->id ?? User::factory(),
+        ]);
+    }
+
+    public function forUser(int $userId): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'user_id' => $userId,
         ]);
     }
 }

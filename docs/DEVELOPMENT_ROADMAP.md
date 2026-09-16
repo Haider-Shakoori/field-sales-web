@@ -1,6 +1,6 @@
 # Field Sales SaaS — Development Roadmap
 
-> **Status:** Batch 1 (Foundation & Tenancy) and **Batch 2 (Roles, Permissions & User Management)** **COMPLETE**. Batch 3+ planning only.
+> **Status:** Batch 1 (Foundation & Tenancy), **Batch 2 (Roles, Permissions & User Management)** and **Batch 4 (Customers, Territories & Routes)** **COMPLETE**. Batches 3 and 5+ planning only.
 > **Stack:** Laravel 13 · PHP 8.5 · MySQL 8 · Sanctum · Blade + Tailwind + Alpine admin panel · Flutter Android app (`field-sales-mobile`, created in **Batch 6**)
 
 > **Dual-repository scope:** From Batch 6 onward, relevant implementation batches may modify BOTH separate repositories:
@@ -183,6 +183,8 @@ Sales team and device management complete.
 ## Batch 4 — Customers, Territories & Routes
 
 **Goal:** Build customer master data and territory/route structure.
+
+> **Status: ✅ COMPLETE** — customer master data, territories, routes/route-customers, historical salesman & supervisor assignment windows, customer location history, and the customer/route/territory REST API foundation are all delivered. Verification: **118 tests / 332 assertions passing**, Pint clean, `git diff --check` clean. Batch 4 work remains uncommitted pending this documentation pass.
 
 ### Scope
 

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Supervisor extends Model
@@ -46,5 +47,21 @@ class Supervisor extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class, 'tenant_id');
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(SupervisorAssignment::class)->orderByDesc('effective_from');
+    }
+
+    public function currentAssignments()
+    {
+        return $this->hasMany(SupervisorAssignment::class)
+            ->where(function ($query) {
+                $query->whereNull('effective_to')
+                    ->orWhere('effective_to', '>=', now()->startOfDay());
+            })
+            ->where('effective_from', '<=', now()->endOfDay())
+            ->latest('effective_from');
     }
 }

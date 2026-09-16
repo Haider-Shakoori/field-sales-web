@@ -44,4 +44,11 @@ class SalesmanFactory extends Factory
             'user_id' => $user?->id ?? User::factory(),
         ]);
     }
+
+    public function forUser(int $userId): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'user_id' => $userId,
+        ]);
+    }
 }

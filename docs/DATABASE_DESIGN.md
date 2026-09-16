@@ -1,10 +1,29 @@
 # Database Design — Field Sales SaaS Platform
 
-> **Status:** Planning Document — No migrations created yet
+> **Status:** Implemented for Batches 1–4; schema for Batch 5 onward is still planned
 > **Database:** MySQL 8
 > **Framework:** Laravel 13
 > **Multi-tenancy:** Shared database with `tenant_id` column
 > **Mobile strategy:** Offline-first with UUID-based entity creation
+
+---
+
+## Implementation Status (Batches 1–4)
+
+Implemented and verified by migrations and tests:
+
+- `users` (incl. `branch_id`), `roles`, `tenant`/`branch` reference data
+- `customer_categories`, `customers`, `customer_location_history`
+- `territories`, `routes`, `route_customers`
+- `salesman_assignments`, `supervisor_assignments`
+
+### Historical assignment semantics
+
+- `salesman_assignments.effective_from` / `effective_to` and `supervisor_assignments.effective_from` / `effective_to` define **calendar-day** assignment windows (a `date` field; pre-allocated dates are treated as covering the whole day).
+- A `NULL` `effective_to` means the assignment is **currently active / open-ended**.
+- "Active today" queries evaluate the **full day boundary**: `effective_from <= end of today` and (`effective_to IS NULL` OR `effective_to >= start of today`), so same-day assignments are active.
+- `users.branch_id` is the **current / default / primary branch** only (nullable FK, `ON DELETE SET NULL`). Historical geography lives in the assignment tables.
+- `customers` define `assigned_salesman_id`, `territory_id`, `route_id` as current/effective values; the assignment tables hold the historical truth over time.
 
 ---
 
@@ -150,6 +169,7 @@ System users — salesmen, supervisors, admins, etc.
 | `password` | varchar(255) | NO | — | Hashed |
 | `phone` | varchar(50) | YES | NULL | |
 | `role` | varchar(50) | NO | — | super_admin, admin, manager, salesman, supervisor |
+| `branch_id` | bigint unsigned | YES | NULL | Current/default/primary branch — FK → `branches.id`. Historical geography lives in the assignment tables |
 | `is_active` | tinyint(1) | NO | 1 | |
 | `last_login_at` | datetime | YES | NULL | |
 | `created_at` | datetime | NO | CURRENT_TIMESTAMP | |
@@ -163,12 +183,14 @@ System users — salesmen, supervisors, admins, etc.
 | `users_email_unique` | `email` | UNIQUE |
 | `users_tenant_id` | `tenant_id` | INDEX |
 | `users_role` | `role` | INDEX |
+| `users_branch_id` | `branch_id` | INDEX |
 
 **Foreign Keys:**
 
 | Column | References |
 |--------|-----------|
 | `tenant_id` | `tenants.id` ON DELETE SET NULL |
+| `branch_id` | `branches.id` ON DELETE SET NULL |
 
 ---
 
@@ -398,7 +420,7 @@ Field supervisors who manage salesmen.
 
 #### `salesman_assignments`
 
-Historical record of salesman territory/route assignments.
+Historical record of salesman territory/route assignments. **Implemented (Batch 4).** Windows are calendar-day based; `effective_to NULL` = currently active; active queries evaluate the full day boundary (see Historical assignment semantics above).
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -437,7 +459,7 @@ Historical record of salesman territory/route assignments.
 
 #### `supervisor_assignments`
 
-Historical record of supervisor branch/territory assignments.
+Historical record of supervisor branch/territory assignments. **Implemented (Batch 4).** Same calendar-day window semantics as `salesman_assignments`; `effective_to NULL` = currently active.
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -498,7 +520,7 @@ Retail / business customers visited by salesmen.
 | `route_id` | bigint unsigned | YES | NULL | FK → `routes.id` |
 | `credit_limit` | decimal(12,2) | NO | 0.00 | |
 | `outstanding_balance` | decimal(12,2) | NO | 0.00 | Running balance |
-| `price_list_id` | bigint unsigned | YES | NULL | FK → `price_lists.id` |
+| `price_list_id` | bigint unsigned | YES | NULL | **Staged for Batch 5** — column exists (nullable, indexed) but no FK / PriceList model yet |
 | `visit_frequency` | varchar(50) | YES | NULL | daily, weekly, biweekly, monthly |
 | `is_active` | tinyint(1) | NO | 1 | |
 | `notes` | text | YES | NULL | |
@@ -526,7 +548,8 @@ Retail / business customers visited by salesmen.
 | `assigned_salesman_id` | `salesmen.id` ON DELETE SET NULL |
 | `territory_id` | `territories.id` ON DELETE CASCADE |
 | `route_id` | `routes.id` ON DELETE SET NULL |
-| `price_list_id` | `price_lists.id` ON DELETE SET NULL |
+
+*(`customers.price_list_id` has no foreign key yet — deferred to Batch 5 when `price_lists` is created.)*
 
 ---
 

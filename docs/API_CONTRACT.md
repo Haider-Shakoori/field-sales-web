@@ -1017,15 +1017,17 @@ GET /api/v1/gps/history?date=2025-01-15&user_id=5
 
 ### 8.7 Customers
 
+> **Batch 4 implemented:** customer CRUD below. The visit/order/balance sub-resources are **planned** (Batch 8/9/10) and not yet implemented.
+
 | Method | Endpoint                              | Description                    |
 |--------|---------------------------------------|--------------------------------|
 | GET    | `/api/v1/customers`                   | List customers                 |
 | GET    | `/api/v1/customers/{id}`              | Get customer details           |
 | POST   | `/api/v1/customers`                   | Create customer                |
 | PUT    | `/api/v1/customers/{id}`              | Update customer                |
-| GET    | `/api/v1/customers/{id}/visits`       | Get customer visit history     |
-| GET    | `/api/v1/customers/{id}/orders`       | Get customer orders            |
-| GET    | `/api/v1/customers/{id}/balance`      | Get customer balance           |
+| GET    | `/api/v1/customers/{id}/visits`       | Get customer visit history *(planned — Batch 8)* |
+| GET    | `/api/v1/customers/{id}/orders`       | Get customer orders *(planned — Batch 9)* |
+| GET    | `/api/v1/customers/{id}/balance`      | Get customer balance *(planned — Batch 10)* |
 
 **POST /api/v1/customers — Request:**
 
@@ -1086,6 +1088,12 @@ GET /api/v1/gps/history?date=2025-01-15&user_id=5
 ```
 GET /api/v1/customers?filter[route_id]=3&filter[is_active]=true&sort=-created_at&page=1&per_page=25
 ```
+
+> **Batch 4 verification notes:**
+> - `offline_uuid` maps to the customer `uuid` column. Customer creation is **idempotent per tenant**: if a customer with the same `uuid` exists in the current tenant, the existing customer is returned (HTTP 200) instead of creating a duplicate. `uuid` uniqueness is enforced per tenant, so the same client UUID created in different tenants yields separate customers (cross-tenant isolation).
+> - Field mapping: API `name` ↔ DB `business_name`; API `current_balance` ↔ DB `outstanding_balance`. The resource also exposes `business_name` / `outstanding_balance` verbatim.
+> - `price_list_id` is **deferred to Batch 5** (no `PriceList` model yet) and is currently not accepted/persisted.
+> - Territory/route current values on the customer (`territory_id`, `route_id`, `assigned_salesman_id`) reflect current scope; historical assignment truth lives in `salesman_assignments` / `supervisor_assignments`.
 
 **Response 200:**
 
@@ -1184,14 +1192,68 @@ GET /api/v1/customers?filter[route_id]=3&filter[is_active]=true&sort=-created_at
 
 ---
 
-### 8.8 Routes
+### 8.8 Territories
+
+> **Batch 4 implemented:** territory CRUD below.
+
+| Method | Endpoint                              | Description                    |
+|--------|---------------------------------------|--------------------------------|
+| GET    | `/api/v1/territories`                 | List territories              |
+| GET    | `/api/v1/territories/{id}`            | Get territory details         |
+| POST   | `/api/v1/territories`                 | Create territory              |
+| PUT    | `/api/v1/territories/{id}`            | Update territory              |
+
+**GET /api/v1/territories — Response 200:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "uuid": "a1b2c3d4-0001-0001-0001-000000000001",
+      "code": "KBL-01",
+      "name": "Kabul Central",
+      "description": "Central Kabul coverage area",
+      "branch_id": 1,
+      "branch": {
+        "id": 1,
+        "name": "Kabul Branch"
+      },
+      "latitude": 34.5553,
+      "longitude": 69.2075,
+      "radius_km": 10.0,
+      "is_active": true,
+      "routes_count": 2,
+      "customers_count": 35,
+      "created_at": "2024-06-01T00:00:00Z",
+      "updated_at": "2025-01-10T00:00:00Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 25,
+    "total": 3,
+    "last_page": 1
+  }
+}
+```
+
+---
+
+### 8.9 Routes
+
+> **Batch 4 implemented:** route CRUD and route-customer listing/assignment below. `GET /api/v1/routes/{id}/visits` is **planned** (Batch 8) and not yet implemented.
 
 | Method | Endpoint                              | Description                    |
 |--------|---------------------------------------|--------------------------------|
 | GET    | `/api/v1/routes`                      | List routes                    |
 | GET    | `/api/v1/routes/{id}`                 | Get route details              |
-| GET    | `/api/v1/routes/{id}/customers`       | Get route customers            |
-| GET    | `/api/v1/routes/{id}/visits`          | Get route visits               |
+| GET    | `/api/v1/routes/{id}/customers`       | Get route customers, ordered by `visit_order` |
+| POST   | `/api/v1/routes`                      | Create route                   |
+| PUT    | `/api/v1/routes/{id}`                 | Update route                   |
+| POST   | `/api/v1/admin/routes/{id}/customers` | Add/reorder customer on a route (admin) |
+| GET    | `/api/v1/routes/{id}/visits`          | Get route visits *(planned — Batch 8)* |
 
 **GET /api/v1/routes — Response 200:**
 
@@ -1296,7 +1358,7 @@ GET /api/v1/customers?filter[route_id]=3&filter[is_active]=true&sort=-created_at
 
 ---
 
-### 8.9 Visits
+### 8.10 Visits
 
 | Method | Endpoint                         | Description                 |
 |--------|----------------------------------|-----------------------------|
@@ -1470,7 +1532,7 @@ longitude: 69.2075
 
 ---
 
-### 8.10 Orders
+### 8.11 Orders
 
 | Method | Endpoint                          | Description              |
 |--------|-----------------------------------|--------------------------|
@@ -1658,7 +1720,7 @@ GET /api/v1/orders?filter[status]=submitted&filter[date_from]=2025-01-01&filter[
 
 ---
 
-### 8.11 Collections
+### 8.12 Collections
 
 | Method | Endpoint                         | Description             |
 |--------|----------------------------------|-------------------------|
@@ -1754,7 +1816,7 @@ GET /api/v1/collections?filter[date_from]=2025-01-01&filter[date_to]=2025-01-31&
 
 ---
 
-### 8.12 Targets
+### 8.13 Targets
 
 | Method | Endpoint                       | Description              |
 |--------|--------------------------------|--------------------------|
@@ -1847,7 +1909,7 @@ GET /api/v1/collections?filter[date_from]=2025-01-01&filter[date_to]=2025-01-31&
 
 ---
 
-### 8.13 Expenses
+### 8.14 Expenses
 
 | Method | Endpoint                         | Description               |
 |--------|----------------------------------|---------------------------|
@@ -1984,7 +2046,7 @@ GET /api/v1/expenses?filter[status]=pending&filter[date_from]=2025-01-01&filter[
 
 ---
 
-### 8.14 Products
+### 8.15 Products
 
 | Method | Endpoint                       | Description              |
 |--------|--------------------------------|--------------------------|
@@ -2120,7 +2182,7 @@ GET /api/v1/products?filter[category]=electronics&filter[is_active]=true&sort=na
 
 ---
 
-### 8.15 Notifications
+### 8.16 Notifications
 
 | Method | Endpoint                              | Description              |
 |--------|---------------------------------------|--------------------------|
@@ -2195,7 +2257,7 @@ GET /api/v1/products?filter[category]=electronics&filter[is_active]=true&sort=na
 
 ---
 
-### 8.16 Dashboard (Admin Web)
+### 8.17 Dashboard (Admin Web)
 
 | Method | Endpoint                                  | Description                    |
 |--------|-------------------------------------------|--------------------------------|

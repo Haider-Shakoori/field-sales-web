@@ -23,6 +23,11 @@ class RbacSeeder extends Seeder
             'salesmen:view', 'salesmen:create', 'salesmen:update', 'salesmen:deactivate',
             'supervisors:view', 'supervisors:create', 'supervisors:update', 'supervisors:deactivate',
             'devices:view', 'devices:revoke',
+            'customers:view', 'customers:create', 'customers:update', 'customers:deactivate',
+            'customer_categories:view', 'customer_categories:create', 'customer_categories:update', 'customer_categories:deactivate',
+            'territories:view', 'territories:create', 'territories:update', 'territories:deactivate',
+            'routes:view', 'routes:create', 'routes:update', 'routes:deactivate',
+            'assignments:view', 'assignments:manage',
         ],
         'owner' => [
             'dashboard:view', 'users:view', 'users:manage', 'branches:view',
@@ -31,6 +36,11 @@ class RbacSeeder extends Seeder
             'salesmen:view', 'salesmen:create', 'salesmen:update', 'salesmen:deactivate',
             'supervisors:view', 'supervisors:create', 'supervisors:update', 'supervisors:deactivate',
             'devices:view', 'devices:revoke',
+            'customers:view', 'customers:create', 'customers:update', 'customers:deactivate',
+            'customer_categories:view', 'customer_categories:create', 'customer_categories:update', 'customer_categories:deactivate',
+            'territories:view', 'territories:create', 'territories:update', 'territories:deactivate',
+            'routes:view', 'routes:create', 'routes:update', 'routes:deactivate',
+            'assignments:view', 'assignments:manage',
         ],
         'company_admin' => [
             'dashboard:view', 'users:view', 'users:manage', 'branches:view',
@@ -38,20 +48,37 @@ class RbacSeeder extends Seeder
             'salesmen:view', 'salesmen:create', 'salesmen:update', 'salesmen:deactivate',
             'supervisors:view', 'supervisors:create', 'supervisors:update', 'supervisors:deactivate',
             'devices:view', 'devices:revoke',
+            'customers:view', 'customers:create', 'customers:update', 'customers:deactivate',
+            'customer_categories:view', 'customer_categories:create', 'customer_categories:update', 'customer_categories:deactivate',
+            'territories:view', 'territories:create', 'territories:update', 'territories:deactivate',
+            'routes:view', 'routes:create', 'routes:update', 'routes:deactivate',
+            'assignments:view', 'assignments:manage',
         ],
         'sales_manager' => [
             'dashboard:view', 'users:view', 'branches:view', 'roles:view',
             'salesmen:view', 'salesmen:update', 'supervisors:view', 'devices:view',
+            'customers:view', 'customers:create', 'customers:update',
+            'customer_categories:view',
+            'territories:view', 'territories:create', 'territories:update',
+            'routes:view', 'routes:create', 'routes:update',
+            'assignments:view',
         ],
         'supervisor' => [
             'dashboard:view', 'users:view', 'branches:view',
             'salesmen:view', 'devices:view',
+            'customers:view',
+            'territories:view',
+            'routes:view',
+            'assignments:view',
         ],
         'salesman' => [
             'dashboard:view',
+            'customers:view',
+            'routes:view',
         ],
         'accountant' => [
             'dashboard:view', 'settings:view', 'audit:view',
+            'customers:view',
         ],
         'warehouse_user' => [
             'dashboard:view', 'branches:view',
@@ -59,6 +86,9 @@ class RbacSeeder extends Seeder
         'auditor' => [
             'dashboard:view', 'users:view', 'branches:view', 'roles:view',
             'settings:view', 'audit:view',
+            'customers:view',
+            'territories:view',
+            'routes:view',
         ],
     ];
 

@@ -6,12 +6,18 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CompanySettingsController;
+use App\Http\Controllers\CustomerCategoryController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RouteController;
+use App\Http\Controllers\SalesmanAssignmentController;
 use App\Http\Controllers\SalesmanController;
+use App\Http\Controllers\SupervisorAssignmentController;
 use App\Http\Controllers\SupervisorController;
+use App\Http\Controllers\TerritoryController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,6 +60,24 @@ Route::middleware('auth')->group(function () {
     Route::put('supervisors/{supervisor}', [SupervisorController::class, 'update'])->name('supervisors.update');
     Route::delete('supervisors/{supervisor}/deactivate', [SupervisorController::class, 'deactivate'])->name('supervisors.deactivate');
 
+    // Salesman Assignments
+    Route::get('salesman-assignments', [SalesmanAssignmentController::class, 'index'])->name('salesman-assignments.index');
+    Route::get('salesman-assignments/create', [SalesmanAssignmentController::class, 'create'])->name('salesman-assignments.create');
+    Route::post('salesman-assignments', [SalesmanAssignmentController::class, 'store'])->name('salesman-assignments.store');
+    Route::get('salesman-assignments/{assignment}', [SalesmanAssignmentController::class, 'show'])->name('salesman-assignments.show');
+    Route::get('salesman-assignments/{assignment}/edit', [SalesmanAssignmentController::class, 'edit'])->name('salesman-assignments.edit');
+    Route::put('salesman-assignments/{assignment}', [SalesmanAssignmentController::class, 'update'])->name('salesman-assignments.update');
+    Route::delete('salesman-assignments/{assignment}', [SalesmanAssignmentController::class, 'destroy'])->name('salesman-assignments.destroy');
+
+    // Supervisor Assignments
+    Route::get('supervisor-assignments', [SupervisorAssignmentController::class, 'index'])->name('supervisor-assignments.index');
+    Route::get('supervisor-assignments/create', [SupervisorAssignmentController::class, 'create'])->name('supervisor-assignments.create');
+    Route::post('supervisor-assignments', [SupervisorAssignmentController::class, 'store'])->name('supervisor-assignments.store');
+    Route::get('supervisor-assignments/{assignment}', [SupervisorAssignmentController::class, 'show'])->name('supervisor-assignments.show');
+    Route::get('supervisor-assignments/{assignment}/edit', [SupervisorAssignmentController::class, 'edit'])->name('supervisor-assignments.edit');
+    Route::put('supervisor-assignments/{assignment}', [SupervisorAssignmentController::class, 'update'])->name('supervisor-assignments.update');
+    Route::delete('supervisor-assignments/{assignment}', [SupervisorAssignmentController::class, 'destroy'])->name('supervisor-assignments.destroy');
+
     Route::get('devices', [DeviceController::class, 'index'])->name('devices.index');
     Route::get('devices/{device}', [DeviceController::class, 'show'])->name('devices.show');
     Route::delete('devices/{device}/revoke', [DeviceController::class, 'revoke'])->name('devices.revoke');
@@ -64,6 +88,46 @@ Route::middleware('auth')->group(function () {
     Route::get('branches/{branch}', [BranchController::class, 'show'])->name('branches.show');
     Route::put('branches/{branch}', [BranchController::class, 'update'])->name('branches.update');
     Route::delete('branches/{branch}', [BranchController::class, 'destroy'])->name('branches.destroy');
+
+    // Customer Categories
+    Route::get('customer-categories', [CustomerCategoryController::class, 'index'])->name('customer-categories.index');
+    Route::get('customer-categories/create', [CustomerCategoryController::class, 'create'])->name('customer-categories.create');
+    Route::post('customer-categories', [CustomerCategoryController::class, 'store'])->name('customer-categories.store');
+    Route::get('customer-categories/{category}', [CustomerCategoryController::class, 'show'])->name('customer-categories.show');
+    Route::get('customer-categories/{category}/edit', [CustomerCategoryController::class, 'edit'])->name('customer-categories.edit');
+    Route::put('customer-categories/{category}', [CustomerCategoryController::class, 'update'])->name('customer-categories.update');
+    Route::delete('customer-categories/{category}', [CustomerCategoryController::class, 'destroy'])->name('customer-categories.destroy');
+    Route::delete('customer-categories/{category}/deactivate', [CustomerCategoryController::class, 'deactivate'])->name('customer-categories.deactivate');
+
+    // Territories
+    Route::get('territories', [TerritoryController::class, 'index'])->name('territories.index');
+    Route::get('territories/create', [TerritoryController::class, 'create'])->name('territories.create');
+    Route::post('territories', [TerritoryController::class, 'store'])->name('territories.store');
+    Route::get('territories/{territory}', [TerritoryController::class, 'show'])->name('territories.show');
+    Route::get('territories/{territory}/edit', [TerritoryController::class, 'edit'])->name('territories.edit');
+    Route::put('territories/{territory}', [TerritoryController::class, 'update'])->name('territories.update');
+    Route::delete('territories/{territory}/deactivate', [TerritoryController::class, 'deactivate'])->name('territories.deactivate');
+
+    // Routes
+    Route::get('routes', [RouteController::class, 'index'])->name('routes.index');
+    Route::get('routes/create', [RouteController::class, 'create'])->name('routes.create');
+    Route::post('routes', [RouteController::class, 'store'])->name('routes.store');
+    Route::get('routes/{route}', [RouteController::class, 'show'])->name('routes.show');
+    Route::get('routes/{route}/edit', [RouteController::class, 'edit'])->name('routes.edit');
+    Route::put('routes/{route}', [RouteController::class, 'update'])->name('routes.update');
+    Route::delete('routes/{route}/deactivate', [RouteController::class, 'deactivate'])->name('routes.deactivate');
+    Route::post('routes/{route}/customers', [RouteController::class, 'addCustomer'])->name('routes.customers.add');
+    Route::put('routes/{route}/customers/{route_customer}', [RouteController::class, 'updateCustomer'])->name('routes.customers.update');
+    Route::delete('routes/{route}/customers/{route_customer}', [RouteController::class, 'removeCustomer'])->name('routes.customers.remove');
+
+    // Customers
+    Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
+    Route::get('customers/create', [CustomerController::class, 'create'])->name('customers.create');
+    Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
+    Route::get('customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
+    Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');
+    Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+    Route::delete('customers/{customer}/deactivate', [CustomerController::class, 'deactivate'])->name('customers.deactivate');
 
     Route::get('settings/company', [CompanySettingsController::class, 'edit'])->name('settings.company.edit');
     Route::put('settings/company', [CompanySettingsController::class, 'update'])->name('settings.company.update');

@@ -1,7 +1,12 @@
 <?php
 
+use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\RouteController;
+use App\Http\Controllers\Api\V1\SalesmanAssignmentController;
+use App\Http\Controllers\Api\V1\SupervisorAssignmentController;
+use App\Http\Controllers\Api\V1\TerritoryController;
 use App\Http\Middleware\EnforceMinimumAppVersion;
 use App\Http\Middleware\EnsureActiveDevice;
 use App\Http\Middleware\InitializeTenancy;
@@ -29,5 +34,39 @@ Route::middleware(['auth:sanctum', InitializeTenancy::class])
                 Route::delete('devices/{device}', [DeviceController::class, 'revoke'])->name('devices.revoke');
 
                 Route::get('devices', [DeviceController::class, 'index'])->name('devices.index');
+
+                // Customers
+                Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
+                Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
+                Route::get('customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
+                Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+
+                // Territories
+                Route::get('territories', [TerritoryController::class, 'index'])->name('territories.index');
+                Route::post('territories', [TerritoryController::class, 'store'])->name('territories.store');
+                Route::get('territories/{territory}', [TerritoryController::class, 'show'])->name('territories.show');
+                Route::put('territories/{territory}', [TerritoryController::class, 'update'])->name('territories.update');
+
+                // Routes
+                Route::get('routes', [RouteController::class, 'index'])->name('routes.index');
+                Route::post('routes', [RouteController::class, 'store'])->name('routes.store');
+                Route::get('routes/{route}', [RouteController::class, 'show'])->name('routes.show');
+                Route::put('routes/{route}', [RouteController::class, 'update'])->name('routes.update');
+                Route::get('routes/{route}/customers', [RouteController::class, 'customers'])->name('routes.customers');
+                Route::post('admin/routes/{route}/customers', [RouteController::class, 'addCustomer'])->name('routes.customers.store');
+
+                // Salesman Assignments
+                Route::get('admin/salesman-assignments', [SalesmanAssignmentController::class, 'index'])->name('salesman-assignments.index');
+                Route::post('admin/salesman-assignments', [SalesmanAssignmentController::class, 'store'])->name('salesman-assignments.store');
+                Route::get('admin/salesman-assignments/{assignment}', [SalesmanAssignmentController::class, 'show'])->name('salesman-assignments.show');
+                Route::put('admin/salesman-assignments/{assignment}', [SalesmanAssignmentController::class, 'update'])->name('salesman-assignments.update');
+                Route::delete('admin/salesman-assignments/{assignment}', [SalesmanAssignmentController::class, 'destroy'])->name('salesman-assignments.destroy');
+
+                // Supervisor Assignments
+                Route::get('admin/supervisor-assignments', [SupervisorAssignmentController::class, 'index'])->name('supervisor-assignments.index');
+                Route::post('admin/supervisor-assignments', [SupervisorAssignmentController::class, 'store'])->name('supervisor-assignments.store');
+                Route::get('admin/supervisor-assignments/{assignment}', [SupervisorAssignmentController::class, 'show'])->name('supervisor-assignments.show');
+                Route::put('admin/supervisor-assignments/{assignment}', [SupervisorAssignmentController::class, 'update'])->name('supervisor-assignments.update');
+                Route::delete('admin/supervisor-assignments/{assignment}', [SupervisorAssignmentController::class, 'destroy'])->name('supervisor-assignments.destroy');
             });
     });
