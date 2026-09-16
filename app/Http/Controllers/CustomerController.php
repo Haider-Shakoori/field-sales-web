@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\CustomerCategory;
+use App\Models\PriceList;
 use App\Models\Route;
 use App\Models\Salesman;
 use App\Models\Territory;
@@ -136,12 +137,19 @@ class CustomerController extends Controller
 
         $routes = collect();
 
+        $priceLists = PriceList::query()
+            ->where('tenant_id', $tenantId)
+            ->active()
+            ->orderBy('name')
+            ->get();
+
         return view('pages.customers.create', compact(
             'branches',
             'categories',
             'territories',
             'routes',
-            'salesmen'
+            'salesmen',
+            'priceLists'
         ));
     }
 
@@ -187,7 +195,7 @@ class CustomerController extends Controller
     {
         $this->authorize('view', $customer);
 
-        $customer->load(['branch', 'category', 'territory', 'route', 'assignedSalesman', 'locationHistory' => fn ($q) => $q->limit(10)]);
+        $customer->load(['branch', 'category', 'territory', 'route', 'assignedSalesman', 'priceList', 'locationHistory' => fn ($q) => $q->limit(10)]);
 
         return view('pages.customers.show', compact('customer'));
     }
@@ -233,13 +241,20 @@ class CustomerController extends Controller
             $routes = $routes->where('territory_id', $customer->territory_id);
         }
 
+        $priceLists = PriceList::query()
+            ->where('tenant_id', $tenantId)
+            ->active()
+            ->orderBy('name')
+            ->get();
+
         return view('pages.customers.edit', compact(
             'customer',
             'branches',
             'categories',
             'territories',
             'routes',
-            'salesmen'
+            'salesmen',
+            'priceLists'
         ));
     }
 

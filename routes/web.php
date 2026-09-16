@@ -11,6 +11,8 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\PlatformController;
+use App\Http\Controllers\PriceListController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\SalesmanAssignmentController;
@@ -128,6 +130,27 @@ Route::middleware('auth')->group(function () {
     Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');
     Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
     Route::delete('customers/{customer}/deactivate', [CustomerController::class, 'deactivate'])->name('customers.deactivate');
+
+    // Products
+    Route::get('products', [ProductController::class, 'index'])->name('products.index');
+    Route::get('products/create', [ProductController::class, 'create'])->name('products.create');
+    Route::post('products', [ProductController::class, 'store'])->name('products.store');
+    Route::get('products/{product}', [ProductController::class, 'show'])->name('products.show');
+    Route::get('products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
+    Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
+    Route::delete('products/{product}/deactivate', [ProductController::class, 'deactivate'])->name('products.deactivate');
+
+    // Price Lists
+    Route::get('price-lists', [PriceListController::class, 'index'])->name('price-lists.index');
+    Route::get('price-lists/create', [PriceListController::class, 'create'])->name('price-lists.create');
+    Route::post('price-lists', [PriceListController::class, 'store'])->name('price-lists.store');
+    Route::get('price-lists/{price_list}', [PriceListController::class, 'show'])->name('price-lists.show');
+    Route::get('price-lists/{price_list}/edit', [PriceListController::class, 'edit'])->name('price-lists.edit');
+    Route::put('price-lists/{price_list}', [PriceListController::class, 'update'])->name('price-lists.update');
+    Route::delete('price-lists/{price_list}/deactivate', [PriceListController::class, 'deactivate'])->name('price-lists.deactivate');
+    Route::post('price-lists/{price_list}/items', [PriceListController::class, 'storeItem'])->name('price-lists.items.store');
+    Route::put('price-lists/items/{price_list_item}', [PriceListController::class, 'updateItem'])->name('price-lists.items.update');
+    Route::delete('price-lists/items/{price_list_item}', [PriceListController::class, 'destroyItem'])->name('price-lists.items.destroy');
 
     Route::get('settings/company', [CompanySettingsController::class, 'edit'])->name('settings.company.edit');
     Route::put('settings/company', [CompanySettingsController::class, 'update'])->name('settings.company.update');

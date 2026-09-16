@@ -9,6 +9,9 @@ use App\Models\Customer;
 use App\Models\CustomerCategory;
 use App\Models\CustomerLocationHistory;
 use App\Models\Device;
+use App\Models\PriceList;
+use App\Models\PriceListItem;
+use App\Models\Product;
 use App\Models\Role;
 use App\Models\Route;
 use App\Models\RouteCustomer;
@@ -26,6 +29,9 @@ use App\Policies\CustomerCategoryPolicy;
 use App\Policies\CustomerLocationHistoryPolicy;
 use App\Policies\CustomerPolicy;
 use App\Policies\DevicePolicy;
+use App\Policies\PriceListItemPolicy;
+use App\Policies\PriceListPolicy;
+use App\Policies\ProductPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\RouteCustomerPolicy;
 use App\Policies\RoutePolicy;
@@ -65,6 +71,9 @@ class TenancyServiceProvider extends AuthServiceProvider
         CustomerLocationHistory::class => CustomerLocationHistoryPolicy::class,
         SalesmanAssignment::class => SalesmanAssignmentPolicy::class,
         SupervisorAssignment::class => SupervisorAssignmentPolicy::class,
+        Product::class => ProductPolicy::class,
+        PriceList::class => PriceListPolicy::class,
+        PriceListItem::class => PriceListItemPolicy::class,
     ];
 
     /**

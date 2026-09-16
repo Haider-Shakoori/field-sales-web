@@ -341,6 +341,50 @@ test('customer tenant isolation on API list', function (): void {
     });
 });
 
+test('customer API filters narrow results by search, category and status', function (): void {
+    $tenant = makeTenant();
+    $owner = makeUser($tenant, 'owner');
+    $branch = withTenantContext($tenant, fn () => Branch::factory()->forTenant($tenant->id)->create());
+    $territory = withTenantContext($tenant, fn () => Territory::factory()->forTenant($tenant->id)->forBranch($branch->id)->create());
+    $category = withTenantContext($tenant, fn () => CustomerCategory::factory()->forTenant($tenant->id)->create());
+    withTenantContext($tenant, fn () => Customer::factory()->forTenant($tenant->id)->create([
+        'branch_id' => $branch->id,
+        'territory_id' => $territory->id,
+        'category_id' => $category->id,
+        'business_name' => 'Kabul Trading Co',
+        'code' => 'CUST-001',
+    ]));
+    withTenantContext($tenant, fn () => Customer::factory()->forTenant($tenant->id)->inactive()->create([
+        'branch_id' => $branch->id,
+        'territory_id' => $territory->id,
+        'business_name' => 'Herat Trading Co',
+        'code' => 'CUST-002',
+    ]));
+    $categoryId = $category->id;
+
+    withTenantContext($tenant, function () use ($owner, $categoryId): void {
+        $search = $this->actingAs($owner)->getJson('/api/v1/customers?filter[search]=Kabul');
+        $search->assertOk();
+        expect($search->json('data'))->toHaveCount(1);
+        expect($search->json('data.0.code'))->toBe('CUST-001');
+
+        $active = $this->actingAs($owner)->getJson('/api/v1/customers?filter[is_active]=true');
+        $active->assertOk();
+        expect($active->json('data'))->toHaveCount(1);
+        expect($active->json('data.0.code'))->toBe('CUST-001');
+
+        $inactive = $this->actingAs($owner)->getJson('/api/v1/customers?filter[is_active]=false');
+        $inactive->assertOk();
+        expect($inactive->json('data'))->toHaveCount(1);
+        expect($inactive->json('data.0.code'))->toBe('CUST-002');
+
+        $byCategory = $this->actingAs($owner)->getJson("/api/v1/customers?filter[category_id]={$categoryId}");
+        $byCategory->assertOk();
+        expect($byCategory->json('data'))->toHaveCount(1);
+        expect($byCategory->json('data.0.code'))->toBe('CUST-001');
+    });
+});
+
 test('creates location history when customer location changes', function (): void {
     $tenant = makeTenant();
     $owner = makeUser($tenant, 'owner');

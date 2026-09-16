@@ -96,11 +96,10 @@ class Customer extends Model
         return $this->belongsTo(Route::class, 'route_id');
     }
 
-    // PriceList relationship deferred to Batch 5 - PriceList model does not exist yet
-    // public function priceList(): BelongsTo
-    // {
-    //     return $this->belongsTo(PriceList::class, 'price_list_id');
-    // }
+    public function priceList(): BelongsTo
+    {
+        return $this->belongsTo(PriceList::class, 'price_list_id');
+    }
 
     public function routeCustomers(): HasMany
     {
@@ -187,6 +186,16 @@ class Customer extends Model
 
         static::updated(function (Customer $customer) {
             AuditLogger::changed('customer.updated', $customer, $customer->getDirty());
+
+            if ($customer->wasChanged('price_list_id')) {
+                AuditLogger::log('customer.price_list_changed', $customer, [
+                    'price_list_id' => $customer->getOriginal('price_list_id'),
+                ], [
+                    'price_list_id' => $customer->price_list_id,
+                    'code' => $customer->code,
+                    'business_name' => $customer->business_name,
+                ]);
+            }
         });
 
         static::deleted(function (Customer $customer) {

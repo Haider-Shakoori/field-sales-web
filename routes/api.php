@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\PriceListController;
+use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\RouteController;
 use App\Http\Controllers\Api\V1\SalesmanAssignmentController;
 use App\Http\Controllers\Api\V1\SupervisorAssignmentController;
@@ -46,6 +48,13 @@ Route::middleware(['auth:sanctum', InitializeTenancy::class])
                 Route::post('territories', [TerritoryController::class, 'store'])->name('territories.store');
                 Route::get('territories/{territory}', [TerritoryController::class, 'show'])->name('territories.show');
                 Route::put('territories/{territory}', [TerritoryController::class, 'update'])->name('territories.update');
+
+                // Products
+                Route::get('products', [ProductController::class, 'index'])->name('products.index');
+                Route::get('products/{product}', [ProductController::class, 'show'])->name('products.show');
+
+                // Price Lists
+                Route::get('price-lists', [PriceListController::class, 'index'])->name('price-lists.index');
 
                 // Routes
                 Route::get('routes', [RouteController::class, 'index'])->name('routes.index');

@@ -47,6 +47,7 @@ class StoreCustomerRequest extends FormRequest
             'route_id' => ['nullable', Rule::exists('routes', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)->where('is_active', true))],
             'credit_limit' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'outstanding_balance' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'price_list_id' => ['nullable', 'integer', Rule::exists('price_lists', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)->where('is_active', true))],
             'visit_frequency' => ['nullable', 'string', 'max:50', Rule::in(['daily', 'weekly', 'biweekly', 'monthly'])],
             'is_active' => ['boolean'],
             'notes' => ['nullable', 'string'],
@@ -60,6 +61,10 @@ class StoreCustomerRequest extends FormRequest
             $territoryId = $this->input('territory_id');
             $routeId = $this->input('route_id');
             $branchId = $this->input('branch_id');
+
+            if ($this->user()->hasRole('salesman') && $this->filled('price_list_id')) {
+                $validator->errors()->add('price_list_id', 'Salesmen are not allowed to assign a price list to customers.');
+            }
 
             // Validate territory belongs to the selected branch
             if ($territoryId && $branchId) {

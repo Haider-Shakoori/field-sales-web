@@ -71,7 +71,7 @@
                 </div>
 
                 <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    <x-ui.select name="price_list_id" label="Price List" :value="old('price_list_id')" :options="['' => 'Default']" />
+                    <x-ui.select name="price_list_id" label="Price List" :value="old('price_list_id')" :options="['' => 'None (base pricing)'] + $priceLists->pluck('name', 'id')->all()" />
                     <x-ui.select name="visit_frequency" label="Visit Frequency" :value="old('visit_frequency')" :options="['' => 'Not set', 'daily' => 'Daily', 'weekly' => 'Weekly', 'biweekly' => 'Bi-weekly', 'monthly' => 'Monthly']" />
                 </div>
             </div>

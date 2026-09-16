@@ -1,6 +1,6 @@
 # Database Design — Field Sales SaaS Platform
 
-> **Status:** Implemented for Batches 1–4; schema for Batch 5 onward is still planned
+> **Status:** Implemented through Batch 5 (Products, Price Lists & Mobile API Preparation); schema for Batch 6 onward is still planned
 > **Database:** MySQL 8
 > **Framework:** Laravel 13
 > **Multi-tenancy:** Shared database with `tenant_id` column
@@ -8,7 +8,7 @@
 
 ---
 
-## Implementation Status (Batches 1–4)
+## Implementation Status (Batches 1–5)
 
 Implemented and verified by migrations and tests:
 
@@ -16,6 +16,7 @@ Implemented and verified by migrations and tests:
 - `customer_categories`, `customers`, `customer_location_history`
 - `territories`, `routes`, `route_customers`
 - `salesman_assignments`, `supervisor_assignments`
+- `products`, `price_lists`, `price_list_items` (incl. `customers.price_list_id` FK)
 
 ### Historical assignment semantics
 
@@ -520,7 +521,7 @@ Retail / business customers visited by salesmen.
 | `route_id` | bigint unsigned | YES | NULL | FK → `routes.id` |
 | `credit_limit` | decimal(12,2) | NO | 0.00 | |
 | `outstanding_balance` | decimal(12,2) | NO | 0.00 | Running balance |
-| `price_list_id` | bigint unsigned | YES | NULL | **Staged for Batch 5** — column exists (nullable, indexed) but no FK / PriceList model yet |
+| `price_list_id` | bigint unsigned | YES | NULL | FK → `price_lists.id` (nullable; a customer without an assigned list falls back to the product's base price) |
 | `visit_frequency` | varchar(50) | YES | NULL | daily, weekly, biweekly, monthly |
 | `is_active` | tinyint(1) | NO | 1 | |
 | `notes` | text | YES | NULL | |
@@ -1031,11 +1032,11 @@ Flags raised when visit verification detects anomalies.
 
 ---
 
-### 3.9 Products (Lightweight V1)
+### 3.9 Products (Lightweight V1) — **Implemented (Batch 5)**
 
 #### `products`
 
-Products available for ordering. Lightweight for V1 — no inventory tracking.
+Products available for ordering. Lightweight for V1 — no inventory tracking. SKU is required and tenant-unique; the same SKU may appear across different tenants.
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -1067,9 +1068,9 @@ Products available for ordering. Lightweight for V1 — no inventory tracking.
 
 ---
 
-#### `price_lists`
+#### `price_lists` — **Implemented (Batch 5)**
 
-Named price lists for different customer segments or regions.
+Named price lists for different customer segments or regions. Each tenant may have at most one active default price list; promoting a default atomically clears the previous one. Deleting the default price list is blocked while it is the tenant's current default.
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -1096,9 +1097,9 @@ Named price lists for different customer segments or regions.
 
 ---
 
-#### `price_list_items`
+#### `price_list_items` — **Implemented (Batch 5)**
 
-Product prices within a specific price list.
+Product prices within a specific price list. A customer on an active default price list uses the item override for a product; otherwise the product's base price applies. Overrides never apply from an inactive price list.
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|

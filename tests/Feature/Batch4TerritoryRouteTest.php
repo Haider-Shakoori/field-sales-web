@@ -100,6 +100,116 @@ test('route tenant isolation on API list', function (): void {
     });
 });
 
+test('territory API filters narrow results', function (): void {
+    $tenant = makeTenant();
+    $owner = makeUser($tenant, 'owner');
+    $branch = withTenantContext($tenant, fn () => Branch::factory()->forTenant($tenant->id)->create());
+    withTenantContext($tenant, fn () => Territory::factory()->forTenant($tenant->id)->forBranch($branch->id)->create([
+        'name' => 'Kabul North Territory',
+        'code' => 'KN-001',
+    ]));
+    withTenantContext($tenant, fn () => Territory::factory()->forTenant($tenant->id)->forBranch($branch->id)->inactive()->create([
+        'name' => 'Herat Territory',
+        'code' => 'HR-001',
+    ]));
+    $branchId = $branch->id;
+
+    withTenantContext($tenant, function () use ($owner, $branchId): void {
+        $search = $this->actingAs($owner)->getJson('/api/v1/territories?filter[search]=Kabul');
+        $search->assertOk();
+        expect($search->json('data'))->toHaveCount(1);
+        expect($search->json('data.0.code'))->toBe('KN-001');
+
+        $active = $this->actingAs($owner)->getJson('/api/v1/territories?filter[is_active]=true');
+        $active->assertOk();
+        expect($active->json('data'))->toHaveCount(1);
+        expect($active->json('data.0.code'))->toBe('KN-001');
+
+        $inactive = $this->actingAs($owner)->getJson('/api/v1/territories?filter[is_active]=false');
+        $inactive->assertOk();
+        expect($inactive->json('data'))->toHaveCount(1);
+        expect($inactive->json('data.0.code'))->toBe('HR-001');
+
+        $byBranch = $this->actingAs($owner)->getJson("/api/v1/territories?filter[branch_id]={$branchId}");
+        $byBranch->assertOk();
+        expect($byBranch->json('data'))->toHaveCount(2);
+    });
+});
+
+test('route API filters narrow results', function (): void {
+    $tenant = makeTenant();
+    $owner = makeUser($tenant, 'owner');
+    $branch = withTenantContext($tenant, fn () => Branch::factory()->forTenant($tenant->id)->create());
+    $territory = withTenantContext($tenant, fn () => Territory::factory()->forTenant($tenant->id)->forBranch($branch->id)->create());
+    withTenantContext($tenant, fn () => Route::factory()->forTenant($tenant->id)->forTerritory($territory->id)->create([
+        'name' => 'Kabul Main Route',
+        'code' => 'RK-001',
+    ]));
+    withTenantContext($tenant, fn () => Route::factory()->forTenant($tenant->id)->forTerritory($territory->id)->inactive()->create([
+        'name' => 'Herat Route',
+        'code' => 'RH-001',
+    ]));
+    $territoryId = $territory->id;
+
+    withTenantContext($tenant, function () use ($owner, $territoryId): void {
+        $search = $this->actingAs($owner)->getJson('/api/v1/routes?filter[search]=Kabul');
+        $search->assertOk();
+        expect($search->json('data'))->toHaveCount(1);
+        expect($search->json('data.0.code'))->toBe('RK-001');
+
+        $active = $this->actingAs($owner)->getJson('/api/v1/routes?filter[is_active]=true');
+        $active->assertOk();
+        expect($active->json('data'))->toHaveCount(1);
+        expect($active->json('data.0.code'))->toBe('RK-001');
+
+        $inactive = $this->actingAs($owner)->getJson('/api/v1/routes?filter[is_active]=false');
+        $inactive->assertOk();
+        expect($inactive->json('data'))->toHaveCount(1);
+        expect($inactive->json('data.0.code'))->toBe('RH-001');
+
+        $byTerritory = $this->actingAs($owner)->getJson("/api/v1/routes?filter[territory_id]={$territoryId}");
+        $byTerritory->assertOk();
+        expect($byTerritory->json('data'))->toHaveCount(2);
+    });
+});
+
+test('route customers API status filter narrows to active memberships', function (): void {
+    $tenant = makeTenant();
+    $owner = makeUser($tenant, 'owner');
+    $branch = withTenantContext($tenant, fn () => Branch::factory()->forTenant($tenant->id)->create());
+    $territory = withTenantContext($tenant, fn () => Territory::factory()->forTenant($tenant->id)->forBranch($branch->id)->create());
+    $route = withTenantContext($tenant, fn () => Route::factory()->forTenant($tenant->id)->forTerritory($territory->id)->create());
+    $customer = withTenantContext($tenant, fn () => Customer::factory()->forTenant($tenant->id)->forTerritory($territory->id)->create());
+
+    withTenantContext($tenant, function () use ($route, $customer, $tenant): void {
+        RouteCustomer::create([
+            'tenant_id' => $tenant->id,
+            'route_id' => $route->id,
+            'customer_id' => $customer->id,
+            'visit_order' => 1,
+            'effective_from' => now()->toDateString(),
+        ]);
+        RouteCustomer::create([
+            'tenant_id' => $tenant->id,
+            'route_id' => $route->id,
+            'customer_id' => $customer->id,
+            'visit_order' => 1,
+            'effective_from' => now()->subDays(30)->toDateString(),
+            'effective_to' => now()->subDay()->toDateString(),
+        ]);
+    });
+
+    withTenantContext($tenant, function () use ($owner, $route): void {
+        $all = $this->actingAs($owner)->getJson("/api/v1/routes/{$route->id}/customers");
+        $all->assertOk();
+        expect($all->json('data'))->toHaveCount(2);
+
+        $active = $this->actingAs($owner)->getJson("/api/v1/routes/{$route->id}/customers?filter[status]=active");
+        $active->assertOk();
+        expect($active->json('data'))->toHaveCount(1);
+    });
+});
+
 test('unauthorized role cannot update route', function (): void {
     $tenant = makeTenant();
     $salesmanUser = makeUser($tenant, 'salesman', ['email' => 'salesman@test.test']);

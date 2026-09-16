@@ -2046,7 +2046,9 @@ GET /api/v1/expenses?filter[status]=pending&filter[date_from]=2025-01-01&filter[
 
 ---
 
-### 8.15 Products
+### 8.15 Products & Price Lists
+
+Base pricing model: a customer's effective price for a product is the **price list override** when the customer is assigned to an **active** price list that contains the product; otherwise the **product's base price** applies. Price list overrides never apply from an inactive price list, and overrides are never applied across tenants.
 
 | Method | Endpoint                       | Description              |
 |--------|--------------------------------|--------------------------|
@@ -2060,6 +2062,13 @@ GET /api/v1/expenses?filter[status]=pending&filter[date_from]=2025-01-01&filter[
 GET /api/v1/products?filter[category]=electronics&filter[is_active]=true&sort=name
 ```
 
+- `filter[search]` — matches `name` or `sku` (case-insensitive substring).
+- `filter[category]` — exact category match.
+- `filter[is_active]` — `true` / `false`.
+- `sort` — one of `created_at` (default), `updated_at`, `name`, `sku`, `price`; prefix `-` for descending.
+- `per_page` — default 25, max 100.
+- Salesmen and supervisors only ever see **active** products (the `filter[is_active]=false` filter is ignored for these roles).
+
 **Response 200:**
 
 ```json
@@ -2068,30 +2077,26 @@ GET /api/v1/products?filter[category]=electronics&filter[is_active]=true&sort=na
   "data": [
     {
       "id": 10,
+      "uuid": "3f2c...",
       "sku": "ELEC-001",
       "name": "Product A",
-      "description": "High-quality electronic component",
       "category": "electronics",
       "unit": "piece",
-      "price": 25.00,
-      "currency": "AFN",
-      "stock_available": 500,
+      "price": 25.0,
       "is_active": true,
-      "image_url": "https://storage.example.com/products/10.jpg",
+      "created_at": "2025-01-10T00:00:00Z",
       "updated_at": "2025-01-10T00:00:00Z"
     },
     {
       "id": 15,
+      "uuid": "2d1b...",
       "sku": "ELEC-002",
       "name": "Product B",
-      "description": "Standard electronic component",
       "category": "electronics",
       "unit": "piece",
-      "price": 12.00,
-      "currency": "AFN",
-      "stock_available": 1000,
+      "price": 12.0,
       "is_active": true,
-      "image_url": "https://storage.example.com/products/15.jpg",
+      "created_at": "2025-01-10T00:00:00Z",
       "updated_at": "2025-01-10T00:00:00Z"
     }
   ],
@@ -2106,36 +2111,30 @@ GET /api/v1/products?filter[category]=electronics&filter[is_active]=true&sort=na
 
 **GET /api/v1/products/{id} — Response 200:**
 
+Returns the full product plus a `price_lists` array of its price list overrides (one per price list the product belongs to).
+
 ```json
 {
   "success": true,
   "data": {
     "id": 10,
+    "uuid": "3f2c...",
     "sku": "ELEC-001",
     "name": "Product A",
-    "description": "High-quality electronic component",
     "category": "electronics",
     "unit": "piece",
-    "price": 25.00,
-    "currency": "AFN",
-    "stock_available": 500,
-    "stock_reserved": 20,
+    "price": 25.0,
     "is_active": true,
-    "image_url": "https://storage.example.com/products/10.jpg",
-    "images": [
-      "https://storage.example.com/products/10.jpg",
-      "https://storage.example.com/products/10_2.jpg"
-    ],
     "price_lists": [
       {
         "id": 1,
         "name": "Standard Price List",
-        "price": 25.00
+        "price": 25.0
       },
       {
         "id": 2,
         "name": "Wholesale Price List",
-        "price": 22.00
+        "price": 22.0
       }
     ],
     "created_at": "2024-06-01T00:00:00Z",
@@ -2144,7 +2143,14 @@ GET /api/v1/products?filter[category]=electronics&filter[is_active]=true&sort=na
 }
 ```
 
-**GET /api/v1/price-lists — Response 200:**
+**GET /api/v1/price-lists — Query Parameters:**
+
+- `filter[search]` — matches `name` (case-insensitive substring).
+- `filter[is_active]` — `true` / `false`.
+- `sort` — one of `created_at` (default), `updated_at`, `name`; prefix `-` for descending.
+- `per_page` — default 25, max 100.
+
+**Response 200:**
 
 ```json
 {
@@ -2152,23 +2158,23 @@ GET /api/v1/products?filter[category]=electronics&filter[is_active]=true&sort=na
   "data": [
     {
       "id": 1,
+      "uuid": "9a2f...",
       "name": "Standard Price List",
-      "description": "Default pricing for all customers",
-      "currency": "AFN",
       "is_default": true,
-      "customer_count": 120,
-      "product_count": 45,
-      "created_at": "2024-06-01T00:00:00Z"
+      "is_active": true,
+      "items_count": 45,
+      "created_at": "2024-06-01T00:00:00Z",
+      "updated_at": "2025-01-10T00:00:00Z"
     },
     {
       "id": 2,
+      "uuid": "8b3e...",
       "name": "Wholesale Price List",
-      "description": "Discounted pricing for wholesale customers",
-      "currency": "AFN",
       "is_default": false,
-      "customer_count": 30,
-      "product_count": 45,
-      "created_at": "2024-06-01T00:00:00Z"
+      "is_active": true,
+      "items_count": 30,
+      "created_at": "2024-06-01T00:00:00Z",
+      "updated_at": "2025-01-10T00:00:00Z"
     }
   ],
   "meta": {

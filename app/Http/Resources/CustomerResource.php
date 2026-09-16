@@ -56,12 +56,13 @@ class CustomerResource extends JsonResource
             'credit_limit' => $this->credit_limit ? (float) $this->credit_limit : 0,
             'outstanding_balance' => $this->outstanding_balance ? (float) $this->outstanding_balance : 0,
             'current_balance' => $this->outstanding_balance ? (float) $this->outstanding_balance : 0,
-            // price_list_id deferred to Batch 5 - PriceList model not yet implemented
-            // 'price_list_id' => $this->price_list_id,
-            // 'price_list' => $this->whenLoaded('priceList', fn () => [
-            //     'id' => $this->priceList->id,
-            //     'name' => $this->priceList->name,
-            // ]),
+            'price_list_id' => $this->price_list_id,
+            'price_list' => $this->whenLoaded('priceList', fn () => [
+                'id' => $this->priceList->id,
+                'name' => $this->priceList->name,
+                'is_default' => $this->priceList->is_default,
+                'is_active' => $this->priceList->is_active,
+            ]),
             'visit_frequency' => $this->visit_frequency,
             'is_active' => $this->is_active,
             'notes' => $this->notes,

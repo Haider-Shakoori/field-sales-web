@@ -20,7 +20,7 @@ class CustomerController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Customer::query()->with(['branch', 'category', 'territory', 'route', 'assignedSalesman']);
+        $query = Customer::query()->with(['branch', 'category', 'territory', 'route', 'assignedSalesman', 'priceList']);
 
         if (TenantContext::hasContext()) {
             $query->where('tenant_id', TenantContext::currentId());
@@ -29,32 +29,32 @@ class CustomerController extends Controller
         $this->applyRoleScope($request->user(), $query);
 
         // Filters
-        if ($branchId = $request->string('filter[branch_id]')->toString()) {
+        if ($branchId = $request->string('filter.branch_id')->toString()) {
             $query->where('branch_id', $branchId);
         }
 
-        if ($categoryId = $request->string('filter[category_id]')->toString()) {
+        if ($categoryId = $request->string('filter.category_id')->toString()) {
             $query->where('category_id', $categoryId);
         }
 
-        if ($territoryId = $request->string('filter[territory_id]')->toString()) {
+        if ($territoryId = $request->string('filter.territory_id')->toString()) {
             $query->where('territory_id', $territoryId);
         }
 
-        if ($routeId = $request->string('filter[route_id]')->toString()) {
+        if ($routeId = $request->string('filter.route_id')->toString()) {
             $query->where('route_id', $routeId);
         }
 
-        if ($salesmanId = $request->string('filter[assigned_salesman_id]')->toString()) {
+        if ($salesmanId = $request->string('filter.assigned_salesman_id')->toString()) {
             $query->where('assigned_salesman_id', $salesmanId);
         }
 
-        if ($status = $request->string('filter[is_active]')->toString()) {
+        if ($status = $request->string('filter.is_active')->toString()) {
             $query->where('is_active', $status === 'true');
         }
 
         // Search
-        if ($search = $request->string('filter[search]')->toString()) {
+        if ($search = $request->string('filter.search')->toString()) {
             $query->where(fn ($q) => $q
                 ->where('code', 'like', "%{$search}%")
                 ->orWhere('business_name', 'like', "%{$search}%")
@@ -102,7 +102,7 @@ class CustomerController extends Controller
                 ->first();
 
             if ($existing) {
-                $existing->load(['branch', 'category', 'territory', 'route', 'assignedSalesman']);
+                $existing->load(['branch', 'category', 'territory', 'route', 'assignedSalesman', 'priceList']);
 
                 return ApiResponse::success(new CustomerResource($existing), status: 200);
             }
@@ -139,12 +139,13 @@ class CustomerController extends Controller
             'route_id' => $validated['route_id'] ?? null,
             'credit_limit' => $validated['credit_limit'] ?? 0,
             'outstanding_balance' => $validated['outstanding_balance'] ?? 0,
+            'price_list_id' => $validated['price_list_id'] ?? null,
             'visit_frequency' => $validated['visit_frequency'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
             'notes' => $validated['notes'] ?? null,
         ]);
 
-        $customer->load(['branch', 'category', 'territory', 'route', 'assignedSalesman']);
+        $customer->load(['branch', 'category', 'territory', 'route', 'assignedSalesman', 'priceList']);
 
         return ApiResponse::success(new CustomerResource($customer), status: 201);
     }
@@ -153,7 +154,7 @@ class CustomerController extends Controller
     {
         abort_if(TenantContext::currentId() !== null && $customer->tenant_id !== TenantContext::currentId(), 404);
 
-        $customer->load(['branch', 'category', 'territory', 'route', 'assignedSalesman']);
+        $customer->load(['branch', 'category', 'territory', 'route', 'assignedSalesman', 'priceList']);
 
         return ApiResponse::success(new CustomerResource($customer));
     }
@@ -197,6 +198,7 @@ class CustomerController extends Controller
             'route_id' => $validated['route_id'] ?? null,
             'credit_limit' => $validated['credit_limit'] ?? 0,
             'outstanding_balance' => $validated['outstanding_balance'] ?? 0,
+            'price_list_id' => $validated['price_list_id'] ?? null,
             'visit_frequency' => $validated['visit_frequency'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
             'notes' => $validated['notes'] ?? null,
@@ -204,7 +206,7 @@ class CustomerController extends Controller
 
         // Location history is handled by the model's booted() method
 
-        $customer->load(['branch', 'category', 'territory', 'route', 'assignedSalesman']);
+        $customer->load(['branch', 'category', 'territory', 'route', 'assignedSalesman', 'priceList']);
 
         return ApiResponse::success(new CustomerResource($customer));
     }

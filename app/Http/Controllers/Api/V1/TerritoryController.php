@@ -21,15 +21,15 @@ class TerritoryController extends Controller
             $query->where('tenant_id', TenantContext::currentId());
         }
 
-        if ($branchId = $request->string('filter[branch_id]')->toString()) {
+        if ($branchId = $request->string('filter.branch_id')->toString()) {
             $query->where('branch_id', $branchId);
         }
 
-        if ($status = $request->string('filter[is_active]')->toString()) {
+        if ($status = $request->string('filter.is_active')->toString()) {
             $query->where('is_active', $status === 'true');
         }
 
-        if ($search = $request->string('filter[search]')->toString()) {
+        if ($search = $request->string('filter.search')->toString()) {
             $query->where(fn ($q) => $q
                 ->where('code', 'like', "%{$search}%")
                 ->orWhere('name', 'like', "%{$search}%"));

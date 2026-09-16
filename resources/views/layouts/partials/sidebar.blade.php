@@ -16,6 +16,10 @@
             ['label' => 'Roles & Permissions', 'route' => 'settings.roles.index', 'icon' => 'shield', 'can' => 'roles:view'],
             ['label' => 'Audit Logs', 'route' => 'audit.index', 'icon' => 'clock', 'can' => 'audit:view'],
         ],
+        'Catalog' => [
+            ['label' => 'Products', 'route' => 'products.index', 'icon' => 'products', 'can' => 'products:view'],
+            ['label' => 'Price Lists', 'route' => 'price-lists.index', 'icon' => 'price-lists', 'can' => 'price_lists:view'],
+        ],
         'Platform' => [
             ['label' => 'Platform Dashboard', 'route' => 'platform.index', 'icon' => 'platform', 'can' => 'tenants:manage'],
         ],

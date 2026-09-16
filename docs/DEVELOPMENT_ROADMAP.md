@@ -1,6 +1,6 @@
 # Field Sales SaaS — Development Roadmap
 
-> **Status:** Batch 1 (Foundation & Tenancy), **Batch 2 (Roles, Permissions & User Management)** and **Batch 4 (Customers, Territories & Routes)** **COMPLETE**. Batches 3 and 5+ planning only.
+> **Status:** Batch 1 (Foundation & Tenancy), **Batch 2 (Roles, Permissions & User Management)**, **Batch 4 (Customers, Territories & Routes)** and **Batch 5 (Products, Price Lists & Mobile API Preparation)** **COMPLETE**. Batches 3 and 6+ planning only.
 > **Stack:** Laravel 13 · PHP 8.5 · MySQL 8 · Sanctum · Blade + Tailwind + Alpine admin panel · Flutter Android app (`field-sales-mobile`, created in **Batch 6**)
 
 > **Dual-repository scope:** From Batch 6 onward, relevant implementation batches may modify BOTH separate repositories:
@@ -225,6 +225,8 @@ Customer and territory foundation complete.
 
 ## Batch 5 — Products, Price Lists & Mobile API Preparation
 
+> **Status: ✔ COMPLETE** — Products, price lists, price list items, web CRUD (+ RBAC + audit), and the mobile-facing `GET /api/v1/products` / `GET /api/v1/products/{id}` / `GET /api/v1/price-lists` endpoints (documented in `docs/API_CONTRACT.md` §8.15) are all delivered. Verification: **156 tests / 462 assertions passing**, Pint clean, `git diff --check` clean. Batch 5 work remains uncommitted pending this documentation pass.
+
 **Goal:** Build a lightweight product catalog and pricing, and freeze the mobile-facing API contract that the Flutter app will consume from Batch 6 onward.
 
 ### Scope
@@ -250,9 +252,9 @@ Customer and territory foundation complete.
 
 ### Files / Modules
 
-- `app/Domains/Products/` — Product, PriceList, PriceListItem
+- `app/Models/Product.php`, `app/Models/PriceList.php`, `app/Models/PriceListItem.php` (+ factories)
 - `app/Http/Controllers/` — ProductController, PriceListController
-- `app/Http/Resources/` — mobile-facing catalog resources
+- `app/Http/Resources/` — mobile-facing catalog resources (`ProductResource`, `PriceListResource`)
 - `docs/API_CONTRACT.md` — versioned mobile contract section
 
 ### Verification

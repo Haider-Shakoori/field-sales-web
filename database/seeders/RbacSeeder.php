@@ -28,6 +28,8 @@ class RbacSeeder extends Seeder
             'territories:view', 'territories:create', 'territories:update', 'territories:deactivate',
             'routes:view', 'routes:create', 'routes:update', 'routes:deactivate',
             'assignments:view', 'assignments:manage',
+            'products:view', 'products:create', 'products:update', 'products:deactivate',
+            'price_lists:view', 'price_lists:create', 'price_lists:update', 'price_lists:deactivate', 'price_lists:manage_prices',
         ],
         'owner' => [
             'dashboard:view', 'users:view', 'users:manage', 'branches:view',
@@ -41,6 +43,8 @@ class RbacSeeder extends Seeder
             'territories:view', 'territories:create', 'territories:update', 'territories:deactivate',
             'routes:view', 'routes:create', 'routes:update', 'routes:deactivate',
             'assignments:view', 'assignments:manage',
+            'products:view', 'products:create', 'products:update', 'products:deactivate',
+            'price_lists:view', 'price_lists:create', 'price_lists:update', 'price_lists:deactivate', 'price_lists:manage_prices',
         ],
         'company_admin' => [
             'dashboard:view', 'users:view', 'users:manage', 'branches:view',
@@ -53,6 +57,8 @@ class RbacSeeder extends Seeder
             'territories:view', 'territories:create', 'territories:update', 'territories:deactivate',
             'routes:view', 'routes:create', 'routes:update', 'routes:deactivate',
             'assignments:view', 'assignments:manage',
+            'products:view', 'products:create', 'products:update', 'products:deactivate',
+            'price_lists:view', 'price_lists:create', 'price_lists:update', 'price_lists:deactivate', 'price_lists:manage_prices',
         ],
         'sales_manager' => [
             'dashboard:view', 'users:view', 'branches:view', 'roles:view',
@@ -62,6 +68,7 @@ class RbacSeeder extends Seeder
             'territories:view', 'territories:create', 'territories:update',
             'routes:view', 'routes:create', 'routes:update',
             'assignments:view',
+            'products:view', 'price_lists:view', 'price_lists:manage_prices',
         ],
         'supervisor' => [
             'dashboard:view', 'users:view', 'branches:view',
@@ -70,18 +77,22 @@ class RbacSeeder extends Seeder
             'territories:view',
             'routes:view',
             'assignments:view',
+            'products:view', 'price_lists:view',
         ],
         'salesman' => [
             'dashboard:view',
             'customers:view',
             'routes:view',
+            'products:view', 'price_lists:view',
         ],
         'accountant' => [
             'dashboard:view', 'settings:view', 'audit:view',
             'customers:view',
+            'products:view', 'price_lists:view',
         ],
         'warehouse_user' => [
             'dashboard:view', 'branches:view',
+            'products:view', 'price_lists:view',
         ],
         'auditor' => [
             'dashboard:view', 'users:view', 'branches:view', 'roles:view',
@@ -89,6 +100,7 @@ class RbacSeeder extends Seeder
             'customers:view',
             'territories:view',
             'routes:view',
+            'products:view', 'price_lists:view',
         ],
     ];
 
