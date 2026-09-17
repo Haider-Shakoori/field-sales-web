@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Middleware\BootstrapTenantForAuth;
 use App\Http\Middleware\EnforceMinimumAppVersion;
 use App\Http\Middleware\EnsureActiveDevice;
 use App\Http\Middleware\InitializeTenancy;
 use App\Support\Http\ApiResponse;
 use App\Support\Tenancy\TenantContextMissingException;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -25,6 +27,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             InitializeTenancy::class,
         ]);
+
+        $middleware->prependToPriorityList(
+            AuthenticatesRequests::class,
+            BootstrapTenantForAuth::class,
+        );
 
         $middleware->alias([
             'device.active' => EnsureActiveDevice::class,

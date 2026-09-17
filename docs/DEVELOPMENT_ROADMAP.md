@@ -1,6 +1,6 @@
 # Field Sales SaaS — Development Roadmap
 
-> **Status:** Batch 1 (Foundation & Tenancy), **Batch 2 (Roles, Permissions & User Management)**, **Batch 4 (Customers, Territories & Routes)** and **Batch 5 (Products, Price Lists & Mobile API Preparation)** **COMPLETE**. Batches 3 and 6+ planning only.
+> **Status:** Batch 1 (Foundation & Tenancy), **Batch 2 (Roles, Permissions & User Management)**, **Batch 4 (Customers, Territories & Routes)** and **Batch 5 (Products, Price Lists & Mobile API Preparation)** **COMPLETE**. **Batch 6 (Flutter Android Foundation & Offline-First Core)** is in the **final acceptance pass** — not yet marked complete. Batches 3 and 7+ planning only.
 > **Stack:** Laravel 13 · PHP 8.5 · MySQL 8 · Sanctum · Blade + Tailwind + Alpine admin panel · Flutter Android app (`field-sales-mobile`, created in **Batch 6**)
 
 > **Dual-repository scope:** From Batch 6 onward, relevant implementation batches may modify BOTH separate repositories:
@@ -271,6 +271,8 @@ Product catalog ready and mobile API contract frozen for Batch 6 consumption.
 ---
 
 ## Batch 6 — Flutter Android Foundation & Offline-First Core
+
+> **Status: 🔄 FINAL ACCEPTANCE IN PROGRESS — not yet complete.** The Laravel-side auth contract (`login`/`refresh`/`logout`) and tenancy hardening are green (`Batch6ApiAuthTest` **12/12** + `Batch6TenantContextRegressionTest` **5/5**, full suite **180 tests / 589 assertions**, Pint clean). Remaining acceptance work: mobile device-registration parity, SQLite master-data cache (customers/territories/routes/route-customers/products/price-lists), repositories + offline-proof tests, expanded Flutter test coverage, smoke check, and a real `flutter build apk --debug`. Per the acceptance directive, **Batch 12 scope (exponential backoff and periodic push to `POST /api/v1/sync/push`) is deferred** — `POST /api/v1/sync/push` is **not** implemented in this backend, so the Flutter runtime call is being removed/deferred. The **basic** outbox foundation (enqueue, states, local-first transaction) stays in Batch 6 scope. See the Batch 6 acceptance closeout message for the A–V report.
 
 **Goal:** Create the separate Flutter project and establish the offline-first mobile foundation. This is where the Android app comes into existence — **not** an external project — and where offline capability **begins**.
 

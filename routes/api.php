@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\MeController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Api\V1\RouteController;
 use App\Http\Controllers\Api\V1\SalesmanAssignmentController;
 use App\Http\Controllers\Api\V1\SupervisorAssignmentController;
 use App\Http\Controllers\Api\V1\TerritoryController;
+use App\Http\Middleware\BootstrapTenantForAuth;
 use App\Http\Middleware\EnforceMinimumAppVersion;
 use App\Http\Middleware\EnsureActiveDevice;
 use App\Http\Middleware\InitializeTenancy;
@@ -22,11 +24,18 @@ Route::get('/health', function () {
     ]);
 });
 
-Route::middleware(['auth:sanctum', InitializeTenancy::class])
+Route::post('v1/auth/login', [AuthController::class, 'login'])
+    ->middleware(EnforceMinimumAppVersion::class)
+    ->name('api.v1.auth.login');
+
+Route::middleware([BootstrapTenantForAuth::class, 'auth:sanctum', InitializeTenancy::class])
     ->prefix('v1')
     ->name('api.v1.')
     ->group(function () {
         Route::get('me', [MeController::class, 'show'])->name('me');
+
+        Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
+        Route::post('auth/refresh', [AuthController::class, 'refresh'])->name('auth.refresh');
 
         Route::post('devices/register', [DeviceController::class, 'register'])->name('devices.register');
 

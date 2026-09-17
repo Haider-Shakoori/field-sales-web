@@ -43,11 +43,17 @@ class TenantContext
      * Enter the explicit platform/system context from trusted, identity-less
      * code paths (seeders, console commands, queued jobs, auth bootstrap).
      *
+     * The guard inspects the web session guard only: a browser-authenticated
+     * company user must never pivot into platform scope. The default (token)
+     * guard is deliberately not consulted — during auth bootstrap no identity
+     * has been resolved yet, and resolving it here would recurse or pick up a
+     * stale cached user from the shared request container.
+     *
      * @throws TenantContextException when an authenticated company user attempts this
      */
     public function enterSystemContext(): void
     {
-        $user = request()->user();
+        $user = auth('web')->user();
 
         if ($user !== null && ! $user->isSuperAdmin()) {
             throw new TenantContextException('Platform/system context cannot be activated by a company user.');
