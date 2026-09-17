@@ -11,11 +11,71 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
+[x-cloak] {
+    display: none !important;
+}
+
+/*
+| Shell layout
+|-------------
+| The sidebar width lives here, not in per-page margins. The `sidebar-collapsed`
+| class is set on <html> by the inline head script (before first paint) and kept
+| in sync by the Alpine shell store, so the workspace never renders underneath
+| the sidebar — with or without JavaScript.
+*/
+@layer base {
+    .app-sidebar {
+        width: 16rem;
+        transition: width 200ms ease-out;
+    }
+
+    /* Mobile / tablet: off-canvas drawer. The `nav-open` class is toggled on
+       <html> by the Alpine shell store. */
+    @media (max-width: 63.999rem) {
+        .app-sidebar {
+            transform: translateX(-100%);
+            transition: transform 200ms ease-out;
+        }
+
+        .nav-open .app-sidebar {
+            transform: translateX(0);
+        }
+
+        [dir='rtl'] .app-sidebar {
+            transform: translateX(100%);
+        }
+
+        [dir='rtl'] .nav-open .app-sidebar {
+            transform: translateX(0);
+        }
+    }
+
+    @media (min-width: 64rem) {
+        .sidebar-collapsed .app-sidebar {
+            width: 5rem;
+        }
+
+        .sidebar-collapsed .app-sidebar .sidebar-collapsible {
+            display: none;
+        }
+
+        .sidebar-collapsed .app-sidebar .sidebar-nav-item {
+            justify-content: center;
+            padding-inline: 0.625rem;
+        }
+    }
+}
+
 /* Semantic surface helpers used across the admin shell (see UI_UX_ADMIN_PLAN). */
 @utility surface-card {
-    @apply rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800;
+    @apply rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800;
 }
 
 @utility surface-input {
     @apply block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-50 dark:placeholder:text-gray-500 dark:focus:border-blue-400 dark:focus:ring-blue-400/30 dark:disabled:bg-gray-800;
+}
+
+@utility sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(71 85 105 / 0.6) transparent;
 }

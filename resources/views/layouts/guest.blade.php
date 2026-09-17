@@ -53,7 +53,7 @@
             </div>
 
             <p class="mt-6 text-center text-xs text-gray-400 dark:text-gray-600">
-                {{ config('app.name', 'Field Sales') }} · Batch 1 — Tenancy & Identity Foundation
+                &copy; {{ now()->year }} {{ config('app.name', 'Field Sales') }}
             </p>
         </div>
     </div>

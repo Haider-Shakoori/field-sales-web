@@ -16,7 +16,7 @@
         @if ($branches->isEmpty())
             <x-ui.empty-state title="No branches"
                               icon="building"
-                              description="Create your first branch to begin planning territories and visits (Batch 2).">
+                              description="Create your first branch to start organising your team and territories.">
                 @if (auth()->user()->hasPermission('branches:manage'))
                     <x-slot:action>
                         <x-ui.button href="{{ route('branches.create') }}" variant="primary" icon="plus">Add branch</x-ui.button>

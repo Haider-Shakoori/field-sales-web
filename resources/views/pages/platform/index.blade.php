@@ -4,29 +4,26 @@
 
 @section('content')
     <x-ui.page-header title="Platform Dashboard"
-                      description="Super-admin overview across all organisations. Exact metrics and tenant management arrive in later batches." />
+                      description="Super-admin overview across all organisations." />
 
-    <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
-        <x-ui.card title="Tenants">
-            <div class="flex items-baseline gap-2">
-                <span class="text-2xl font-bold text-gray-900 dark:text-gray-50">{{ $summary['tenants'] }}</span>
-                <span class="text-xs text-gray-400 dark:text-gray-500">organisations</span>
-            </div>
-        </x-ui.card>
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <x-ui.stat-card label="Tenants"
+                        :value="$summary['tenants']"
+                        description="Organisations"
+                        icon="building"
+                        tone="blue" />
 
-        <x-ui.card title="Members">
-            <div class="flex items-baseline gap-2">
-                <span class="text-2xl font-bold text-gray-900 dark:text-gray-50">{{ $summary['users'] }}</span>
-                <span class="text-xs text-gray-400 dark:text-gray-500">users</span>
-            </div>
-        </x-ui.card>
+        <x-ui.stat-card label="Members"
+                        :value="$summary['users']"
+                        description="Users across all organisations"
+                        icon="user"
+                        tone="green" />
 
-        <x-ui.card title="Trials">
-            <div class="flex items-baseline gap-2">
-                <span class="text-2xl font-bold text-gray-900 dark:text-gray-50">{{ $summary['active_trials'] }}</span>
-                <span class="text-xs text-gray-400 dark:text-gray-500">on trial</span>
-            </div>
-        </x-ui.card>
+        <x-ui.stat-card label="Trials"
+                        :value="$summary['active_trials']"
+                        description="On trial"
+                        icon="platform"
+                        tone="amber" />
     </div>
 
     <x-ui.card title="All organisations">
