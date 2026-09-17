@@ -91,4 +91,9 @@ class Salesman extends Model
     {
         return $this->currentAssignment()->with('supervisor')->first()?->supervisor;
     }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 }

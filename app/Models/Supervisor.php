@@ -64,4 +64,9 @@ class Supervisor extends Model
             ->where('effective_from', '<=', now()->endOfDay())
             ->latest('effective_from');
     }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 }

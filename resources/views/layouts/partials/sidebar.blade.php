@@ -6,6 +6,8 @@
             ['label' => 'Dashboard', 'route' => 'dashboard', 'icon' => 'dashboard', 'can' => 'dashboard:view'],
         ],
         'Field operations' => [
+            ['label' => 'Customers', 'route' => 'customers.index', 'icon' => 'customers', 'can' => 'customers:view'],
+            ['label' => 'Territories', 'route' => 'territories.index', 'icon' => 'territories', 'can' => 'territories:view'],
             ['label' => 'Routes', 'route' => 'routes.index', 'icon' => 'map', 'can' => 'routes:view'],
             ['label' => 'Salesmen', 'route' => 'salesmen.index', 'icon' => 'salesmen', 'can' => 'salesmen:view'],
             ['label' => 'Supervisors', 'route' => 'supervisors.index', 'icon' => 'users', 'can' => 'supervisors:view'],

@@ -38,6 +38,11 @@ class CustomerCategory extends Model
         return $this->hasMany(Customer::class);
     }
 
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
     /**
      * Boot the model.
      */

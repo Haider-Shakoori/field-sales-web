@@ -38,4 +38,9 @@ class Branch extends Model
         'longitude' => 'decimal:7',
         'is_active' => 'boolean',
     ];
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 }
