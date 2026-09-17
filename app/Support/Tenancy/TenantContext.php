@@ -140,6 +140,44 @@ class TenantContext
         }
     }
 
+    /**
+     * Run a callback inside a temporary, identity-less platform bootstrap scope,
+     * restoring the previous state afterwards.
+     *
+     * This is the ONLY safe primitive to use when resolving an authentication
+     * identity before any tenant context exists (e.g. restoring the web user
+     * from the session or remember-me cookie in the HTTP stack).
+     *
+     * Unlike enterSystemContext(), this method never consults the auth guard
+     * itself: Consultating it would recurse, because resolving that identity is
+     * exactly what the callback is for. The guard also deliberately skipped, so
+     * an authenticated company user can not be rejected here during bootstrap.
+     *
+     * The state set by this scope is anonymous and temporary. It must never
+     * wrap application/business logic and must never outlive the callback:
+     * controllers, services, and tenant-owned queries must only ever run under
+     * Tenant, Platform (authorized), or Uninitialized (guest) state.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    public function withAuthenticationBootstrapScope(callable $callback): mixed
+    {
+        $state = $this->state;
+        $previous = $this->tenant;
+
+        $this->state = TenantContextState::Platform;
+        $this->tenant = null;
+
+        try {
+            return $callback();
+        } finally {
+            $this->restore($state, $previous);
+        }
+    }
+
     private function restore(TenantContextState $state, ?Tenant $tenant): void
     {
         $this->state = $state;
