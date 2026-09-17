@@ -11,6 +11,8 @@
             ['label' => 'Routes', 'route' => 'routes.index', 'icon' => 'map', 'can' => 'routes:view'],
             ['label' => 'Salesmen', 'route' => 'salesmen.index', 'icon' => 'salesmen', 'can' => 'salesmen:view'],
             ['label' => 'Supervisors', 'route' => 'supervisors.index', 'icon' => 'users', 'can' => 'supervisors:view'],
+            ['label' => 'Salesman Assignments', 'route' => 'salesman-assignments.index', 'icon' => 'clipboard', 'can' => 'assignments:view'],
+            ['label' => 'Supervisor Assignments', 'route' => 'supervisor-assignments.index', 'icon' => 'clipboard', 'can' => 'assignments:view'],
             ['label' => 'Devices', 'route' => 'devices.index', 'icon' => 'devices', 'can' => 'devices:view'],
         ],
         'Administration' => [

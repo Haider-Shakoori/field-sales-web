@@ -15,7 +15,7 @@ class UpdateSupervisorAssignmentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('update', $this->route('supervisor_assignment')) ?? false;
+        return $this->user()?->can('update', $this->route('assignment')) ?? false;
     }
 
     /**
@@ -46,7 +46,7 @@ class UpdateSupervisorAssignmentRequest extends FormRequest
             $territoryId = $this->input('territory_id');
             $effectiveFrom = $this->input('effective_from');
             $effectiveTo = $this->input('effective_to');
-            $currentId = $this->route('supervisor_assignment')->id ?? null;
+            $currentId = $this->route('assignment')->id ?? null;
 
             // Validate territory belongs to the selected branch
             if ($territoryId && $branchId) {

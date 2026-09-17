@@ -154,7 +154,8 @@ class SupervisorAssignmentController extends Controller
 
     public function update(UpdateSupervisorAssignmentRequest $request, SupervisorAssignment $assignment): RedirectResponse
     {
-        abort_if(TenantContext::currentId() === null || $assignment->tenant_id !== TenantContext::currentId(), 403);
+        $tenantId = TenantContext::currentId();
+        abort_if($tenantId === null || $assignment->tenant_id !== $tenantId, 403);
 
         $data = $request->validated();
 
