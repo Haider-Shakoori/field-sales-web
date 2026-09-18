@@ -11,6 +11,7 @@
             </select>
         </label>
     @endunless
+
     <label class="block">
         <span class="text-sm text-slate-300">Branch</span>
         <select name="branch_id" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
@@ -20,6 +21,7 @@
             @endforeach
         </select>
     </label>
+
     <label class="block">
         <span class="text-sm text-slate-300">Supervisor</span>
         <select name="supervisor_id" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
@@ -29,16 +31,37 @@
             @endforeach
         </select>
     </label>
+
+    <label class="block">
+        <span class="text-sm text-slate-300">Territory</span>
+        <select name="territory_id" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
+            <option value="">Unassigned</option>
+            @foreach($territories as $territory)
+                <option value="{{ $territory->id }}" @selected((string) old('territory_id', $assignment->territory_id ?? '') === (string) $territory->id)>{{ $territory->code }} — {{ $territory->name }}</option>
+            @endforeach
+        </select>
+    </label>
+
+    <label class="block">
+        <span class="text-sm text-slate-300">Route</span>
+        <select name="route_id" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
+            <option value="">Unassigned</option>
+            @foreach($routes as $route)
+                <option value="{{ $route->id }}" @selected((string) old('route_id', $assignment->route_id ?? '') === (string) $route->id)>
+                    {{ $route->code }} — {{ $route->name }}{{ $route->territory ? ' / '.$route->territory->name : '' }}
+                </option>
+            @endforeach
+        </select>
+    </label>
+
     <label class="block">
         <span class="text-sm text-slate-300">Effective from</span>
         <input type="date" name="effective_from" value="{{ old('effective_from', isset($assignment) ? $assignment->effective_from->toDateString() : today()->toDateString()) }}" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3" required>
     </label>
+
     <label class="block">
         <span class="text-sm text-slate-300">Effective to</span>
         <input type="date" name="effective_to" value="{{ old('effective_to', isset($assignment) ? $assignment->effective_to?->toDateString() : '') }}" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
         <span class="mt-1 block text-xs text-slate-500">Leave blank for an open/current assignment.</span>
     </label>
-</div>
-<div class="mt-5 rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-200">
-    Territory and route selection are added in Batch 4. Their history columns already exist so current records will extend safely.
 </div>
