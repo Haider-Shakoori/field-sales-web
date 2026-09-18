@@ -7,6 +7,7 @@ use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\Branch;
 use App\Models\Customer;
+use App\Models\PriceList;
 use App\Models\Territory;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +25,7 @@ class CustomerController extends Controller
         $search = trim((string) $request->string('search'));
 
         return view('admin.customers.index', [
-            'customers' => Customer::with(['branch', 'territory'])
+            'customers' => Customer::with(['branch', 'territory', 'priceList'])
                 ->when($search !== '', function ($query) use ($search): void {
                     $query->where(function ($nested) use ($search): void {
                         $nested->where('name', 'like', "%{$search}%")
@@ -74,6 +75,7 @@ class CustomerController extends Controller
             'customer' => $customer->load([
                 'branch',
                 'territory',
+                'priceList',
                 'creator',
                 'routeMemberships.route',
             ]),
@@ -134,6 +136,7 @@ class CustomerController extends Controller
         return [
             'branches' => Branch::active()->orderBy('name')->get(),
             'territories' => Territory::active()->with('branch')->orderBy('name')->get(),
+            'priceLists' => PriceList::active()->effectiveOn()->orderBy('name')->get(),
         ];
     }
 
@@ -142,6 +145,7 @@ class CustomerController extends Controller
         return [
             'branch_id' => $customer->branch_id,
             'territory_id' => $customer->territory_id,
+            'price_list_id' => $customer->price_list_id,
             'code' => $customer->code,
             'name' => $customer->name,
             'contact_person' => $customer->contact_person,

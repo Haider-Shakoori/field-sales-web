@@ -35,6 +35,11 @@ class Customer extends Model
         return $this->belongsTo(Territory::class);
     }
 
+    public function priceList(): BelongsTo
+    {
+        return $this->belongsTo(PriceList::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

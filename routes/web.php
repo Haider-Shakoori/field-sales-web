@@ -5,6 +5,9 @@ use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\BranchController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DeviceController;
+use App\Http\Controllers\Web\PriceListController;
+use App\Http\Controllers\Web\PriceListItemController;
+use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\RoleController;
 use App\Http\Controllers\Web\RouteCustomerController;
 use App\Http\Controllers\Web\SalesmanAssignmentController;
@@ -90,6 +93,25 @@ Route::middleware('auth')->group(function () {
         Route::delete('/routes/{route}/customers/{routeCustomer}', [RouteCustomerController::class, 'destroy'])
             ->middleware('permission:customers:manage')
             ->name('routes.customers.destroy');
+
+        Route::resource('products', ProductController::class)
+            ->middlewareFor(['index', 'show'], 'permission:catalog:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:catalog:manage');
+
+        Route::resource('price-lists', PriceListController::class)
+            ->parameters(['price-lists' => 'priceList'])
+            ->middlewareFor(['index', 'show'], 'permission:catalog:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:catalog:manage');
+
+        Route::post('/price-lists/{priceList}/items', [PriceListItemController::class, 'store'])
+            ->middleware('permission:catalog:manage')
+            ->name('price-lists.items.store');
+        Route::put('/price-lists/{priceList}/items/{priceListItem}', [PriceListItemController::class, 'update'])
+            ->middleware('permission:catalog:manage')
+            ->name('price-lists.items.update');
+        Route::delete('/price-lists/{priceList}/items/{priceListItem}', [PriceListItemController::class, 'destroy'])
+            ->middleware('permission:catalog:manage')
+            ->name('price-lists.items.destroy');
 
         Route::get('/audit-logs', [AuditLogController::class, 'index'])
             ->middleware('permission:audit:view')

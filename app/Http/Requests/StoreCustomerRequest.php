@@ -29,6 +29,11 @@ class StoreCustomerRequest extends FormRequest
                 'integer',
                 Rule::exists('territories', 'id')->where('tenant_id', $tenantId),
             ],
+            'price_list_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('price_lists', 'id')->where('tenant_id', $tenantId),
+            ],
             'code' => [
                 'required',
                 'string',

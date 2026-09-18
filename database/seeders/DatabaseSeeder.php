@@ -5,6 +5,9 @@ namespace Database\Seeders;
 use App\Models\Branch;
 use App\Models\CompanySetting;
 use App\Models\Permission;
+use App\Models\PriceList;
+use App\Models\PriceListItem;
+use App\Models\Product;
 use App\Models\Role;
 use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
@@ -109,6 +112,38 @@ class DatabaseSeeder extends Seeder
             $admin->syncPrimaryRole($roles['company_admin']);
             $supervisorUser->syncPrimaryRole($roles['supervisor']);
             $salesmanUser->syncPrimaryRole($roles['salesman']);
+
+            $product = Product::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'sku' => 'DEMO-001'],
+                [
+                    'name' => 'Demo Product',
+                    'unit' => 'pcs',
+                    'base_price' => 100,
+                    'currency' => 'AFN',
+                    'is_active' => true,
+                ]
+            );
+
+            $priceList = PriceList::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'code' => 'RETAIL'],
+                [
+                    'name' => 'Retail Price List',
+                    'currency' => 'AFN',
+                    'is_active' => true,
+                ]
+            );
+
+            PriceListItem::firstOrCreate(
+                [
+                    'tenant_id' => $tenant->id,
+                    'price_list_id' => $priceList->id,
+                    'product_id' => $product->id,
+                    'min_quantity' => 1,
+                ],
+                [
+                    'price' => 95,
+                ]
+            );
 
             SupervisorAssignment::firstOrCreate(
                 [
