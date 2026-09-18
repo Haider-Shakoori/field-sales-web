@@ -101,7 +101,10 @@ class FieldSalesApiTest extends TestCase
             'started_at' => '2026-09-18T04:30:00Z',
         ];
 
-        $this->postJson('/api/v1/attendance/start', $body, $this->headers())
+        $response = $this->postJson('/api/v1/attendance/start', $body, $this->headers());
+        fwrite(STDERR, "BATCH3_DIAGNOSTIC ".$response->getContent().PHP_EOL);
+
+        $response
             ->assertCreated()
             ->assertJsonPath('data.offline_uuid', $uuid)
             ->assertJsonPath('data.started_at', '2026-09-18T04:30:00.000000Z');
