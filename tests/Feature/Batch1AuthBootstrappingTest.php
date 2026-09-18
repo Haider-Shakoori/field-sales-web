@@ -167,7 +167,7 @@ class Batch1AuthBootstrappingTest extends TestCase
 
     private function platform(callable $callback): mixed
     {
-        return $this->context->withPlatformScope($callback(...));
+        return $this->context->withPlatformScope(fn () => $callback());
     }
 
     private function tenant(string $slug): Tenant
