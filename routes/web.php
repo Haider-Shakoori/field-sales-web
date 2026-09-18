@@ -19,36 +19,18 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', UserController::class)
             ->except(['show'])
-            ->middleware([
-                'index' => 'permission:users:view',
-                'create' => 'permission:users:manage',
-                'store' => 'permission:users:manage',
-                'edit' => 'permission:users:manage',
-                'update' => 'permission:users:manage',
-                'destroy' => 'permission:users:manage',
-            ]);
+            ->middlewareFor('index', 'permission:users:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:users:manage');
 
         Route::resource('roles', RoleController::class)
             ->except(['show'])
-            ->middleware([
-                'index' => 'permission:roles:view',
-                'create' => 'permission:roles:manage',
-                'store' => 'permission:roles:manage',
-                'edit' => 'permission:roles:manage',
-                'update' => 'permission:roles:manage',
-                'destroy' => 'permission:roles:manage',
-            ]);
+            ->middlewareFor('index', 'permission:roles:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:roles:manage');
 
         Route::resource('branches', BranchController::class)
             ->except(['show'])
-            ->middleware([
-                'index' => 'permission:branches:view',
-                'create' => 'permission:branches:manage',
-                'store' => 'permission:branches:manage',
-                'edit' => 'permission:branches:manage',
-                'update' => 'permission:branches:manage',
-                'destroy' => 'permission:branches:manage',
-            ]);
+            ->middlewareFor('index', 'permission:branches:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:branches:manage');
 
         Route::get('/audit-logs', [AuditLogController::class, 'index'])
             ->middleware('permission:audit:view')
