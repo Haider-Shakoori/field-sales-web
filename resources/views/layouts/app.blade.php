@@ -7,14 +7,41 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100">
+@php
+    $webGuardName = auth()->guard()->getName();
+    $tenantReady = app(\App\Tenancy\TenantContext::class)->hasTenant();
+    $currentUser = $tenantReady ? auth()->user() : null;
+@endphp
+
 <nav class="border-b border-white/10 bg-slate-900/80 backdrop-blur">
-    <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <div>
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-6 py-4">
+        <div class="mr-4">
             <p class="text-xl font-bold">Field Sales</p>
             <p class="text-xs text-slate-400">Operations Console</p>
         </div>
 
-        @php($webGuardName = auth()->guard()->getName())
+        @if($currentUser)
+            <div class="flex flex-1 flex-wrap items-center gap-2 text-sm">
+                @if($currentUser->hasPermission('users:view'))
+                    <a href="{{ route('admin.users.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Users</a>
+                @endif
+                @if($currentUser->hasPermission('roles:view'))
+                    <a href="{{ route('admin.roles.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Roles</a>
+                @endif
+                @if($currentUser->hasPermission('branches:view'))
+                    <a href="{{ route('admin.branches.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Branches</a>
+                @endif
+                @if($currentUser->hasPermission('audit:view'))
+                    <a href="{{ route('admin.audit.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Audit</a>
+                @endif
+                @if($currentUser->hasPermission('settings:view'))
+                    <a href="{{ route('tracking.edit') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Tracking settings</a>
+                @endif
+            </div>
+        @else
+            <div class="flex-1"></div>
+        @endif
+
         @if(session()->has($webGuardName))
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
@@ -24,6 +51,24 @@
     </div>
 </nav>
 
-<main class="mx-auto max-w-6xl p-6">{{ $slot }}</main>
+<main class="mx-auto max-w-7xl p-6">
+    @if(session('status'))
+        <div class="mb-5 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-emerald-200">
+            {{ session('status') }}
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="mb-5 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-red-200">
+            <ul class="list-disc space-y-1 pl-5">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    {{ $slot }}
+</main>
 </body>
 </html>

@@ -55,17 +55,26 @@ class AuthController extends Controller
                 ->onlyInput('email', 'tenant');
         }
 
-        if (! in_array($user->role, ['super_admin', 'owner', 'admin', 'company_admin'], true)) {
+        $context->initializeTenant((int) $user->tenant_id);
+
+        $webPermissions = [
+            'settings:view',
+            'users:view',
+            'roles:view',
+            'branches:view',
+            'audit:view',
+        ];
+
+        if (! $user->hasAnyPermission($webPermissions)) {
             return back()
                 ->withErrors(['email' => 'Administrator access required.'])
                 ->onlyInput('email', 'tenant');
         }
 
-        $context->initializeTenant((int) $user->tenant_id);
         Auth::login($user, true);
         $request->session()->regenerate();
 
-        return redirect()->intended('/admin/tracking-settings');
+        return redirect()->intended($this->landingPage($user));
     }
 
     public function destroy(Request $request)
@@ -75,5 +84,16 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/login');
+    }
+
+    private function landingPage(User $user): string
+    {
+        return match (true) {
+            $user->hasPermission('users:view') => route('admin.users.index'),
+            $user->hasPermission('roles:view') => route('admin.roles.index'),
+            $user->hasPermission('branches:view') => route('admin.branches.index'),
+            $user->hasPermission('settings:view') => route('tracking.edit'),
+            default => route('admin.audit.index'),
+        };
     }
 }

@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\CompanySetting;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\TenantContext;
@@ -60,15 +62,31 @@ class Batch1AuthBootstrappingTest extends TestCase
         $tenant = $this->tenant('admin-company');
 
         $this->platform(function () use ($tenant): void {
-            User::create([
+            $user = User::create([
                 'uuid' => (string) Str::uuid(),
                 'tenant_id' => $tenant->id,
                 'name' => 'Admin',
                 'email' => 'admin@test.local',
                 'password' => Hash::make('password'),
-                'role' => 'admin',
+                'role' => 'company_admin',
                 'is_active' => true,
             ]);
+
+            $permission = Permission::create([
+                'name' => 'Settings View',
+                'slug' => 'settings:view',
+                'group' => 'settings',
+            ]);
+
+            $role = Role::create([
+                'tenant_id' => $tenant->id,
+                'name' => 'Company Admin',
+                'slug' => 'company_admin',
+                'is_system' => true,
+            ]);
+
+            $role->permissions()->sync([$permission->id]);
+            $user->syncPrimaryRole($role);
 
             CompanySetting::create([
                 'tenant_id' => $tenant->id,
