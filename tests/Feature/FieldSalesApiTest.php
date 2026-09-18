@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WorkSession;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -227,23 +228,29 @@ class FieldSalesApiTest extends TestCase
 
     public function test_active_overnight_session_accepts_post_midnight_point(): void
     {
-        $actor = $this->actor();
-        $actor['t']->update(['timezone' => 'Asia/Kabul']);
+        CarbonImmutable::setTestNow('2026-09-19T06:00:00Z');
 
-        $this->createActiveSession($actor, '2026-09-18 16:00:00');
+        try {
+            $actor = $this->actor();
+            $actor['t']->update(['timezone' => 'Asia/Kabul']);
 
-        $this->postJson('/api/v1/gps/locations', [
-            'batch_uuid' => (string) Str::uuid(),
-            'locations' => [[
-                'client_uuid' => (string) Str::uuid(),
-                'latitude' => 34.5,
-                'longitude' => 69.1,
-                'accuracy' => 8,
-                'recorded_at' => '2026-09-18T20:00:00Z',
-                'sequence_number' => 1,
-            ]],
-        ], $this->headers())
-            ->assertJsonPath('data.accepted', 1);
+            $this->createActiveSession($actor, '2026-09-18 16:00:00');
+
+            $this->postJson('/api/v1/gps/locations', [
+                'batch_uuid' => (string) Str::uuid(),
+                'locations' => [[
+                    'client_uuid' => (string) Str::uuid(),
+                    'latitude' => 34.5,
+                    'longitude' => 69.1,
+                    'accuracy' => 8,
+                    'recorded_at' => '2026-09-18T20:00:00Z',
+                    'sequence_number' => 1,
+                ]],
+            ], $this->headers())
+                ->assertJsonPath('data.accepted', 1);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 
     public function test_privacy_ack_is_idempotent(): void
