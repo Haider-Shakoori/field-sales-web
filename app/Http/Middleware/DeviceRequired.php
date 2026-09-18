@@ -8,6 +8,7 @@ use App\Support\ApiResponse;
 use Closure;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\TransientToken;
 use Symfony\Component\HttpFoundation\Response;
 
 class DeviceRequired
@@ -66,9 +67,22 @@ class DeviceRequired
         }
 
         $accessToken = $user->currentAccessToken();
+        $hasBearerToken = filled($request->bearerToken());
 
-        if ($accessToken instanceof PersonalAccessToken
-            && $accessToken->name !== 'mobile-'.$device->uuid) {
+        if (! $hasBearerToken) {
+            $testingTransientToken = app()->environment('testing')
+                && $accessToken instanceof TransientToken;
+
+            if (! $testingTransientToken) {
+                return ApiResponse::error(
+                    'A device-bound bearer token is required.',
+                    401,
+                    null,
+                    'DEVICE_TOKEN_REQUIRED'
+                );
+            }
+        } elseif (! $accessToken instanceof PersonalAccessToken
+            || $accessToken->name !== 'mobile-'.$device->uuid) {
             return ApiResponse::error(
                 'This access token is not bound to the supplied device.',
                 403,
