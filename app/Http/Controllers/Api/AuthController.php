@@ -5,21 +5,24 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Device;
 use App\Models\User;
+use App\Services\MobileAppPolicy;
 use App\Support\ApiResponse;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function login(Request $request, TenantContext $context)
-    {
+    public function login(
+        Request $request,
+        TenantContext $context,
+        MobileAppPolicy $mobilePolicy,
+    ) {
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
             'tenant' => ['nullable', 'string', 'max:191'],
-            'device_uuid' => ['required', 'string', 'max:191'],
+            'device_uuid' => ['nullable', 'string', 'max:191'],
             'device_model' => ['nullable', 'string', 'max:191'],
             'manufacturer' => ['nullable', 'string', 'max:191'],
             'android_version' => ['nullable', 'string', 'max:50'],
@@ -27,19 +30,8 @@ class AuthController extends Controller
             'push_token' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $installationUuid = $request->header('X-Installation-UUID');
-
-        if (! $installationUuid) {
-            return ApiResponse::error(
-                'X-Installation-UUID is required.',
-                422,
-                null,
-                'INSTALLATION_UUID_REQUIRED'
-            );
-        }
-
         $matches = $context->withAuthenticationBootstrapScope(function () use ($validated) {
-            return User::with(['tenant', 'salesman'])
+            return User::with(['tenant', 'salesman', 'roles.permissions'])
                 ->where('email', $validated['email'])
                 ->when(
                     $validated['tenant'] ?? null,
@@ -75,12 +67,36 @@ class AuthController extends Controller
             );
         }
 
-        if (! $user->salesman) {
+        if (! $user->salesman || ! $user->salesman->is_active) {
             return ApiResponse::error(
-                'No salesman profile is linked to this user.',
+                'No active salesman profile is linked to this user.',
                 422,
                 null,
                 'SALESMAN_REQUIRED'
+            );
+        }
+
+        $installationUuid = $request->header('X-Installation-UUID');
+        $deviceUuid = $request->header('X-Device-UUID') ?: ($validated['device_uuid'] ?? null);
+        $appVersion = $request->header('X-App-Version') ?: ($validated['app_version'] ?? null);
+        $platform = strtolower((string) ($request->header('X-Platform') ?: 'android'));
+        $osVersion = $request->header('X-OS-Version') ?: ($validated['android_version'] ?? null);
+
+        if (! $installationUuid || ! $deviceUuid) {
+            return ApiResponse::error(
+                'X-Device-UUID and X-Installation-UUID are required.',
+                422,
+                null,
+                'DEVICE_HEADERS_REQUIRED'
+            );
+        }
+
+        if (! $mobilePolicy->isSupported($appVersion)) {
+            return ApiResponse::error(
+                'This app version is no longer supported.',
+                426,
+                $mobilePolicy->payload($appVersion),
+                'APP_UPGRADE_REQUIRED'
             );
         }
 
@@ -90,7 +106,7 @@ class AuthController extends Controller
             ->where('installation_uuid', $installationUuid)
             ->first();
 
-        if ($existing?->revoked_at) {
+        if ($existing?->isRevoked()) {
             return ApiResponse::error(
                 'This device has been revoked.',
                 403,
@@ -109,7 +125,13 @@ class AuthController extends Controller
             return ApiResponse::error(
                 'Only one active device is allowed for this salesman.',
                 422,
-                null,
+                [
+                    'active_device' => [
+                        'id' => $other->uuid,
+                        'model' => $other->device_model,
+                        'last_seen_at' => $other->last_seen_at?->toIso8601String(),
+                    ],
+                ],
                 'DEVICE_LIMIT_REACHED'
             );
         }
@@ -120,23 +142,35 @@ class AuthController extends Controller
                 'installation_uuid' => $installationUuid,
             ],
             [
-                'uuid' => $existing?->uuid ?? (string) Str::uuid(),
                 'salesman_id' => $user->salesman->id,
-                'device_uuid' => $validated['device_uuid'],
+                'device_uuid' => $deviceUuid,
                 'device_model' => $validated['device_model'] ?? null,
                 'manufacturer' => $validated['manufacturer'] ?? null,
-                'android_version' => $validated['android_version'] ?? null,
-                'app_version' => $validated['app_version'] ?? null,
+                'platform' => $platform,
+                'os_version' => $osVersion,
+                'android_version' => $validated['android_version'] ?? $osVersion,
+                'app_version' => $appVersion,
                 'push_token' => $validated['push_token'] ?? null,
                 'is_active' => true,
                 'registered_at' => $existing?->registered_at ?? now(),
                 'last_seen_at' => now(),
                 'revoked_at' => null,
+                'revoked_by' => null,
+                'revocation_reason' => null,
             ]
         );
 
-        $user->tokens()->where('name', 'mobile-'.$device->uuid)->delete();
-        $token = $user->createToken('mobile-'.$device->uuid)->plainTextToken;
+        $permissions = $user->roles
+            ->flatMap(fn ($role) => $role->permissions->pluck('slug'))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        // Rotate only the token bound to this same registered device.
+        $tokenName = 'mobile-'.$device->uuid;
+        $user->tokens()->where('name', $tokenName)->delete();
+        $token = $user->createToken($tokenName, $permissions)->plainTextToken;
 
         return ApiResponse::success([
             'token' => $token,
@@ -146,21 +180,66 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->role,
             ],
+            'salesman' => [
+                'id' => $user->salesman->uuid,
+                'employee_code' => $user->salesman->employee_code,
+                'name' => $user->salesman->full_name,
+            ],
             'tenant' => [
                 'id' => $user->tenant->uuid,
                 'name' => $user->tenant->name,
                 'timezone' => $user->tenant->timezone,
             ],
-            'permissions' => [
-                'attendance.view',
-                'attendance.manage',
-                'gps.upload',
-            ],
+            'permissions' => $permissions,
             'device' => [
                 'id' => $device->uuid,
                 'device_uuid' => $device->device_uuid,
                 'installation_uuid' => $device->installation_uuid,
+                'platform' => $device->platform,
+                'app_version' => $device->app_version,
             ],
+        ]);
+    }
+
+    public function me(Request $request)
+    {
+        /** @var User $user */
+        $user = $request->user();
+        /** @var Device|null $device */
+        $device = $request->attributes->get('device');
+
+        return ApiResponse::success([
+            'user' => [
+                'id' => $user->uuid,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ],
+            'salesman' => [
+                'id' => $user->salesman?->uuid,
+                'employee_code' => $user->salesman?->employee_code,
+                'name' => $user->salesman?->full_name,
+            ],
+            'tenant' => [
+                'id' => $user->tenant->uuid,
+                'name' => $user->tenant->name,
+                'timezone' => $user->tenant->timezone,
+            ],
+            'permissions' => $user->roles()
+                ->with('permissions')
+                ->get()
+                ->flatMap(fn ($role) => $role->permissions->pluck('slug'))
+                ->unique()
+                ->sort()
+                ->values()
+                ->all(),
+            'device' => $device ? [
+                'id' => $device->uuid,
+                'device_uuid' => $device->device_uuid,
+                'installation_uuid' => $device->installation_uuid,
+                'platform' => $device->platform,
+                'app_version' => $device->app_version,
+            ] : null,
         ]);
     }
 

@@ -18,11 +18,7 @@ class BootstrapTenantForApiAuth
     public function handle(Request $request, Closure $next): Response
     {
         try {
-            $user = $this->context->withAuthenticationBootstrapScope(
-                fn () => $request->user()
-            );
-
-            if (! $user && $request->bearerToken()) {
+            if ($request->bearerToken()) {
                 $plainTextToken = $request->bearerToken();
 
                 $user = $this->context->withAuthenticationBootstrapScope(function () use ($plainTextToken) {
@@ -31,6 +27,10 @@ class BootstrapTenantForApiAuth
 
                     return $tokenable instanceof User ? $tokenable : null;
                 });
+            } else {
+                $user = $this->context->withAuthenticationBootstrapScope(
+                    fn () => $request->user()
+                );
             }
 
             if ($user instanceof User) {

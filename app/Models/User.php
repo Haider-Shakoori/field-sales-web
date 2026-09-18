@@ -39,6 +39,11 @@ class User extends Authenticatable
         return $this->hasOne(Salesman::class);
     }
 
+    public function supervisor(): HasOne
+    {
+        return $this->hasOne(Supervisor::class);
+    }
+
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'model_has_roles')

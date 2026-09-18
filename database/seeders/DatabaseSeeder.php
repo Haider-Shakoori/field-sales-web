@@ -7,6 +7,9 @@ use App\Models\CompanySetting;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Salesman;
+use App\Models\SalesmanAssignment;
+use App\Models\Supervisor;
+use App\Models\SupervisorAssignment;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\TenantContext;
@@ -49,6 +52,18 @@ class DatabaseSeeder extends Seeder
                 ]
             );
 
+            $supervisorUser = User::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'email' => 'supervisor@example.com'],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'branch_id' => $branch->id,
+                    'name' => 'Demo Supervisor',
+                    'password' => Hash::make('password'),
+                    'role' => 'supervisor',
+                    'is_active' => true,
+                ]
+            );
+
             $salesmanUser = User::firstOrCreate(
                 ['tenant_id' => $tenant->id, 'email' => 'salesman@example.com'],
                 [
@@ -62,9 +77,22 @@ class DatabaseSeeder extends Seeder
             );
 
             $admin->update(['branch_id' => $branch->id]);
+            $supervisorUser->update(['branch_id' => $branch->id]);
             $salesmanUser->update(['branch_id' => $branch->id]);
 
-            Salesman::firstOrCreate(
+            $supervisor = Supervisor::firstOrCreate(
+                ['user_id' => $supervisorUser->id],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'tenant_id' => $tenant->id,
+                    'employee_code' => 'SUP-001',
+                    'first_name' => 'Demo',
+                    'last_name' => 'Supervisor',
+                    'is_active' => true,
+                ]
+            );
+
+            $salesman = Salesman::firstOrCreate(
                 ['user_id' => $salesmanUser->id],
                 [
                     'uuid' => (string) Str::uuid(),
@@ -79,7 +107,33 @@ class DatabaseSeeder extends Seeder
             $roles = $this->seedRbac($tenant);
 
             $admin->syncPrimaryRole($roles['company_admin']);
+            $supervisorUser->syncPrimaryRole($roles['supervisor']);
             $salesmanUser->syncPrimaryRole($roles['salesman']);
+
+            SupervisorAssignment::firstOrCreate(
+                [
+                    'tenant_id' => $tenant->id,
+                    'supervisor_id' => $supervisor->id,
+                    'branch_id' => $branch->id,
+                    'effective_from' => now()->toDateString(),
+                ],
+                [
+                    'created_by' => $admin->id,
+                ]
+            );
+
+            SalesmanAssignment::firstOrCreate(
+                [
+                    'tenant_id' => $tenant->id,
+                    'salesman_id' => $salesman->id,
+                    'effective_from' => now()->toDateString(),
+                ],
+                [
+                    'branch_id' => $branch->id,
+                    'supervisor_id' => $supervisor->id,
+                    'created_by' => $admin->id,
+                ]
+            );
 
             foreach (config('tenancy.defaults') as $key => $value) {
                 CompanySetting::firstOrCreate(

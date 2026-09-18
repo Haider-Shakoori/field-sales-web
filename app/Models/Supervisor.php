@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Salesman extends Model
+class Supervisor extends Model
 {
     use BelongsToTenant, HasUuid;
 
@@ -27,12 +27,12 @@ class Salesman extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function devices(): HasMany
+    public function assignments(): HasMany
     {
-        return $this->hasMany(Device::class);
+        return $this->hasMany(SupervisorAssignment::class);
     }
 
-    public function assignments(): HasMany
+    public function supervisedSalesmanAssignments(): HasMany
     {
         return $this->hasMany(SalesmanAssignment::class);
     }

@@ -31,6 +31,13 @@
                 @if($currentUser->hasPermission('branches:view'))
                     <a href="{{ route('admin.branches.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Branches</a>
                 @endif
+                @if($currentUser->hasPermission('sales-team:view'))
+                    <a href="{{ route('admin.salesmen.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Salesmen</a>
+                    <a href="{{ route('admin.supervisors.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Supervisors</a>
+                    <a href="{{ route('admin.devices.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Devices</a>
+                    <a href="{{ route('admin.salesman-assignments.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Salesman assignments</a>
+                    <a href="{{ route('admin.supervisor-assignments.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Supervisor assignments</a>
+                @endif
                 @if($currentUser->hasPermission('audit:view'))
                     <a href="{{ route('admin.audit.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Audit</a>
                 @endif

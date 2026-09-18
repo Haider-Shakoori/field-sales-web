@@ -12,12 +12,13 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class FieldSalesApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    private ?string $deviceToken = null;
 
     private function actor(): array
     {
@@ -61,7 +62,10 @@ class FieldSalesApiTest extends TestCase
             return [$user, $salesman, $device];
         });
 
-        Sanctum::actingAs($user);
+        $this->deviceToken = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => $user->createToken('mobile-'.$device->uuid)->plainTextToken
+        );
 
         return [
             't' => $tenant,
@@ -74,10 +78,12 @@ class FieldSalesApiTest extends TestCase
     private function headers(): array
     {
         return [
+            'Authorization' => 'Bearer '.$this->deviceToken,
             'X-Device-UUID' => 'device-1',
             'X-Installation-UUID' => 'install-1',
             'X-App-Version' => '1.0',
             'X-Platform' => 'android',
+            'X-OS-Version' => '16',
         ];
     }
 
@@ -276,7 +282,9 @@ class FieldSalesApiTest extends TestCase
     {
         $this->actor();
 
-        $this->getJson('/api/v1/settings/attendance-tracking')
+        $this->getJson('/api/v1/settings/attendance-tracking', [
+            'Authorization' => 'Bearer '.$this->deviceToken,
+        ])
             ->assertOk()
             ->assertJsonPath('data.work_session_start_mode', 'manual')
             ->assertJsonPath('data.gps_tracking_enabled', true)

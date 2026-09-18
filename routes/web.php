@@ -3,7 +3,12 @@
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\BranchController;
+use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\RoleController;
+use App\Http\Controllers\Web\SalesmanAssignmentController;
+use App\Http\Controllers\Web\SalesmanController;
+use App\Http\Controllers\Web\SupervisorAssignmentController;
+use App\Http\Controllers\Web\SupervisorController;
 use App\Http\Controllers\Web\TrackingSettingsController;
 use App\Http\Controllers\Web\UserController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +36,34 @@ Route::middleware('auth')->group(function () {
             ->except(['show'])
             ->middlewareFor('index', 'permission:branches:view')
             ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:branches:manage');
+
+        Route::resource('salesmen', SalesmanController::class)
+            ->middlewareFor(['index', 'show'], 'permission:sales-team:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:sales-team:manage');
+
+        Route::resource('supervisors', SupervisorController::class)
+            ->middlewareFor(['index', 'show'], 'permission:sales-team:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:sales-team:manage');
+
+        Route::get('/devices', [DeviceController::class, 'index'])
+            ->middleware('permission:sales-team:view')
+            ->name('devices.index');
+        Route::get('/devices/{device}', [DeviceController::class, 'show'])
+            ->middleware('permission:sales-team:view')
+            ->name('devices.show');
+        Route::post('/devices/{device}/revoke', [DeviceController::class, 'revoke'])
+            ->middleware('permission:sales-team:manage')
+            ->name('devices.revoke');
+
+        Route::resource('salesman-assignments', SalesmanAssignmentController::class)
+            ->parameters(['salesman-assignments' => 'assignment'])
+            ->middlewareFor(['index', 'show'], 'permission:sales-team:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:sales-team:manage');
+
+        Route::resource('supervisor-assignments', SupervisorAssignmentController::class)
+            ->parameters(['supervisor-assignments' => 'assignment'])
+            ->middlewareFor(['index', 'show'], 'permission:sales-team:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:sales-team:manage');
 
         Route::get('/audit-logs', [AuditLogController::class, 'index'])
             ->middleware('permission:audit:view')

@@ -112,9 +112,9 @@ class UserController extends Controller
     {
         Gate::authorize('delete', $user);
 
-        if ($user->salesman()->exists()) {
+        if ($user->salesman()->exists() || $user->supervisor()->exists()) {
             throw ValidationException::withMessages([
-                'user' => 'This user has a salesman profile and cannot be deleted. Deactivate the account instead.',
+                'user' => 'This user has a sales-team profile and cannot be deleted. Deactivate the account instead.',
             ]);
         }
 
