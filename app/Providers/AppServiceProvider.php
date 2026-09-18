@@ -10,11 +10,11 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->scoped(TenantContext::class, fn () => new TenantContext);
+        $this->app->scoped(TenantContext::class, fn () => new TenantContext());
     }
 
     public function boot(): void
     {
-        Model::preventLazyLoading(!app()->isProduction());
+        Model::preventLazyLoading(! app()->isProduction());
     }
 }
