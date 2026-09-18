@@ -175,7 +175,10 @@ class Batch2RbacUserManagementTest extends TestCase
 
         $this->assertSame($branch->id, $created->branch_id);
         $this->assertSame('supervisor', $created->role);
-        $this->assertTrue($created->hasAnyRole(['supervisor']));
+        $this->assertTrue($this->tenantScope(
+            $tenant,
+            fn () => $created->hasAnyRole(['supervisor'])
+        ));
         $this->assertDatabaseHas('audit_logs', [
             'tenant_id' => $tenant->id,
             'event' => 'user.created',
@@ -598,7 +601,7 @@ class Batch2RbacUserManagementTest extends TestCase
             'uuid' => (string) Str::uuid(),
             'tenant_id' => $tenant->id,
             'branch_id' => $branch?->id,
-            'name' => str($email)->before('@')->replace('.', ' ')->title(),
+            'name' => (string) str($email)->before('@')->replace('.', ' ')->title(),
             'email' => $email,
             'password' => Hash::make('password'),
             'role' => 'salesman',
