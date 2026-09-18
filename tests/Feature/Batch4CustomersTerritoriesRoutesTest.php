@@ -15,6 +15,7 @@ use App\Models\Tenant;
 use App\Models\Territory;
 use App\Models\User;
 use App\Tenancy\TenantContext;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -361,7 +362,7 @@ class Batch4CustomersTerritoriesRoutesTest extends TestCase
             ]);
         });
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
         $this->platform(function () use ($tenant, $offlineUuid): void {
             Customer::create([
