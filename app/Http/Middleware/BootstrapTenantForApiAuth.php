@@ -11,9 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class BootstrapTenantForApiAuth
 {
-    public function __construct(private readonly TenantContext $context)
-    {
-    }
+    public function __construct(private readonly TenantContext $context) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -22,7 +20,7 @@ class BootstrapTenantForApiAuth
                 fn () => $request->user()
             );
 
-            if (! $user && $request->bearerToken()) {
+            if (!$user && $request->bearerToken()) {
                 $plainTextToken = $request->bearerToken();
 
                 $user = $this->context->withAuthenticationBootstrapScope(function () use ($plainTextToken) {
