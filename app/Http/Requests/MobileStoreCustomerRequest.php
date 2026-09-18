@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class MobileStoreCustomerRequest extends FormRequest
 {
@@ -19,16 +18,9 @@ class MobileStoreCustomerRequest extends FormRequest
 
     public function rules(): array
     {
-        $tenantId = $this->user()->tenant_id;
-
         return [
             'offline_uuid' => ['required', 'uuid'],
-            'code' => [
-                'nullable',
-                'string',
-                'max:60',
-                Rule::unique('customers', 'code')->where('tenant_id', $tenantId),
-            ],
+            'code' => ['nullable', 'string', 'max:60'],
             'name' => ['required', 'string', 'max:180'],
             'contact_person' => ['nullable', 'string', 'max:160'],
             'phone' => ['nullable', 'string', 'max:60'],
@@ -38,11 +30,7 @@ class MobileStoreCustomerRequest extends FormRequest
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'geofence_radius_meters' => ['nullable', 'integer', 'between:25,1000'],
-            'price_list_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('price_lists', 'id')->where('tenant_id', $tenantId),
-            ],
+            'price_list_id' => ['nullable', 'uuid'],
         ];
     }
 }
