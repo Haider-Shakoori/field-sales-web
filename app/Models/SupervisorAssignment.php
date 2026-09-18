@@ -32,6 +32,11 @@ class SupervisorAssignment extends Model
         return $this->belongsTo(Branch::class);
     }
 
+    public function territory(): BelongsTo
+    {
+        return $this->belongsTo(Territory::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

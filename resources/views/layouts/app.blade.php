@@ -38,6 +38,11 @@
                     <a href="{{ route('admin.salesman-assignments.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Salesman assignments</a>
                     <a href="{{ route('admin.supervisor-assignments.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Supervisor assignments</a>
                 @endif
+                @if($currentUser->hasPermission('customers:view'))
+                    <a href="{{ route('admin.customers.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Customers</a>
+                    <a href="{{ route('admin.territories.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Territories</a>
+                    <a href="{{ route('admin.routes.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Routes</a>
+                @endif
                 @if($currentUser->hasPermission('audit:view'))
                     <a href="{{ route('admin.audit.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Audit</a>
                 @endif

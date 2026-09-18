@@ -3,12 +3,16 @@
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\BranchController;
+use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\RoleController;
+use App\Http\Controllers\Web\RouteCustomerController;
 use App\Http\Controllers\Web\SalesmanAssignmentController;
 use App\Http\Controllers\Web\SalesmanController;
+use App\Http\Controllers\Web\SalesRouteController;
 use App\Http\Controllers\Web\SupervisorAssignmentController;
 use App\Http\Controllers\Web\SupervisorController;
+use App\Http\Controllers\Web\TerritoryController;
 use App\Http\Controllers\Web\TrackingSettingsController;
 use App\Http\Controllers\Web\UserController;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +68,28 @@ Route::middleware('auth')->group(function () {
             ->parameters(['supervisor-assignments' => 'assignment'])
             ->middlewareFor(['index', 'show'], 'permission:sales-team:view')
             ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:sales-team:manage');
+
+        Route::resource('territories', TerritoryController::class)
+            ->middlewareFor(['index', 'show'], 'permission:customers:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:customers:manage');
+
+        Route::resource('customers', CustomerController::class)
+            ->middlewareFor(['index', 'show'], 'permission:customers:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:customers:manage');
+
+        Route::resource('routes', SalesRouteController::class)
+            ->middlewareFor(['index', 'show'], 'permission:customers:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:customers:manage');
+
+        Route::post('/routes/{route}/customers', [RouteCustomerController::class, 'store'])
+            ->middleware('permission:customers:manage')
+            ->name('routes.customers.store');
+        Route::patch('/routes/{route}/customers/reorder', [RouteCustomerController::class, 'reorder'])
+            ->middleware('permission:customers:manage')
+            ->name('routes.customers.reorder');
+        Route::delete('/routes/{route}/customers/{routeCustomer}', [RouteCustomerController::class, 'destroy'])
+            ->middleware('permission:customers:manage')
+            ->name('routes.customers.destroy');
 
         Route::get('/audit-logs', [AuditLogController::class, 'index'])
             ->middleware('permission:audit:view')

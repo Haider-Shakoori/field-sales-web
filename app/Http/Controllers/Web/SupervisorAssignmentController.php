@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateSupervisorAssignmentRequest;
 use App\Models\Branch;
 use App\Models\Supervisor;
 use App\Models\SupervisorAssignment;
+use App\Models\Territory;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -21,7 +22,7 @@ class SupervisorAssignmentController extends Controller
         Gate::authorize('viewAny', SupervisorAssignment::class);
 
         return view('admin.supervisor-assignments.index', [
-            'assignments' => SupervisorAssignment::with(['supervisor', 'branch'])
+            'assignments' => SupervisorAssignment::with(['supervisor', 'branch', 'territory'])
                 ->latest('effective_from')
                 ->paginate(30),
         ]);
@@ -68,7 +69,7 @@ class SupervisorAssignmentController extends Controller
         Gate::authorize('view', $assignment);
 
         return view('admin.supervisor-assignments.show', [
-            'assignment' => $assignment->load(['supervisor.user', 'branch', 'creator']),
+            'assignment' => $assignment->load(['supervisor.user', 'branch', 'territory', 'creator']),
         ]);
     }
 
@@ -156,6 +157,7 @@ class SupervisorAssignmentController extends Controller
         return [
             'supervisors' => Supervisor::active()->orderBy('employee_code')->get(),
             'branches' => Branch::active()->orderBy('name')->get(),
+            'territories' => Territory::active()->orderBy('name')->get(),
         ];
     }
 

@@ -37,6 +37,16 @@ class SalesmanAssignment extends Model
         return $this->belongsTo(Supervisor::class);
     }
 
+    public function territory(): BelongsTo
+    {
+        return $this->belongsTo(Territory::class);
+    }
+
+    public function route(): BelongsTo
+    {
+        return $this->belongsTo(SalesRoute::class, 'route_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
