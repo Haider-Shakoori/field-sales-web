@@ -13,9 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class DeviceRequired
 {
-    public function __construct(private readonly MobileAppPolicy $mobilePolicy)
-    {
-    }
+    public function __construct(private readonly MobileAppPolicy $mobilePolicy) {}
 
     public function handle(Request $request, Closure $next): Response
     {
