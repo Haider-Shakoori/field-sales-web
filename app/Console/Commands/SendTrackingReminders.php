@@ -10,6 +10,7 @@ use App\Models\WorkSession;
 use App\Services\NotificationService;
 use App\Services\TenantClock;
 use App\Services\TrackingSettingsService;
+use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 
@@ -18,10 +19,11 @@ class SendTrackingReminders extends Command
     protected $signature = 'field-sales:tracking-reminders';
     protected $description = 'Send configured work-session/GPS reminders to salesmen who need attention.';
 
-    public function handle(TrackingSettingsService $settingsService, TenantClock $clock, NotificationService $notifications): int
+    public function handle(TrackingSettingsService $settingsService, TenantClock $clock, NotificationService $notifications, TenantContext $context): int
     {
         Tenant::where('subscription_status', 'active')->chunkById(100, function ($tenants) use ($settingsService, $clock, $notifications) {
             foreach ($tenants as $tenant) {
+                $context->withTenant($tenant, function () use ($tenant, $settingsService, $clock, $notifications): void {
                 $settings = $settingsService->get($tenant);
                 if (! $settings['tracking_auto_reminder_enabled']) {
                     continue;
@@ -111,6 +113,7 @@ class SendTrackingReminders extends Command
                         );
                     }
                 }
+                });
             }
         });
 
