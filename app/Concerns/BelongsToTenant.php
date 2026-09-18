@@ -21,7 +21,7 @@ trait BelongsToTenant
                 return;
             }
 
-            if (!$context->hasTenant()) {
+            if (! $context->hasTenant()) {
                 throw new TenantContextMissingException(
                     'A tenant-scoped model query was attempted before tenant resolution.'
                 );
