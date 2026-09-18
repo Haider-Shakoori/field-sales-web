@@ -41,7 +41,10 @@ jobs:
 
           if [ -n "$PHP_FILES" ]; then
             printf '%s\n' "$PHP_FILES"
-            printf '%s\n' "$PHP_FILES" | xargs vendor/bin/pint --test
+            printf '%s\n' "$PHP_FILES" | xargs vendor/bin/pint
+            echo "=== PINT GENERATED DIFF ==="
+            git diff -- '*.php'
+            exit 1
           else
             echo "No changed PHP files to lint."
           fi
