@@ -17,6 +17,7 @@ use App\Models\SalesRoute;
 use App\Models\Tenant;
 use App\Models\Territory;
 use App\Models\User;
+use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -25,6 +26,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        app(TenantContext::class)->withPlatformScope(function (): void {
         $tenant = Tenant::firstOrCreate(
             ['slug' => 'demo-field-sales'],
             [
@@ -213,6 +215,7 @@ class DatabaseSeeder extends Seeder
                 'created_by' => $admin->id,
             ]
         );
+        });
     }
 
     private function seedRbac(Tenant $tenant, User $admin, User $supervisor, User $salesman): void
