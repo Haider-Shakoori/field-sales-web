@@ -2,9 +2,10 @@
 
 namespace App\Concerns;
 
+use App\Models\Tenant;
 use App\Tenancy\TenantContext;
-use App\Tenancy\TenantContextMissingException;
 use App\Tenancy\TenantContextMismatchException;
+use App\Tenancy\TenantContextMissingException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,7 +21,7 @@ trait BelongsToTenant
                 return;
             }
 
-            if (! $context->hasTenant()) {
+            if (!$context->hasTenant()) {
                 throw new TenantContextMissingException(
                     'A tenant-scoped model query was attempted before tenant resolution.'
                 );
@@ -53,7 +54,7 @@ trait BelongsToTenant
 
     public function tenant(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Tenant::class);
+        return $this->belongsTo(Tenant::class);
     }
 
     private static function assertTenantWriteAllowed(Model $model, TenantContext $context): void
