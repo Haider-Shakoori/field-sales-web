@@ -170,7 +170,7 @@ class MasterDataController extends Controller
             ->select('customers.*')
             ->join('route_customers', 'route_customers.customer_id', '=', 'customers.id')
             ->where('route_customers.route_id', $route->id)
-            ->with(['branch', 'territory', 'priceList'])
+            ->with(['branch', 'territory', 'priceList', 'routeMemberships.route'])
             ->orderBy('route_customers.sequence_number');
 
         $this->applyUpdatedSince($request, $query);
