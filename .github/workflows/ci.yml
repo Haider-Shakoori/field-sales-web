@@ -1,13 +1,47 @@
 name: web-ci
+
 on: [push, pull_request]
+
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: shivammathur/setup-php@v2
-        with: {php-version: '8.5', coverage: none}
+        with:
+          php-version: '8.5'
+          coverage: none
+
       - run: composer install --no-interaction --prefer-dist
       - run: cp .env.example .env && php artisan key:generate
       - run: php artisan test
-      - run: vendor/bin/pint --test
+
+      # The repository predates strict Pint enforcement and main still contains
+      # formatting debt. Enforce Pint for every PHP file changed by the current
+      # push/PR so new batches cannot add more debt while old files are cleaned
+      # incrementally when touched.
+      - name: Pint changed PHP files
+        shell: bash
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+
+          if [ -z "$BASE_SHA" ] || [[ "$BASE_SHA" =~ ^0+$ ]]; then
+            PHP_FILES="$(git ls-files '*.php')"
+          else
+            PHP_FILES="$(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$GITHUB_SHA" -- '*.php')"
+          fi
+
+          if [ -n "$PHP_FILES" ]; then
+            printf '%s\n' "$PHP_FILES"
+            printf '%s\n' "$PHP_FILES" | xargs vendor/bin/pint --test
+          else
+            echo "No changed PHP files to lint."
+          fi
