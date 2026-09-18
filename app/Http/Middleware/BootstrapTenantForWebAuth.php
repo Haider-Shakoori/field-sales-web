@@ -13,8 +13,7 @@ class BootstrapTenantForWebAuth
     public function __construct(
         private readonly TenantContext $context,
         private readonly AuthFactory $auth,
-    ) {
-    }
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
