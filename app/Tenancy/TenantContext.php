@@ -44,11 +44,7 @@ final class TenantContext
 
     public function initializeTenant(Tenant|int $tenant): void
     {
-        $tenantId = $tenant instanceof Tenant ? (int) $tenant->getKey() : (int) $tenant;
-
-        if ($tenantId <= 0) {
-            throw new TenantContextMissingException('A valid tenant id is required.');
-        }
+        $tenantId = $this->normalizeTenantId($tenant);
 
         if ($this->state === TenantContextState::Tenant && $this->tenantId !== $tenantId) {
             throw new TenantContextMismatchException(
@@ -86,16 +82,40 @@ final class TenantContext
 
     public function withTenant(Tenant|int $tenant, Closure $callback): mixed
     {
-        $tenantId = $tenant instanceof Tenant ? (int) $tenant->getKey() : (int) $tenant;
+        $tenantId = $this->normalizeTenantId($tenant);
+
+        if ($this->hasTenant()) {
+            if ($this->tenantId !== $tenantId) {
+                throw new TenantContextMismatchException(
+                    "Refusing to switch from tenant {$this->tenantId} to tenant {$tenantId} inside an active tenant scope."
+                );
+            }
+
+            return $callback();
+        }
 
         return $this->temporarily(TenantContextState::Tenant, $tenantId, $callback);
     }
 
     public function withPlatformScope(Closure $callback): mixed
     {
+        if ($this->hasTenant()) {
+            throw new TenantContextMismatchException(
+                'Refusing to broaden an active tenant scope to platform scope.'
+            );
+        }
+
+        if ($this->isPlatform()) {
+            return $callback();
+        }
+
         return $this->temporarily(TenantContextState::Platform, null, $callback);
     }
 
+    /**
+     * Authentication is the one request bootstrap that may resolve identity
+     * before the tenant is known. It never broadens an already active tenant.
+     */
     public function withAuthenticationBootstrapScope(Closure $callback): mixed
     {
         if ($this->state !== TenantContextState::Uninitialized) {
@@ -119,5 +139,16 @@ final class TenantContext
             $this->state = $previousState;
             $this->tenantId = $previousTenantId;
         }
+    }
+
+    private function normalizeTenantId(Tenant|int $tenant): int
+    {
+        $tenantId = $tenant instanceof Tenant ? (int) $tenant->getKey() : (int) $tenant;
+
+        if ($tenantId <= 0) {
+            throw new TenantContextMissingException('A valid tenant id is required.');
+        }
+
+        return $tenantId;
     }
 }
