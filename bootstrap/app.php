@@ -20,7 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(prepend: [
+        // Web identity resolution requires StartSession to have already run.
+        // Appending keeps the guest/public path fail-closed while ensuring the
+        // authenticated user can be resolved before route auth/controllers.
+        $middleware->web(append: [
             BootstrapTenantForWebAuth::class,
         ]);
 
