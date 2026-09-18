@@ -35,62 +35,59 @@ trait BelongsToTenant
         static::creating(function (Model $model): void {
             $context = app(TenantContext::class);
 
-            if ($context->hasTenant()) {
-                $tenantId = $context->tenantId();
-
-                if ($model->getAttribute('tenant_id') === null) {
-                    $model->setAttribute('tenant_id', $tenantId);
-
-                    return;
-                }
-
-                if ((int) $model->getAttribute('tenant_id') !== $tenantId) {
-                    throw new TenantContextMismatchException(
-                        'Refusing to create a tenant-owned model for a different tenant.'
-                    );
-                }
-
-                return;
+            if ($context->hasTenant() && $model->getAttribute('tenant_id') === null) {
+                $model->setAttribute('tenant_id', $context->tenantId());
             }
 
-            if ($context->isPlatform()) {
-                if ($model->getAttribute('tenant_id') === null) {
-                    throw new TenantContextMissingException(
-                        'Platform-scope writes to tenant-owned models must provide tenant_id explicitly.'
-                    );
-                }
-
-                return;
-            }
-
-            throw new TenantContextMissingException(
-                'Refusing to create a tenant-owned model without tenant context.'
-            );
+            static::assertTenantWriteAllowed($model, $context);
         });
 
         static::updating(function (Model $model): void {
-            $context = app(TenantContext::class);
+            static::assertTenantWriteAllowed($model, app(TenantContext::class));
+        });
 
-            if (! $model->isDirty('tenant_id')) {
-                return;
-            }
-
-            if ($context->hasTenant() && (int) $model->getAttribute('tenant_id') !== $context->tenantId()) {
-                throw new TenantContextMismatchException(
-                    'Refusing to move a tenant-owned model to another tenant.'
-                );
-            }
-
-            if (! $context->isPlatform() && ! $context->hasTenant()) {
-                throw new TenantContextMissingException(
-                    'Refusing to update tenant ownership without tenant context.'
-                );
-            }
+        static::deleting(function (Model $model): void {
+            static::assertTenantWriteAllowed($model, app(TenantContext::class));
         });
     }
 
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(\App\Models\Tenant::class);
+    }
+
+    private static function assertTenantWriteAllowed(Model $model, TenantContext $context): void
+    {
+        $modelTenantId = $model->getAttribute('tenant_id');
+
+        if ($context->hasTenant()) {
+            if ($modelTenantId === null || (int) $modelTenantId !== $context->tenantId()) {
+                throw new TenantContextMismatchException(
+                    'Refusing a tenant-owned model write outside the active tenant.'
+                );
+            }
+
+            if ($model->exists && $model->isDirty('tenant_id')) {
+                throw new TenantContextMismatchException(
+                    'Tenant ownership is immutable inside tenant scope.'
+                );
+            }
+
+            return;
+        }
+
+        if ($context->isPlatform()) {
+            if ($modelTenantId === null) {
+                throw new TenantContextMissingException(
+                    'Platform-scope writes to tenant-owned models must provide tenant_id explicitly.'
+                );
+            }
+
+            return;
+        }
+
+        throw new TenantContextMissingException(
+            'Refusing to write a tenant-owned model without tenant context.'
+        );
     }
 }
