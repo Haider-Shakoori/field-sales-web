@@ -1,0 +1,10 @@
+<div class="grid gap-5 md:grid-cols-2">
+    <label class="block"><span class="text-sm text-slate-300">SKU</span><input name="sku" value="{{ old('sku', $product->sku ?? '') }}" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3" required></label>
+    <label class="block"><span class="text-sm text-slate-300">Barcode</span><input name="barcode" value="{{ old('barcode', $product->barcode ?? '') }}" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"></label>
+    <label class="block md:col-span-2"><span class="text-sm text-slate-300">Name</span><input name="name" value="{{ old('name', $product->name ?? '') }}" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3" required></label>
+    <label class="block md:col-span-2"><span class="text-sm text-slate-300">Description</span><textarea name="description" rows="3" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">{{ old('description', $product->description ?? '') }}</textarea></label>
+    <label class="block"><span class="text-sm text-slate-300">Unit</span><input name="unit" value="{{ old('unit', $product->unit ?? 'pcs') }}" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3" required></label>
+    <label class="block"><span class="text-sm text-slate-300">Currency</span><input name="currency" maxlength="3" value="{{ old('currency', $product->currency ?? 'AFN') }}" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 uppercase" required></label>
+    <label class="block"><span class="text-sm text-slate-300">Base price</span><input type="number" step="0.0001" min="0" name="base_price" value="{{ old('base_price', $product->base_price ?? 0) }}" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3" required></label>
+    <label class="flex items-center gap-3"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked((bool) old('is_active', $product->is_active ?? true))><span>Active product</span></label>
+</div>
