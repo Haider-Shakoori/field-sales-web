@@ -52,7 +52,10 @@ class MasterDataController extends Controller
         }
 
         $assignment = $this->currentSalesmanAssignment($request);
-        $code = strtoupper($validated['code'] ?: 'CUS-'.substr(str_replace('-', '', $validated['offline_uuid']), 0, 10));
+        $code = strtoupper(
+            ($validated['code'] ?? null)
+            ?: 'CUS-'.substr(str_replace('-', '', $validated['offline_uuid']), 0, 10)
+        );
 
         if (Customer::where('code', $code)->exists()) {
             throw ValidationException::withMessages([
