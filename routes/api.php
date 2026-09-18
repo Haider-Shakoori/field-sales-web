@@ -26,10 +26,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/customers', [MasterDataController::class, 'storeCustomer']);
             Route::get('/territories', [MasterDataController::class, 'territories']);
             Route::get('/routes', [MasterDataController::class, 'routes']);
-            Route::get('/routes/{route}/customers', [MasterDataController::class, 'routeCustomers']);
+            Route::get('/routes/{route:uuid}/customers', [MasterDataController::class, 'routeCustomers']);
             Route::get('/products', [MasterDataController::class, 'products']);
             Route::get('/price-lists', [MasterDataController::class, 'priceLists']);
-            Route::get('/price-lists/{priceList}/items', [MasterDataController::class, 'priceListItems']);
+            Route::get('/price-lists/{priceList:uuid}/items', [MasterDataController::class, 'priceListItems']);
 
             Route::post('/attendance/start', [AttendanceController::class, 'start']);
             Route::post('/attendance/end', [AttendanceController::class, 'end']);
