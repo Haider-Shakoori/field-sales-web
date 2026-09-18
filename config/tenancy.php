@@ -1,2 +1,24 @@
 <?php
-return ['tracking'=>['max_batch_points'=>(int)env('FIELD_SALES_MAX_BATCH_POINTS',100)],'defaults'=>['work_session_start_mode'=>'manual','workday_start_time'=>'08:00','workday_end_time'=>'17:00','auto_end_session'=>false,'gps_tracking_enabled'=>true,'gps_moving_interval_seconds'=>15,'gps_stationary_interval_seconds'=>60,'gps_stale_after_minutes'=>15,'privacy_policy_version'=>'1']];
+
+return [
+    'tracking' => [
+        'max_batch_points' => (int) env('FIELD_SALES_MAX_BATCH_POINTS', 100),
+    ],
+
+    'defaults' => [
+        'work_session_start_mode' => 'manual',
+        'workday_start_time' => '08:00',
+        'workday_end_time' => '17:00',
+        'auto_end_session' => false,
+        'gps_tracking_enabled' => true,
+        'gps_moving_interval_seconds' => 15,
+        'gps_stationary_interval_seconds' => 60,
+        'gps_stale_after_minutes' => 15,
+        'privacy_policy_version' => '1',
+        'tracking_auto_reminder_enabled' => false,
+        'tracking_reminder_delay_minutes' => 15,
+        'tracking_reminder_repeat_minutes' => 30,
+        'tracking_reminder_daily_limit' => 3,
+        'gps_retention_days' => 90,
+    ],
+];
