@@ -202,7 +202,7 @@ class Batch3SalesTeamDevicesTest extends TestCase
 
         $new = $this->tenantScope(
             $tenant,
-            fn () => SalesmanAssignment::where('effective_from', '2026-02-01')->firstOrFail()
+            fn () => SalesmanAssignment::whereDate('effective_from', '2026-02-01')->firstOrFail()
         );
 
         $this->assertNull($new->effective_to);
@@ -396,6 +396,9 @@ class Batch3SalesTeamDevicesTest extends TestCase
             'name' => 'mobile-'.$device->uuid,
         ]);
 
+        auth()->logout();
+        app('auth')->forgetGuards();
+
         $this->withToken($token)
             ->getJson('/api/v1/auth/me', $firstHeaders)
             ->assertUnauthorized();
@@ -444,6 +447,8 @@ class Batch3SalesTeamDevicesTest extends TestCase
             ->getJson('/api/v1/auth/me', $this->deviceHeaders('device-a', 'install-a', '1.0'))
             ->assertStatus(403)
             ->assertJsonPath('error.code', 'DEVICE_TOKEN_MISMATCH');
+
+        app('auth')->forgetGuards();
 
         $this->withToken($login->json('data.token'))
             ->getJson('/api/v1/auth/me', $this->deviceHeaders('device-a', 'install-a', '1.0'))
