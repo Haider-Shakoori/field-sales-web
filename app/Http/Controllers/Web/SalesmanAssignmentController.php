@@ -167,14 +167,14 @@ class SalesmanAssignmentController extends Controller
     ): bool {
         return SalesmanAssignment::where('salesman_id', $salesmanId)
             ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-            ->where(function ($query) use ($start, $end): void {
+            ->where(function ($query) use ($start): void {
                 $query->whereNull('effective_to')
                     ->orWhereDate('effective_to', '>=', $start);
-
-                if ($end) {
-                    $query->whereDate('effective_from', '<=', $end);
-                }
             })
+            ->when(
+                $end,
+                fn ($query) => $query->whereDate('effective_from', '<=', $end)
+            )
             ->exists();
     }
 
