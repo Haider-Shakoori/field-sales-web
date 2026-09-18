@@ -1,3 +1,49 @@
 <?php
-namespace App\Models; use App\Concerns\BelongsToTenant; use Illuminate\Database\Eloquent\Model; use Illuminate\Database\Eloquent\Relations\BelongsTo;
-class Salesman extends Model { use BelongsToTenant; protected $guarded=[]; protected $casts=['is_active'=>'boolean']; public function user():BelongsTo{return $this->belongsTo(User::class);} }
+
+namespace App\Models;
+
+use App\Concerns\BelongsToTenant;
+use App\Concerns\HasUuid;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Salesman extends Model
+{
+    use BelongsToTenant, HasUuid;
+
+    protected $guarded = [];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function devices(): HasMany
+    {
+        return $this->hasMany(Device::class);
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(SalesmanAssignment::class);
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return trim($this->first_name.' '.($this->last_name ?? ''));
+    }
+}
