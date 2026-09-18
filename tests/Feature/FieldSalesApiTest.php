@@ -282,7 +282,9 @@ class FieldSalesApiTest extends TestCase
     {
         $this->actor();
 
-        $this->getJson('/api/v1/settings/attendance-tracking')
+        $this->getJson('/api/v1/settings/attendance-tracking', [
+            'Authorization' => 'Bearer '.$this->deviceToken,
+        ])
             ->assertOk()
             ->assertJsonPath('data.work_session_start_mode', 'manual')
             ->assertJsonPath('data.gps_tracking_enabled', true)
