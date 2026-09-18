@@ -19,11 +19,8 @@ class CleanupGpsHistory extends Command
     {
         Tenant::chunkById(100, function ($tenants) use ($settingsService, $context): void {
             foreach ($tenants as $tenant) {
-                $context->withTenant($tenant, function () use ($settingsService): void {
-                    $settings = $settingsService->get(app(TenantContext::class)->hasTenant()
-                        ? Tenant::findOrFail(app(TenantContext::class)->tenantId())
-                        : throw new \LogicException('Tenant context missing.'));
-
+                $context->withTenant($tenant, function () use ($tenant, $settingsService): void {
+                    $settings = $settingsService->get($tenant);
                     $historyCutoff = now()->subDays($settings['gps_retention_days']);
 
                     LocationHistory::where('recorded_at', '<', $historyCutoff)->delete();
