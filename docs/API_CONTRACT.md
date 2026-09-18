@@ -1013,6 +1013,46 @@ GET /api/v1/gps/history?date=2025-01-15&user_id=5
 }
 ```
 
+#### Attendance & Tracking Settings & Privacy (Batch 7 enhancement)
+
+**GET /api/v1/settings/attendance-tracking** — read-only mobile policy (requires a registered, non-revoked device):
+
+```json
+{
+  "success": true,
+  "data": {
+    "work_session_start_mode": "manual",
+    "workday_start_time": "08:00",
+    "workday_end_time": "17:00",
+    "auto_end_session": false,
+    "gps_tracking_enabled": true,
+    "gps_moving_interval_seconds": 15,
+    "gps_stationary_interval_seconds": 60,
+    "gps_stale_after_minutes": 15,
+    "timezone": "Asia/Kabul",
+    "privacy_policy_version": "1",
+    "updated_at": "2026-09-18T08:00:00+00:00"
+  }
+}
+```
+
+> - Laravel owns **policy**; Flutter owns **device execution**. In `automatic` mode the mobile app starts/ends the session by calling the existing `/attendance/start` and `/attendance/end` endpoints. Laravel never creates scheduled work sessions.
+> - Effective defaults are always returned when a tenant has not customized settings; `work_session_start_mode` defaults to `manual`.
+> - `timezone` is the resolved tenant timezone (`TenantClock`); stored session timestamps remain UTC.
+> - `gps_tracking_enabled = false` is a **mobile collection policy**: the app pauses continuous background tracking. Server-side GPS ingestion is not retroactively rejected, so offline points recorded while tracking was enabled still sync; the WorkSession-per-local-date rule remains the server enforcement. Start/End Day still records its check-in location.
+
+**POST /api/v1/gps/privacy-acknowledgement** — records explicit consent submitted by the mobile app (requires a registered, non-revoked device):
+
+```json
+{ "policy_version": "1", "acknowledged_at": "2026-09-18T08:00:00Z", "app_version": "1.0.0" }
+```
+
+> - `tenant_id`, `user_id`, and `device_id` are derived server-side and are never accepted from the payload.
+> - Retrying the same tenant/user/device/policy_version returns the existing record (HTTP 200) instead of creating a duplicate; a new record returns HTTP 201.
+> - Acknowledgements are only recorded when explicitly submitted — never auto-created on login or Start Day.
+
+**GPS upload per-point verdicts** — `POST /api/v1/gps/locations` responses keep `accepted`, `rejected`, `duplicates`, `batch_id`, and `rejected_details`, and add `accepted_uuids`, `duplicate_uuids`, and `rejected_uuids`. The invariant `accepted + duplicates + rejected = submitted points` holds; duplicates are never counted as accepted. `rejected_details` entries include both `code` and `reason` (same canonical value).
+
 ---
 
 ### 8.7 Customers

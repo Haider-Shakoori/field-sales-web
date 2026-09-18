@@ -14,6 +14,8 @@
             ['label' => 'Salesman Assignments', 'route' => 'salesman-assignments.index', 'icon' => 'clipboard', 'can' => 'assignments:view'],
             ['label' => 'Supervisor Assignments', 'route' => 'supervisor-assignments.index', 'icon' => 'clipboard', 'can' => 'assignments:view'],
             ['label' => 'Devices', 'route' => 'devices.index', 'icon' => 'devices', 'can' => 'devices:view'],
+            ['label' => 'Attendance', 'route' => 'attendance.index', 'icon' => 'clock', 'can' => 'attendance:view'],
+            ['label' => 'Current Locations', 'route' => 'current-locations.index', 'icon' => 'map', 'can' => 'tracking:view'],
         ],
         'Administration' => [
             ['label' => 'Users', 'route' => 'users.index', 'icon' => 'user', 'can' => 'users:view'],
@@ -25,6 +27,7 @@
         ],
         'Company' => [
             ['label' => 'Company Settings', 'route' => 'settings.company.edit', 'icon' => 'settings', 'can' => 'settings:view'],
+            ['label' => 'Attendance & Tracking', 'route' => 'settings.attendance-tracking.edit', 'icon' => 'clock', 'can' => 'settings:view'],
             ['label' => 'Roles & Permissions', 'route' => 'settings.roles.index', 'icon' => 'shield', 'can' => 'roles:view'],
             ['label' => 'Audit Logs', 'route' => 'audit.index', 'icon' => 'clock', 'can' => 'audit:view'],
         ],

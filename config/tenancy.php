@@ -93,4 +93,25 @@ return [
         'one_device_per_salesman' => true,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | GPS Tracking Defaults
+    |--------------------------------------------------------------------------
+    |
+    | Safe server-side defaults from the GPS tracking design. Tenants are not
+    | required to configure these for the attendance/GPS APIs to function;
+    | tenant-level overrides can be layered on later via company settings.
+    |
+    */
+    'tracking' => [
+        'max_accuracy_meters' => 200,
+        'max_speed_mps' => 55,
+        'future_tolerance_minutes' => 5,
+        'max_batch_points' => 100,
+        'retention_days' => 90,
+        'moving_interval_seconds' => 15,
+        'stationary_interval_seconds' => 60,
+        'current_location_stale_after_minutes' => 15,
+    ],
+
 ];

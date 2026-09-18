@@ -30,6 +30,7 @@ class RbacSeeder extends Seeder
             'assignments:view', 'assignments:manage',
             'products:view', 'products:create', 'products:update', 'products:deactivate',
             'price_lists:view', 'price_lists:create', 'price_lists:update', 'price_lists:deactivate', 'price_lists:manage_prices',
+            'attendance:view', 'attendance:manage', 'tracking:view',
         ],
         'owner' => [
             'dashboard:view', 'users:view', 'users:manage', 'branches:view',
@@ -45,6 +46,7 @@ class RbacSeeder extends Seeder
             'assignments:view', 'assignments:manage',
             'products:view', 'products:create', 'products:update', 'products:deactivate',
             'price_lists:view', 'price_lists:create', 'price_lists:update', 'price_lists:deactivate', 'price_lists:manage_prices',
+            'attendance:view', 'attendance:manage', 'tracking:view',
         ],
         'company_admin' => [
             'dashboard:view', 'users:view', 'users:manage', 'branches:view',
@@ -59,6 +61,7 @@ class RbacSeeder extends Seeder
             'assignments:view', 'assignments:manage',
             'products:view', 'products:create', 'products:update', 'products:deactivate',
             'price_lists:view', 'price_lists:create', 'price_lists:update', 'price_lists:deactivate', 'price_lists:manage_prices',
+            'attendance:view', 'attendance:manage', 'tracking:view',
         ],
         'sales_manager' => [
             'dashboard:view', 'users:view', 'branches:view', 'roles:view',
@@ -69,6 +72,7 @@ class RbacSeeder extends Seeder
             'routes:view', 'routes:create', 'routes:update',
             'assignments:view',
             'products:view', 'price_lists:view', 'price_lists:manage_prices',
+            'attendance:view', 'tracking:view',
         ],
         'supervisor' => [
             'dashboard:view', 'users:view', 'branches:view',
@@ -78,6 +82,7 @@ class RbacSeeder extends Seeder
             'routes:view',
             'assignments:view',
             'products:view', 'price_lists:view',
+            'attendance:view', 'tracking:view',
         ],
         'salesman' => [
             'dashboard:view',
@@ -101,6 +106,7 @@ class RbacSeeder extends Seeder
             'territories:view',
             'routes:view',
             'products:view', 'price_lists:view',
+            'attendance:view',
         ],
     ];
 

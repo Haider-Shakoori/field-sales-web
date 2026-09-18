@@ -1,10 +1,13 @@
 <?php
 
+use App\Models\Device;
+use App\Models\Salesman;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use Database\Seeders\RbacSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /*
@@ -101,4 +104,63 @@ function withTenantContext(Tenant $tenant, callable $callback): mixed
 function withPlatformContext(callable $callback): mixed
 {
     return app(TenantContext::class)->withSystemContext($callback);
+}
+
+/**
+ * Create a salesman with a tenant-local mobile login.
+ *
+ * Returns the user, salesman profile, registered device, Sanctum token, and the
+ * canonical device headers needed for Batch 7 attendance/GPS requests.
+ *
+ * @return array{user: User, salesman: Salesman, device: Device, token: string, headers: array<string, string>}
+ */
+function makeMobileSalesman(Tenant $tenant, array $userAttributes = []): array
+{
+    $salesman = null;
+
+    $user = withTenantContext($tenant, function () use ($tenant, $userAttributes, &$salesman): User {
+        $user = makeUser($tenant, 'salesman', array_merge([
+            'email' => 'slm.'.Str::random(8).'@test.test',
+        ], $userAttributes));
+
+        $salesman = Salesman::factory()->forTenant($tenant->id)->create([
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'employee_code' => 'SLM-'.Str::random(6),
+        ]);
+
+        return $user;
+    });
+
+    $deviceUuid = 'device-'.Str::uuid();
+    $installationUuid = 'install-'.Str::uuid();
+
+    $response = test()->postJson('/api/v1/auth/login', [
+        'email' => $user->email,
+        'password' => 'Password123!',
+        'device_uuid' => $deviceUuid,
+        'device_model' => 'Pixel 8',
+        'manufacturer' => 'Google',
+        'android_version' => '14',
+        'app_version' => '1.0.0',
+    ], [
+        'X-Installation-UUID' => $installationUuid,
+        'X-App-Version' => '1.0.0',
+    ])->assertOk();
+
+    $device = withTenantContext($tenant, fn () => Device::query()
+        ->where('device_uuid', $deviceUuid)
+        ->firstOrFail());
+
+    return [
+        'user' => $user,
+        'salesman' => $salesman,
+        'device' => $device,
+        'token' => $response->json('data.token'),
+        'headers' => [
+            'X-Device-UUID' => $deviceUuid,
+            'X-Installation-UUID' => $installationUuid,
+            'X-App-Version' => '1.0.0',
+        ],
+    ];
 }

@@ -1,10 +1,14 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AttendanceController;
+use App\Http\Controllers\Api\V1\AttendanceTrackingSettingsController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\DeviceController;
+use App\Http\Controllers\Api\V1\GpsController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PriceListController;
+use App\Http\Controllers\Api\V1\PrivacyAcknowledgementController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\RouteController;
 use App\Http\Controllers\Api\V1\SalesmanAssignmentController;
@@ -86,5 +90,31 @@ Route::middleware([BootstrapTenantForAuth::class, 'auth:sanctum', InitializeTena
                 Route::get('admin/supervisor-assignments/{assignment}', [SupervisorAssignmentController::class, 'show'])->name('supervisor-assignments.show');
                 Route::put('admin/supervisor-assignments/{assignment}', [SupervisorAssignmentController::class, 'update'])->name('supervisor-assignments.update');
                 Route::delete('admin/supervisor-assignments/{assignment}', [SupervisorAssignmentController::class, 'destroy'])->name('supervisor-assignments.destroy');
+
+                // Attendance / Work Sessions (Batch 7)
+                Route::post('attendance/start', [AttendanceController::class, 'start'])
+                    ->middleware('device.required')
+                    ->name('attendance.start');
+                Route::post('attendance/end', [AttendanceController::class, 'end'])
+                    ->middleware('device.required')
+                    ->name('attendance.end');
+                Route::get('attendance/today', [AttendanceController::class, 'today'])->name('attendance.today');
+                Route::get('attendance/history', [AttendanceController::class, 'history'])->name('attendance.history');
+
+                // GPS Tracking (Batch 7)
+                Route::post('gps/locations', [GpsController::class, 'store'])
+                    ->middleware('device.required')
+                    ->name('gps.locations.store');
+                Route::get('gps/current', [GpsController::class, 'current'])->name('gps.current');
+                Route::get('gps/history', [GpsController::class, 'history'])->name('gps.history');
+
+                // Attendance & tracking policy (Batch 7 enhancement, read-only for mobile)
+                Route::get('settings/attendance-tracking', [AttendanceTrackingSettingsController::class, 'show'])
+                    ->middleware('device.required')
+                    ->name('settings.attendance-tracking');
+
+                Route::post('gps/privacy-acknowledgement', [PrivacyAcknowledgementController::class, 'store'])
+                    ->middleware('device.required')
+                    ->name('gps.privacy-acknowledgement');
             });
     });

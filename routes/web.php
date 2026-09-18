@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceTrackingSettingsController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CompanySettingsController;
+use App\Http\Controllers\CurrentLocationController;
 use App\Http\Controllers\CustomerCategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -84,6 +87,11 @@ Route::middleware('auth')->group(function () {
     Route::get('devices/{device}', [DeviceController::class, 'show'])->name('devices.show');
     Route::delete('devices/{device}/revoke', [DeviceController::class, 'revoke'])->name('devices.revoke');
 
+    // Attendance & GPS tracking (Batch 7, read-only admin views)
+    Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+    Route::get('attendance/{session}', [AttendanceController::class, 'show'])->name('attendance.show');
+    Route::get('current-locations', [CurrentLocationController::class, 'index'])->name('current-locations.index');
+
     Route::get('branches', [BranchController::class, 'index'])->name('branches.index');
     Route::get('branches/create', [BranchController::class, 'create'])->name('branches.create');
     Route::post('branches', [BranchController::class, 'store'])->name('branches.store');
@@ -154,6 +162,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('settings/company', [CompanySettingsController::class, 'edit'])->name('settings.company.edit');
     Route::put('settings/company', [CompanySettingsController::class, 'update'])->name('settings.company.update');
+
+    Route::get('settings/attendance-tracking', [AttendanceTrackingSettingsController::class, 'edit'])->name('settings.attendance-tracking.edit');
+    Route::put('settings/attendance-tracking', [AttendanceTrackingSettingsController::class, 'update'])->name('settings.attendance-tracking.update');
 
     Route::get('settings/roles', [RoleController::class, 'index'])->name('settings.roles.index');
     Route::get('settings/roles/create', [RoleController::class, 'create'])->name('settings.roles.create');

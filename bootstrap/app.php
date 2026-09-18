@@ -5,6 +5,7 @@ use App\Http\Middleware\BootstrapTenantForWebAuth;
 use App\Http\Middleware\EnforceMinimumAppVersion;
 use App\Http\Middleware\EnsureActiveDevice;
 use App\Http\Middleware\InitializeTenancy;
+use App\Http\Middleware\RequireActiveDevice;
 use App\Support\Http\ApiResponse;
 use App\Support\Tenancy\TenantContextMissingException;
 use Illuminate\Auth\AuthenticationException;
@@ -61,6 +62,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'device.active' => EnsureActiveDevice::class,
+            'device.required' => RequireActiveDevice::class,
             'app.version' => EnforceMinimumAppVersion::class,
         ]);
     })
