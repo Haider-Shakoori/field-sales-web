@@ -8,7 +8,9 @@ use App\Http\Requests\UpdateSalesmanAssignmentRequest;
 use App\Models\Branch;
 use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
+use App\Models\SalesRoute;
 use App\Models\Supervisor;
+use App\Models\Territory;
 use App\Services\AuditLogger;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +25,7 @@ class SalesmanAssignmentController extends Controller
         Gate::authorize('viewAny', SalesmanAssignment::class);
 
         return view('admin.salesman-assignments.index', [
-            'assignments' => SalesmanAssignment::with(['salesman', 'branch', 'supervisor'])
+            'assignments' => SalesmanAssignment::with(['salesman', 'branch', 'territory', 'route', 'supervisor'])
                 ->latest('effective_from')
                 ->paginate(30),
         ]);
@@ -101,7 +103,7 @@ class SalesmanAssignmentController extends Controller
         Gate::authorize('view', $assignment);
 
         return view('admin.salesman-assignments.show', [
-            'assignment' => $assignment->load(['salesman.user', 'branch', 'supervisor.user', 'creator']),
+            'assignment' => $assignment->load(['salesman.user', 'branch', 'territory', 'route', 'supervisor.user', 'creator']),
         ]);
     }
 
@@ -183,6 +185,8 @@ class SalesmanAssignmentController extends Controller
             'salesmen' => Salesman::active()->orderBy('employee_code')->get(),
             'branches' => Branch::active()->orderBy('name')->get(),
             'supervisors' => Supervisor::active()->orderBy('employee_code')->get(),
+            'territories' => Territory::active()->orderBy('name')->get(),
+            'routes' => SalesRoute::active()->with('territory')->orderBy('name')->get(),
         ];
     }
 
