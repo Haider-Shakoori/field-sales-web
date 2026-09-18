@@ -58,6 +58,17 @@ class SalesmanAssignmentController extends Controller
             ]);
         }
 
+        $futureOverlap = (clone $query)
+            ->whereDate('effective_from', '>', $start)
+            ->when($end, fn ($future) => $future->whereDate('effective_from', '<=', $end))
+            ->exists();
+
+        if ($futureOverlap) {
+            throw ValidationException::withMessages([
+                'effective_to' => 'This window overlaps a future assignment.',
+            ]);
+        }
+
         $prior = (clone $query)
             ->whereDate('effective_from', '<', $start)
             ->where(function ($window) use ($start): void {
@@ -71,18 +82,6 @@ class SalesmanAssignmentController extends Controller
             $before = $this->auditValues($prior);
             $prior->update(['effective_to' => $start->subDay()->toDateString()]);
             $audit->record('salesman_assignment.ended', $prior, $before, $this->auditValues($prior));
-        }
-
-        $futureOverlap = (clone $query)
-            ->whereDate('effective_from', '>', $start)
-            ->when($end, fn ($future) => $future->whereDate('effective_from', '<=', $end))
-            ->when(! $end, fn ($future) => $future)
-            ->exists();
-
-        if ($futureOverlap) {
-            throw ValidationException::withMessages([
-                'effective_to' => 'This window overlaps a future assignment.',
-            ]);
         }
 
         $assignment = SalesmanAssignment::create([
