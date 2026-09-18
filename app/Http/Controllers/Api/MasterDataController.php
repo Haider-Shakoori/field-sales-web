@@ -332,7 +332,11 @@ class MasterDataController extends Controller
             'updated_since' => ['date'],
         ]);
 
-        $query->where('updated_at', '>', CarbonImmutable::parse($validated['updated_since'])->utc());
+        $query->where(
+            $query->getModel()->qualifyColumn('updated_at'),
+            '>',
+            CarbonImmutable::parse($validated['updated_since'])->utc()
+        );
     }
 
     private function currentSalesmanAssignment(Request $request): ?SalesmanAssignment
