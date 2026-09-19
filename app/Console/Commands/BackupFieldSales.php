@@ -8,14 +8,17 @@ use Throwable;
 
 class BackupFieldSales extends Command
 {
-    protected $signature = 'field-sales:backup {--label=scheduled : Human-readable backup label}';
+    protected $signature = 'field-sales:backup {--label=scheduled : Human-readable backup label} {--database-only : Skip uploaded public storage}';
 
     protected $description = 'Create a production backup of the MySQL database and uploaded public storage.';
 
     public function handle(BackupService $backups): int
     {
         try {
-            $result = $backups->create((string) $this->option('label'));
+            $result = $backups->create(
+                (string) $this->option('label'),
+                ! (bool) $this->option('database-only'),
+            );
         } catch (Throwable $exception) {
             report($exception);
             $this->error('Backup failed. Review application logs for the underlying operational error.');
