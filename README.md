@@ -61,4 +61,4 @@ Runtime probes:
 - `/up` — process/liveness probe supplied by Laravel.
 - `/ready` — Field Sales readiness probe; returns HTTP 200 only when required runtime dependencies are available.
 
-Batch 17 will add the repeatable server deployment, worker/scheduler, backup, monitoring, and rollback runbook.
+Stage 2 Batch 17 provides the repeatable server deployment, worker/scheduler, backup, monitoring, restore, and rollback package. See `ops/README.md` for the production operations runbook.

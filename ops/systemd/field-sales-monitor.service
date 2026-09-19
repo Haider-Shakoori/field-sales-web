@@ -1,0 +1,14 @@
+[Unit]
+Description=Field Sales operational health check
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+EnvironmentFile=-/etc/field-sales/monitor.env
+WorkingDirectory=/var/www/field-sales/current
+ExecStart=/bin/bash /var/www/field-sales/current/ops/scripts/monitor.sh
+PrivateTmp=true
+ProtectHome=true
