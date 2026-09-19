@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\CallActivityController;
 use App\Http\Controllers\Web\CollectionController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DeviceController;
+use App\Http\Controllers\Web\ExpenseController;
 use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Web\PriceListController;
 use App\Http\Controllers\Web\PriceListItemController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Web\RouteCustomerController;
 use App\Http\Controllers\Web\SalesmanAssignmentController;
 use App\Http\Controllers\Web\SalesmanController;
 use App\Http\Controllers\Web\SalesRouteController;
+use App\Http\Controllers\Web\SalesTargetController;
 use App\Http\Controllers\Web\SupervisorAssignmentController;
 use App\Http\Controllers\Web\SupervisorController;
 use App\Http\Controllers\Web\TerritoryController;
@@ -130,6 +132,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/collections/{collection}/receipt', [CollectionController::class, 'receipt'])
             ->middleware('permission:collections:view')
             ->name('collections.receipt');
+
+        Route::resource('expenses', ExpenseController::class)
+            ->only(['index', 'show'])
+            ->middleware('permission:expenses:view');
+        Route::patch('/expenses/{expense}/status', [ExpenseController::class, 'updateStatus'])
+            ->middleware('permission:expenses:manage')
+            ->name('expenses.status');
+
+        Route::resource('targets', SalesTargetController::class)
+            ->except(['show'])
+            ->middlewareFor('index', 'permission:targets:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:targets:manage');
 
         Route::resource('orders', OrderController::class)
             ->only(['index', 'show'])
