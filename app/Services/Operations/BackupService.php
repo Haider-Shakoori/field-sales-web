@@ -71,6 +71,8 @@ class BackupService
             '--routines',
             '--triggers',
             '--events',
+            '--no-tablespaces',
+            '--add-drop-database',
             '--host='.$host,
             '--port='.$port,
             '--user='.$username,
@@ -140,7 +142,7 @@ class BackupService
             'created_at_utc' => now('UTC')->toIso8601String(),
             'application' => (string) config('app.name'),
             'environment' => (string) config('app.env'),
-            'release' => env('FIELD_SALES_RELEASE'),
+            'release' => $this->releaseIdentifier(),
             'database' => [
                 'file' => basename($databaseFile),
                 'sha256' => hash_file('sha256', $databaseFile),
@@ -164,6 +166,21 @@ class BackupService
         @chmod($manifestPath, 0600);
 
         return $manifestPath;
+    }
+
+    private function releaseIdentifier(): ?string
+    {
+        $releaseFile = base_path('.release');
+
+        if (is_file($releaseFile)) {
+            $release = trim((string) file_get_contents($releaseFile));
+
+            return $release !== '' ? $release : null;
+        }
+
+        $release = trim((string) env('FIELD_SALES_RELEASE'));
+
+        return $release !== '' ? $release : null;
     }
 
     private function pruneExpiredBackups(string $backupRoot): void
