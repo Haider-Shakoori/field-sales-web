@@ -1,0 +1,13 @@
+[Unit]
+Description=Field Sales Laravel scheduler
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/field-sales/current
+ExecStart=/usr/bin/php /var/www/field-sales/current/artisan schedule:run --no-interaction
+PrivateTmp=true
+ProtectHome=true
