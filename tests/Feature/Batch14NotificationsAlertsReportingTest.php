@@ -19,6 +19,7 @@ use App\Models\Tenant;
 use App\Models\Territory;
 use App\Models\User;
 use App\Models\VisitSuspiciousFlag;
+use App\Models\WorkSession;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -137,6 +138,85 @@ class Batch14NotificationsAlertsReportingTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.push_enabled', false)
             ->assertJsonPath('data.order_updates', false);
+    }
+
+    public function test_suspicious_visit_evidence_notifies_company_managers(): void
+    {
+        $tenant = $this->tenant('batch14-suspicious-notification');
+        $manager = $this->user(
+            $tenant,
+            'suspicious-manager@example.test',
+            'company_admin',
+            ['reports:view', 'visits:view'],
+        );
+        [$salesmanUser, $salesman, $device] = $this->salesman(
+            $tenant,
+            'SUS-1',
+            'Suspicious',
+            ['visits:view'],
+        );
+        [$branch, $territory] = $this->branchTerritory($tenant);
+        $customer = $this->customer(
+            $tenant,
+            $manager,
+            $branch,
+            $territory,
+            'Geofenced Customer',
+        );
+
+        app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($customer, $device, $salesman, $salesmanUser): void {
+                $customer->update([
+                    'latitude' => 34.5553,
+                    'longitude' => 69.2075,
+                    'geofence_radius_meters' => 100,
+                ]);
+
+                WorkSession::create([
+                    'user_id' => $salesmanUser->id,
+                    'salesman_id' => $salesman->id,
+                    'device_id' => $device->id,
+                    'date' => '2026-09-19',
+                    'start_time' => now()->subHours(2),
+                    'start_latitude' => 34.5553,
+                    'start_longitude' => 69.2075,
+                    'start_accuracy' => 8,
+                    'status' => 'active',
+                ]);
+            }
+        );
+
+        $token = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => $salesmanUser->createToken('mobile-'.$device->uuid)->plainTextToken,
+        );
+        $headers = array_merge(
+            $this->deviceHeaders($device),
+            ['Authorization' => 'Bearer '.$token],
+        );
+
+        $this->postJson('/api/v1/visits/check-in', [
+            'offline_uuid' => (string) Str::uuid(),
+            'customer_id' => $customer->uuid,
+            'latitude' => 35.0,
+            'longitude' => 70.0,
+            'accuracy' => 8,
+            'checked_in_at' => now()->subMinutes(10)->toISOString(),
+        ], $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.suspicious_flags.0.reason', 'location_mismatch');
+
+        $notification = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => OperationalNotification::where('user_id', $manager->id)
+                ->where('type', 'visit.suspicious_flag')
+                ->firstOrFail(),
+        );
+
+        $this->assertSame('suspicious_alerts', $notification->category);
+        $this->assertSame('location_mismatch', $notification->data['reason']);
+        $this->assertSame('high', $notification->data['severity']);
     }
 
     public function test_alerts_are_evidence_based_tenant_scoped_and_reviewable(): void
