@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CallActivityController;
+use App\Http\Controllers\Api\CollectionController;
 use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\OrderController;
@@ -51,6 +52,11 @@ Route::prefix('v1')->group(function () {
             Route::get('/orders/history', [OrderController::class, 'history']);
             Route::get('/orders/{order:uuid}', [OrderController::class, 'show']);
             Route::post('/orders', [OrderController::class, 'store']);
+
+            Route::get('/collections/balances', [CollectionController::class, 'balances']);
+            Route::get('/collections/history', [CollectionController::class, 'history']);
+            Route::get('/collections/{collection:uuid}', [CollectionController::class, 'show']);
+            Route::post('/collections', [CollectionController::class, 'store']);
         });
     });
 });

@@ -44,6 +44,9 @@
                     <a href="{{ route('admin.routes.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Routes</a>
                     <a href="{{ route('admin.call-activities.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Calls</a>
                 @endif
+                @if($currentUser->hasPermission('collections:view'))
+                    <a href="{{ route('admin.collections.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Collections</a>
+                @endif
                 @if($currentUser->hasPermission('orders:view'))
                     <a href="{{ route('admin.orders.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Orders</a>
                 @endif
