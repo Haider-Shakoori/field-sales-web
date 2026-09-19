@@ -64,13 +64,13 @@ class BackupService
             throw new RuntimeException('Unable to create the database backup file.');
         }
 
+        @chmod($sqlPath, 0660);
+
         $process = new Process([
             'mysqldump',
             '--single-transaction',
             '--quick',
-            '--routines',
             '--triggers',
-            '--events',
             '--no-tablespaces',
             '--add-drop-database',
             '--host='.$host,
@@ -85,7 +85,11 @@ class BackupService
         try {
             $process->run(function (string $type, string $buffer) use ($handle): void {
                 if ($type === Process::OUT) {
-                    fwrite($handle, $buffer);
+                    $written = fwrite($handle, $buffer);
+
+                    if ($written === false || $written !== strlen($buffer)) {
+                        throw new RuntimeException('Unable to write the database backup stream.');
+                    }
                 }
             });
         } finally {
@@ -147,11 +151,11 @@ class BackupService
             'release' => $this->releaseIdentifier(),
             'database' => [
                 'file' => basename($databaseFile),
-                'sha256' => hash_file('sha256', $databaseFile),
+                'sha256' => $this->checksum($databaseFile),
             ],
             'public_storage' => $mediaFile ? [
                 'file' => basename($mediaFile),
-                'sha256' => hash_file('sha256', $mediaFile),
+                'sha256' => $this->checksum($mediaFile),
             ] : null,
         ];
 
@@ -226,7 +230,11 @@ class BackupService
                 }
 
                 if ($chunk !== '') {
-                    gzwrite($output, $chunk);
+                    $written = gzwrite($output, $chunk);
+
+                    if ($written === false || $written !== strlen($chunk)) {
+                        throw new RuntimeException('Unable to write compressed database backup data.');
+                    }
                 }
             }
         } finally {
@@ -235,6 +243,17 @@ class BackupService
         }
 
         @chmod($destination, 0660);
+    }
+
+    private function checksum(string $path): string
+    {
+        $checksum = hash_file('sha256', $path);
+
+        if ($checksum === false) {
+            throw new RuntimeException('Unable to calculate backup checksum.');
+        }
+
+        return $checksum;
     }
 
     private function ensureDirectory(string $path): void
