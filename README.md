@@ -41,3 +41,24 @@ php artisan test
 vendor/bin/pint --test
 git diff --check
 ```
+
+
+## Production preflight
+
+Production deployments must start from `.env.production.example`, not from local development defaults. Generate a unique application key, use HTTPS, keep `APP_DEBUG=false`, enable secure/encrypted sessions, and configure an asynchronous queue worker.
+
+Before accepting traffic, run:
+
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan field-sales:production-check --services
+```
+
+Runtime probes:
+
+- `/up` — process/liveness probe supplied by Laravel.
+- `/ready` — Field Sales readiness probe; returns HTTP 200 only when required runtime dependencies are available.
+
+Batch 17 will add the repeatable server deployment, worker/scheduler, backup, monitoring, and rollback runbook.
