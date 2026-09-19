@@ -38,6 +38,7 @@ class VisitController extends Controller
         $existing = CustomerVisit::where('uuid', $validated['offline_uuid'])->first();
         if ($existing) {
             abort_unless((int) $existing->user_id === (int) $user->id, 409);
+
             return ApiResponse::success($this->payload($existing->load($this->relations())));
         }
 
