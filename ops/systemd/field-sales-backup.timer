@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Field Sales backup daily
+
+[Timer]
+OnCalendar=*-*-* 02:15:00 UTC
+RandomizedDelaySec=900
+Persistent=true
+Unit=field-sales-backup.service
+
+[Install]
+WantedBy=timers.target
