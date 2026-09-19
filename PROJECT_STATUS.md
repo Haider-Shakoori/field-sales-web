@@ -99,6 +99,8 @@ Batch 14 intentionally does not add a PDF library or commission engine. CSV is t
 - No browser automation or screenshot-based visual QA evidence is claimed for Batch 14.
 - Batch 17 provides deployment/operations artifacts and CI validation, but no live production-host deployment or disaster-restore drill is claimed yet.
 - Off-site backup replication remains infrastructure-provider specific; the application creates local verified backup sets that must be copied to an independent encrypted target before launch.
+- Mobile production release engineering is complete, but approved production app icon/splash assets are not yet present; Android still uses the platform default icon and this is a Batch 19 UAT/launch blocker.
+- A real production keystore, GitHub release secrets, production API repository variable, store submission, and real-device release installation are not falsely claimed by Batch 18.
 
 ## Stage 2 — Production Readiness & Release
 
@@ -110,8 +112,8 @@ Batch 15 — BusinessOS Integration is deferred and is not a release blocker.
 |---|---|---|
 | 16 | Web Production Security & Runtime Readiness | Complete |
 | 17 | Deployment, Workers, Backups & Monitoring | Complete |
-| 18 | Android Production Release Engineering | Next |
-| 19 | Release Candidate QA & UAT | Planned |
+| 18 | Android Production Release Engineering | Complete |
+| 19 | Release Candidate QA & UAT | Next |
 | 20 | Production Launch & Handover | Planned |
 
 ### Batch 16 Verification
@@ -159,6 +161,29 @@ Latest verification gate:
 
 A real server installation, TLS issuance, external/off-site backup replication, and destructive restore drill still require the target production/staging infrastructure and are not falsely claimed by this batch.
 
+### Batch 18 Verification
+
+Verified scope:
+- Android release configuration fails closed unless a production API base URL and application version are supplied.
+- Release API configuration requires HTTPS and the versioned `/api/v1` endpoint.
+- Production Android cleartext traffic is disabled; a debug-only manifest override preserves emulator/LAN development.
+- Android OS application backup is disabled so offline customer/transaction/location data is not silently copied into device cloud backup.
+- Release signing is externalized through ignored local signing properties or GitHub Actions secrets; no keystore/password is committed.
+- `pubspec.lock` is committed and both CI/release workflows enforce it for reproducible dependency resolution.
+- Normal mobile CI builds the debug APK and a signed release AAB using a one-day ephemeral CI key.
+- Production release workflow builds signed AAB + APK from external secrets, enforces version/tag consistency, verifies signatures, and emits SHA-256 checksums.
+- Android production release runbook is documented in `RELEASE.md`.
+- Mobile PR #9 merged into `main` at `3a3df3be34e8cd14174f0dd64f38c12adfe36e42`.
+- Post-merge mobile CI run #367 passed.
+- Flutter analyze: PASS.
+- Flutter tests: 25 passed.
+- Debug APK build: PASS.
+- Signed release AAB build: PASS.
+- AAB signature verification: PASS.
+
+Known release blocker carried into Batch 19:
+- Approved production Field Sales icon/splash branding is not present in the mobile repository. The release pipeline is production-capable, but shipping the Android platform default icon is not acceptable for launch.
+
 ## Next Batch
 
-Stage 2 Batch 18 — Android Production Release Engineering.
+Stage 2 Batch 19 — Release Candidate QA & UAT.
