@@ -1,6 +1,6 @@
-# Field Sales Web
+# FieldPulse Web
 
-Laravel 13 web/backend for the Field Sales SaaS. It provides multi-tenant admin policy management plus the versioned REST contract consumed by `field-sales-mobile`.
+Laravel 13 web/backend for FieldPulse by BusinessOS. It provides multi-tenant admin policy management plus the versioned REST contract consumed by `field-sales-mobile`.
 
 ## Highlights
 
@@ -45,7 +45,7 @@ git diff --check
 
 ## Production preflight
 
-Production deployments must start from `.env.production.example`, not from local development defaults. Generate a unique application key, use HTTPS, keep `APP_DEBUG=false`, enable secure/encrypted sessions, and configure an asynchronous queue worker.
+Production deployments must start from `.env.production.example`, not from local development defaults. The canonical production target is `https://fieldpulse.businessos.af`, with the mobile API at `https://fieldpulse.businessos.af/api/v1`. Generate a unique application key, use HTTPS, keep `APP_DEBUG=false`, enable secure/encrypted sessions, and configure an asynchronous queue worker.
 
 Before accepting traffic, run:
 
@@ -59,7 +59,7 @@ php artisan field-sales:production-check --services
 Runtime probes:
 
 - `/up` — process/liveness probe supplied by Laravel.
-- `/ready` — Field Sales readiness probe; returns HTTP 200 only when required runtime dependencies are available.
+- `/ready` — FieldPulse readiness probe; returns HTTP 200 only when required runtime dependencies are available.
 
 Stage 2 Batch 17 provides the repeatable server deployment, worker/scheduler, backup, monitoring, restore, and rollback package. See `ops/README.md` for the production operations runbook.
 

@@ -1,4 +1,4 @@
-# Field Sales Production Operations Runbook
+# FieldPulse Production Operations Runbook
 
 This runbook describes the production deployment model delivered by Stage 2 Batch 17.
 
@@ -77,6 +77,8 @@ Start from `.env.production.example`:
 cp .env.production.example /var/www/field-sales/shared/.env
 chmod 0640 /var/www/field-sales/shared/.env
 ```
+
+The canonical production hostname is `fieldpulse.businessos.af`.
 
 Configure at minimum:
 
@@ -281,7 +283,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now field-sales-monitor.timer
 ```
 
-Set `FIELD_SALES_HEALTH_URL` in `/etc/field-sales/monitor.env` to the public HTTPS `/ready` endpoint. When configured, the monitor checks both Laravel internals and the externally routed HTTP endpoint.
+Set `FIELD_SALES_HEALTH_URL` in `/etc/field-sales/monitor.env` to `https://fieldpulse.businessos.af/ready` for the canonical deployment. When configured, the monitor checks both Laravel internals and the externally routed HTTP endpoint.
 
 Inspect failures:
 
@@ -324,8 +326,8 @@ Database migrations are deliberately **not** reversed automatically. Automatic `
 After every production deployment:
 
 ```bash
-curl --fail https://FIELD_SALES_DOMAIN/up
-curl --fail https://FIELD_SALES_DOMAIN/ready
+curl --fail https://fieldpulse.businessos.af/up
+curl --fail https://fieldpulse.businessos.af/ready
 php /var/www/field-sales/current/artisan field-sales:production-check --services
 php /var/www/field-sales/current/artisan field-sales:ops-check
 systemctl --no-pager --full status field-sales-queue@1.service
