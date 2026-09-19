@@ -8,7 +8,7 @@ use Symfony\Component\Process\Process;
 
 class BackupService
 {
-    public function create(?string $label = null): array
+    public function create(?string $label = null, bool $includeMedia = true): array
     {
         if (config('database.default') !== 'mysql') {
             throw new RuntimeException('Field Sales production backups currently require the MySQL connection.');
@@ -27,7 +27,7 @@ class BackupService
 
         try {
             $databaseFile = $this->dumpDatabase($backupDirectory);
-            $mediaFile = $this->archivePublicStorage($backupDirectory);
+            $mediaFile = $includeMedia ? $this->archivePublicStorage($backupDirectory) : null;
             $manifestFile = $this->writeManifest($backupDirectory, $databaseFile, $mediaFile);
             $this->pruneExpiredBackups($backupRoot);
 
@@ -129,6 +129,8 @@ class BackupService
             throw new RuntimeException('Public storage archive failed. Check tar availability and filesystem permissions.');
         }
 
+        @chmod($archivePath, 0660);
+
         return $archivePath;
     }
 
@@ -163,7 +165,7 @@ class BackupService
             throw new RuntimeException('Unable to write backup manifest.');
         }
 
-        @chmod($manifestPath, 0600);
+        @chmod($manifestPath, 0660);
 
         return $manifestPath;
     }
@@ -232,16 +234,16 @@ class BackupService
             gzclose($output);
         }
 
-        @chmod($destination, 0600);
+        @chmod($destination, 0660);
     }
 
     private function ensureDirectory(string $path): void
     {
-        if (! is_dir($path) && ! mkdir($path, 0700, true) && ! is_dir($path)) {
+        if (! is_dir($path) && ! mkdir($path, 02770, true) && ! is_dir($path)) {
             throw new RuntimeException('Unable to create backup directory.');
         }
 
-        @chmod($path, 0700);
+        @chmod($path, 02770);
     }
 
     private function deleteDirectory(string $path): void
