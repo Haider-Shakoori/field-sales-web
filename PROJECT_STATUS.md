@@ -97,6 +97,8 @@ Batch 14 intentionally does not add a PDF library or commission engine. CSV is t
 - Historical route playback and territory overlays remain deferred.
 - Push delivery requires a configured provider endpoint/token; the server-side outbox and retry-safe queue foundation are present.
 - No browser automation or screenshot-based visual QA evidence is claimed for Batch 14.
+- Batch 17 provides deployment/operations artifacts and CI validation, but no live production-host deployment or disaster-restore drill is claimed yet.
+- Off-site backup replication remains infrastructure-provider specific; the application creates local verified backup sets that must be copied to an independent encrypted target before launch.
 
 ## Stage 2 — Production Readiness & Release
 
@@ -107,8 +109,8 @@ Batch 15 — BusinessOS Integration is deferred and is not a release blocker.
 | Batch | Name | Status |
 |---|---|---|
 | 16 | Web Production Security & Runtime Readiness | Complete |
-| 17 | Deployment, Workers, Backups & Monitoring | Next |
-| 18 | Android Production Release Engineering | Planned |
+| 17 | Deployment, Workers, Backups & Monitoring | Complete |
+| 18 | Android Production Release Engineering | Next |
 | 19 | Release Candidate QA & UAT | Planned |
 | 20 | Production Launch & Handover | Planned |
 
@@ -131,6 +133,32 @@ Latest verification gate:
 - Stage 2 Batch 16 focused regression suite: PASS.
 - Changed-PHP Pint gate: PASS.
 
+### Batch 17 Verification
+
+Verified scope:
+- Release-based Linux deployment layout with immutable releases plus shared environment/storage.
+- Failure-safe atomic deployment and code rollback scripts.
+- Pre-deploy database snapshots before migrations.
+- MySQL database backups with compressed dumps, SHA-256 manifest verification, retention, and optional uploaded-media archives.
+- Destructive restore workflow requires explicit confirmation, protected restore credentials, checksum verification, maintenance mode, post-restore migrations, and readiness checks.
+- Nginx HTTP bootstrap and HTTPS production templates, including ACME handling and explicit HTTPS propagation to PHP-FPM.
+- PHP 8.5 production runtime override template.
+- systemd queue worker template with a 60-second worker timeout below the explicit 90-second database retry window.
+- systemd Laravel scheduler, daily backup, and five-minute monitoring timers.
+- Operational monitoring covers runtime readiness, queue backlog, failed jobs, stale reserved jobs, backup directory/tooling, and optional public HTTPS readiness.
+- Scheduled failed-job pruning after seven days.
+- CI validates all operations shell scripts with `bash -n`.
+- Full production operations runbook at `ops/README.md`.
+
+Latest verification gate:
+- GitHub Actions `web-ci`: PASS.
+- Laravel tests: 102 passed, 531 assertions.
+- Stage 2 Batch 17 focused operations regression suite: PASS.
+- Operations shell syntax gate: PASS.
+- Changed-PHP Pint gate: PASS.
+
+A real server installation, TLS issuance, external/off-site backup replication, and destructive restore drill still require the target production/staging infrastructure and are not falsely claimed by this batch.
+
 ## Next Batch
 
-Stage 2 Batch 17 — Deployment, Workers, Backups & Monitoring.
+Stage 2 Batch 18 — Android Production Release Engineering.
