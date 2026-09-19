@@ -16,9 +16,7 @@ use Illuminate\Support\Collection as SupportCollection;
 
 class DashboardService
 {
-    public function __construct(private readonly TenantClock $clock)
-    {
-    }
+    public function __construct(private readonly TenantClock $clock) {}
 
     public function summary(User $actor): array
     {
