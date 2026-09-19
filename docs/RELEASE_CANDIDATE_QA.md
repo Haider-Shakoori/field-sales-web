@@ -61,6 +61,10 @@ The normal CI pipelines must remain green:
 - Web: full Laravel suite, operations shell validation, changed-PHP Pint gate.
 - Mobile: lockfile enforcement, Dart format, Flutter analyze, Flutter tests, debug APK, ephemeral release keystore, signed release AAB, AAB signature verification.
 
+Merged-main evidence:
+- Web `main`: `157ec7b32e9f231302fce47f59bd6eb6ab126d71`, CI #833 PASS, 105 tests / 595 assertions.
+- Mobile `main`: `5447e409914befc87b9607293de9a8fdb7342b73`, CI #376 PASS, Flutter analyze clean, 26 tests, debug APK built, signed release AAB built and signature-verified.
+
 ## Manual UAT prerequisites
 
 Manual UAT must not begin until all of these are available:

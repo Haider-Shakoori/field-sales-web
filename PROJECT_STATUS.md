@@ -194,6 +194,7 @@ Automated release-candidate evidence completed so far:
 - Web release-candidate acceptance matrix is documented in `docs/RELEASE_CANDIDATE_QA.md`.
 - Mobile PR #10 merged to `main` at `5447e409914befc87b9607293de9a8fdb7342b73`.
 - Mobile PR gate passed with Flutter analyze clean, 26 tests, debug APK, signed release AAB, and AAB signature verification.
+- Mobile post-merge `main` CI run #376 passed at `5447e409914befc87b9607293de9a8fdb7342b73` with Flutter analyze clean, 26 tests, debug APK, signed release AAB, AAB signature verification, and SHA-256 output.
 - Mobile offline golden path proves attendance/GPS/visit/order/collection/expense/End Day records survive SQLite close/reopen and remain retry-safe/pending in dependency-safe state.
 - Physical-device execution script is documented in mobile `UAT.md`.
 - CI concurrency now cancels obsolete mobile branch builds.
