@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AttendanceController;
-use App\Http\Controllers\Api\CallActivityController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CallActivityController;
 use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\SettingsController;
