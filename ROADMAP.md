@@ -18,7 +18,7 @@ _Last updated: 2026-09-19_
 | 10 | Collections | Complete | Customer collections, geofence evidence and balances |
 | 11 | Expenses & Targets | Complete | Expense workflow and target management |
 | 12 | Offline Sync Hardening | Complete | Idempotent retries and offline-safe synchronization |
-| 13 | Admin Dashboard & Live Map | Complete / final merge pending | KPI dashboard, analytics, live map and field status |
+| 13 | Admin Dashboard & Live Map | Complete | KPI dashboard, analytics, live map and field status |
 | 14 | Notifications, Alerts & Reporting | Next | Alerts, fraud indicators, reports and exports |
 | 15 | BusinessOS Integration | Optional | ERP integration adapter and synchronization |
 
