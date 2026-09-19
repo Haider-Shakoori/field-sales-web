@@ -3,6 +3,7 @@
         <div>
             <h1 class="text-2xl font-bold">Reports</h1>
             <p class="mt-1 text-sm text-slate-400">Tenant-scoped operational reporting. Currency values are never combined across currencies.</p>
+            <p class="mt-1 text-xs text-slate-500">Sales/visit branch and territory filters use the customer classification on the transaction. GPS/performance filters use the salesman assignment effective on the report end date.</p>
         </div>
         <a
             href="{{ route('admin.reports.csv', request()->query()) }}"
