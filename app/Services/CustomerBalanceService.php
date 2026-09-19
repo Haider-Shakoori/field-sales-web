@@ -50,6 +50,7 @@ class CustomerBalanceService
             $verified = round((float) ($verifiedTotals[$currency] ?? 0), 4);
             $pending = round((float) ($pendingTotals[$currency] ?? 0), 4);
             $outstanding = round(max(0, $receivable - $verified), 4);
+            $available = round(max(0, $outstanding - $pending), 4);
 
             return [
                 'currency' => $currency,
@@ -57,16 +58,41 @@ class CustomerBalanceService
                 'verified_collections' => $verified,
                 'pending_collections' => $pending,
                 'outstanding_balance' => $outstanding,
+                'available_to_collect' => $available,
             ];
         })->all();
     }
 
+    public function snapshot(Customer $customer, string $currency): array
+    {
+        $currency = strtoupper($currency);
+        $row = collect($this->forCustomer($customer))
+            ->firstWhere('currency', $currency);
+
+        return $row ?? [
+            'currency' => $currency,
+            'receivable_total' => 0.0,
+            'verified_collections' => 0.0,
+            'pending_collections' => 0.0,
+            'outstanding_balance' => 0.0,
+            'available_to_collect' => 0.0,
+        ];
+    }
+
     public function outstanding(Customer $customer, string $currency): float
     {
-        $row = collect($this->forCustomer($customer))
-            ->firstWhere('currency', strtoupper($currency));
+        return round(
+            (float) $this->snapshot($customer, $currency)['outstanding_balance'],
+            4,
+        );
+    }
 
-        return round((float) ($row['outstanding_balance'] ?? 0), 4);
+    public function availableToCollect(Customer $customer, string $currency): float
+    {
+        return round(
+            (float) $this->snapshot($customer, $currency)['available_to_collect'],
+            4,
+        );
     }
 
     public function forCustomers(SupportCollection $customers): array
