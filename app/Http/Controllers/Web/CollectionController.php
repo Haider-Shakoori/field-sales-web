@@ -76,7 +76,6 @@ class CollectionController extends Controller
 
         $allowed = match ($collection->status) {
             'pending' => ['verified', 'rejected', 'cancelled'],
-            'verified' => ['cancelled'],
             default => [],
         };
 
