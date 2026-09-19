@@ -78,6 +78,7 @@ class CustomerController extends Controller
                 'priceList',
                 'creator',
                 'routeMemberships.route',
+                'callActivities.user',
             ]),
         ]);
     }
