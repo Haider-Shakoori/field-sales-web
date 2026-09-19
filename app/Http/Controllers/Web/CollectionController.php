@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Collection;
 use App\Services\AuditLogger;
 use App\Services\CustomerBalanceService;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -68,6 +69,7 @@ class CollectionController extends Controller
         Collection $collection,
         CustomerBalanceService $balances,
         AuditLogger $audit,
+        NotificationService $notifications,
     ): RedirectResponse {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['verified', 'rejected', 'cancelled'])],
@@ -125,6 +127,22 @@ class CollectionController extends Controller
             'status' => $collection->status,
             'status_note' => $collection->status_note,
         ]);
+
+        $collection->loadMissing('salesman.user');
+        if ($collection->salesman?->user) {
+            $notifications->notify(
+                $collection->salesman->user,
+                'collection.status_changed',
+                'collection_updates',
+                'Collection '.$collection->receipt_number.' '.str($collection->status)->title(),
+                'Your collection '.$collection->receipt_number.' is now '.$collection->status.'.',
+                [
+                    'collection_id' => $collection->uuid,
+                    'status' => $collection->status,
+                ],
+                $collection->status === 'rejected' ? 'high' : 'normal',
+            );
+        }
 
         return redirect()
             ->route('admin.collections.show', $collection)
