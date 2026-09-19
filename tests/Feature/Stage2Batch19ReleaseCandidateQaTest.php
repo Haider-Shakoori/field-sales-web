@@ -282,6 +282,21 @@ class Stage2Batch19ReleaseCandidateQaTest extends TestCase
         ]);
     }
 
+    public function test_release_ci_uses_parent_commit_when_push_base_is_unavailable(): void
+    {
+        $workflow = file_get_contents(base_path('.github/workflows/ci.yml'));
+
+        $this->assertNotFalse($workflow);
+        $this->assertStringContainsString(
+            'git rev-parse "$GITHUB_SHA^"',
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            'git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$GITHUB_SHA"',
+            $workflow,
+        );
+    }
+
     private function actor(): array
     {
         $tenant = app(TenantContext::class)->withPlatformScope(fn () => Tenant::create([
