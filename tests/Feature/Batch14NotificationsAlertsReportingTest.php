@@ -24,7 +24,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class Batch14NotificationsAlertsReportingTest extends TestCase
@@ -102,10 +101,17 @@ class Batch14NotificationsAlertsReportingTest extends TestCase
         $this->assertSame('skipped', $delivery->status);
         $this->assertSame($device->id, $delivery->device_id);
 
+        $token = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => $salesmanUser->createToken('mobile-'.$device->uuid)->plainTextToken,
+        );
+
         auth('web')->logout();
         app('auth')->forgetGuards();
-        Sanctum::actingAs($salesmanUser);
-        $headers = $this->deviceHeaders($device);
+        $headers = array_merge(
+            $this->deviceHeaders($device),
+            ['Authorization' => 'Bearer '.$token],
+        );
 
         $this->getJson('/api/v1/notifications', $headers)
             ->assertOk()
