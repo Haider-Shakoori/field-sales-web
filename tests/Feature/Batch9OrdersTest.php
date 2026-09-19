@@ -110,7 +110,10 @@ class Batch9OrdersTest extends TestCase
             ]],
         ], $this->headers())->assertCreated();
 
-        $order = Order::firstOrFail();
+        $order = app(TenantContext::class)->withTenant(
+            $actor['tenant'],
+            fn () => Order::firstOrFail()
+        );
         $admin = $this->admin($actor['tenant']);
 
         $this->actingAs($admin)
@@ -136,7 +139,7 @@ class Batch9OrdersTest extends TestCase
         $actor = $this->salesmanActor();
         [$customer, $product] = $this->catalog($actor);
 
-        $this->postJson('/api/v1/orders', [
+        $response = $this->postJson('/api/v1/orders', [
             'offline_uuid' => (string) Str::uuid(),
             'customer_id' => $customer->uuid,
             'ordered_at' => '2026-09-19T06:20:00Z',
@@ -145,9 +148,16 @@ class Batch9OrdersTest extends TestCase
                 ['product_id' => $product->uuid, 'quantity' => 1],
                 ['product_id' => $product->uuid, 'quantity' => 2],
             ],
-        ], $this->headers())
+        ], $this->headers());
+
+        $response
             ->assertUnprocessable()
-            ->assertJsonValidationErrors('items.1.product_id');
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
+
+        $this->assertArrayHasKey(
+            'items.1.product_id',
+            $response->json('error.details'),
+        );
     }
 
     private function salesmanActor(): array
