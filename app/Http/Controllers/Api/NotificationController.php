@@ -20,6 +20,7 @@ class NotificationController extends Controller
 
         $page = OperationalNotification::query()
             ->where('user_id', $request->user()->id)
+            ->where('database_visible', true)
             ->when(
                 (bool) ($validated['unread_only'] ?? false),
                 fn ($query) => $query->whereNull('read_at'),
@@ -45,7 +46,11 @@ class NotificationController extends Controller
         Request $request,
         OperationalNotification $notification,
     ): JsonResponse {
-        abort_unless((int) $notification->user_id === (int) $request->user()->id, 404);
+        abort_unless(
+            (int) $notification->user_id === (int) $request->user()->id
+            && $notification->database_visible,
+            404,
+        );
 
         $notification->markRead();
 
