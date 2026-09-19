@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\VisitController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -35,6 +36,12 @@ Route::prefix('v1')->group(function () {
             Route::post('/attendance/end', [AttendanceController::class, 'end']);
             Route::post('/gps/locations', [GpsController::class, 'ingest']);
             Route::post('/gps/privacy-acknowledgement', [GpsController::class, 'acknowledge']);
+
+            Route::get('/visits/today', [VisitController::class, 'today']);
+            Route::get('/visits/history', [VisitController::class, 'history']);
+            Route::post('/visits/check-in', [VisitController::class, 'checkIn']);
+            Route::post('/visits/{visit:uuid}/check-out', [VisitController::class, 'checkOut']);
+            Route::post('/visits/{visit:uuid}/photos', [VisitController::class, 'uploadPhoto']);
         });
     });
 });
