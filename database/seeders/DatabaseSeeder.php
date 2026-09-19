@@ -4,16 +4,20 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\CompanySetting;
+use App\Models\Customer;
 use App\Models\Permission;
 use App\Models\PriceList;
 use App\Models\PriceListItem;
 use App\Models\Product;
 use App\Models\Role;
+use App\Models\RouteCustomer;
 use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
+use App\Models\SalesRoute;
 use App\Models\Supervisor;
 use App\Models\SupervisorAssignment;
 use App\Models\Tenant;
+use App\Models\Territory;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
@@ -113,6 +117,16 @@ class DatabaseSeeder extends Seeder
             $supervisorUser->syncPrimaryRole($roles['supervisor']);
             $salesmanUser->syncPrimaryRole($roles['salesman']);
 
+            $territory = Territory::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'code' => 'KBL-CENTRAL'],
+                [
+                    'branch_id' => $branch->id,
+                    'name' => 'Kabul Central',
+                    'description' => 'Demo central sales territory.',
+                    'is_active' => true,
+                ]
+            );
+
             $product = Product::firstOrCreate(
                 ['tenant_id' => $tenant->id, 'sku' => 'DEMO-001'],
                 [
@@ -145,7 +159,49 @@ class DatabaseSeeder extends Seeder
                 ]
             );
 
-            SupervisorAssignment::firstOrCreate(
+            $customer = Customer::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'code' => 'CUS-001'],
+                [
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'price_list_id' => $priceList->id,
+                    'name' => 'Demo Customer',
+                    'contact_person' => 'Demo Contact',
+                    'phone' => '0700000000',
+                    'address' => 'Kabul',
+                    'latitude' => 34.5553,
+                    'longitude' => 69.2075,
+                    'geofence_radius_meters' => 100,
+                    'created_by' => $admin->id,
+                    'is_active' => true,
+                ]
+            );
+
+            $route = SalesRoute::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'code' => 'KBL-R01'],
+                [
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'name' => 'Kabul Central Route',
+                    'weekdays' => ['sat', 'sun', 'mon', 'tue', 'wed'],
+                    'description' => 'Demo recurring customer route.',
+                    'is_active' => true,
+                ]
+            );
+
+            RouteCustomer::firstOrCreate(
+                [
+                    'tenant_id' => $tenant->id,
+                    'route_id' => $route->id,
+                    'customer_id' => $customer->id,
+                ],
+                [
+                    'sequence_number' => 1,
+                    'planned_visit_minutes' => 10,
+                ]
+            );
+
+            SupervisorAssignment::updateOrCreate(
                 [
                     'tenant_id' => $tenant->id,
                     'supervisor_id' => $supervisor->id,
@@ -153,11 +209,12 @@ class DatabaseSeeder extends Seeder
                     'effective_from' => now()->toDateString(),
                 ],
                 [
+                    'territory_id' => $territory->id,
                     'created_by' => $admin->id,
                 ]
             );
 
-            SalesmanAssignment::firstOrCreate(
+            SalesmanAssignment::updateOrCreate(
                 [
                     'tenant_id' => $tenant->id,
                     'salesman_id' => $salesman->id,
@@ -165,6 +222,8 @@ class DatabaseSeeder extends Seeder
                 ],
                 [
                     'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'route_id' => $route->id,
                     'supervisor_id' => $supervisor->id,
                     'created_by' => $admin->id,
                 ]
