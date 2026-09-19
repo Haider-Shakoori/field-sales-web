@@ -32,6 +32,8 @@ class Collection extends Model
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'accuracy' => 'decimal:2',
+            'distance_meters' => 'decimal:2',
+            'within_geofence' => 'boolean',
             'balance_before' => 'decimal:4',
             'overpayment_flag' => 'boolean',
             'status_changed_at' => 'datetime',
