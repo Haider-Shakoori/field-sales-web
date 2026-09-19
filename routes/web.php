@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\BranchController;
 use App\Http\Controllers\Web\CallActivityController;
+use App\Http\Controllers\Web\CollectionController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\OrderController;
@@ -119,6 +120,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/call-activities', [CallActivityController::class, 'index'])
             ->middleware('permission:customers:view')
             ->name('call-activities.index');
+
+        Route::resource('collections', CollectionController::class)
+            ->only(['index', 'show'])
+            ->middleware('permission:collections:view');
+        Route::patch('/collections/{collection}/status', [CollectionController::class, 'updateStatus'])
+            ->middleware('permission:collections:manage')
+            ->name('collections.status');
+        Route::get('/collections/{collection}/receipt', [CollectionController::class, 'receipt'])
+            ->middleware('permission:collections:view')
+            ->name('collections.receipt');
 
         Route::resource('orders', OrderController::class)
             ->only(['index', 'show'])
