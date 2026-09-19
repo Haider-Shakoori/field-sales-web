@@ -297,6 +297,22 @@ class Stage2Batch19ReleaseCandidateQaTest extends TestCase
         );
     }
 
+    public function test_release_candidate_document_keeps_manual_uat_explicit(): void
+    {
+        $document = file_get_contents(base_path('docs/RELEASE_CANDIDATE_QA.md'));
+
+        $this->assertNotFalse($document);
+        $this->assertStringContainsString('Not Executed', $document);
+        $this->assertStringContainsString(
+            'In Progress — Automated QA / Manual UAT Pending',
+            $document,
+        );
+        $this->assertStringContainsString(
+            'Approved mobile branding is missing',
+            $document,
+        );
+    }
+
     private function actor(): array
     {
         $tenant = app(TenantContext::class)->withPlatformScope(fn () => Tenant::create([
