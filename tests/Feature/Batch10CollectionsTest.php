@@ -120,7 +120,7 @@ class Batch10CollectionsTest extends TestCase
             'subject_id' => $collection->id,
         ]);
 
-        auth()->logout();
+        auth('web')->logout();
         app('auth')->forgetGuards();
 
         $this->getJson(
