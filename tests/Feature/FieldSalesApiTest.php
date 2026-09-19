@@ -291,6 +291,148 @@ class FieldSalesApiTest extends TestCase
             ->assertJsonPath('data.timezone', 'Asia/Kabul');
     }
 
+    public function test_same_batch_order_uses_newest_recorded_at_for_current_location(): void
+    {
+        $actor = $this->actor();
+        $this->createActiveSession($actor);
+
+        $this->postJson('/api/v1/gps/locations', [
+            'batch_uuid' => (string) Str::uuid(),
+            'locations' => [
+                [
+                    'client_uuid' => (string) Str::uuid(),
+                    'latitude' => 34.50,
+                    'longitude' => 69.2,
+                    'accuracy' => 8,
+                    'recorded_at' => '2026-09-18T05:00:00Z',
+                    'sequence_number' => 1,
+                ],
+                [
+                    'client_uuid' => (string) Str::uuid(),
+                    'latitude' => 34.70,
+                    'longitude' => 69.2,
+                    'accuracy' => 8,
+                    'recorded_at' => '2026-09-18T05:20:00Z',
+                    'sequence_number' => 2,
+                ],
+                [
+                    'client_uuid' => (string) Str::uuid(),
+                    'latitude' => 34.60,
+                    'longitude' => 69.2,
+                    'accuracy' => 8,
+                    'recorded_at' => '2026-09-18T05:10:00Z',
+                    'sequence_number' => 3,
+                ],
+            ],
+        ], $this->headers())
+            ->assertCreated()
+            ->assertJsonPath('data.accepted', 3);
+
+        $this->assertDatabaseHas('current_locations', [
+            'latitude' => 34.7000000,
+        ]);
+    }
+
+    public function test_completed_overnight_session_accepts_offline_post_midnight_point(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-19T06:00:00Z');
+
+        try {
+            $actor = $this->actor();
+
+            $this->inTenant($actor, function () use ($actor): void {
+                WorkSession::create([
+                    'uuid' => (string) Str::uuid(),
+                    'user_id' => $actor['u']->id,
+                    'salesman_id' => $actor['s']->id,
+                    'device_id' => $actor['d']->id,
+                    'date' => '2026-09-18',
+                    'start_time' => '2026-09-18 16:00:00',
+                    'end_time' => '2026-09-18 22:00:00',
+                    'start_latitude' => 34.5,
+                    'start_longitude' => 69.1,
+                    'start_accuracy' => 5,
+                    'end_latitude' => 34.5,
+                    'end_longitude' => 69.1,
+                    'end_accuracy' => 5,
+                    'status' => 'completed',
+                ]);
+            });
+
+            $this->postJson('/api/v1/gps/locations', [
+                'batch_uuid' => (string) Str::uuid(),
+                'locations' => [[
+                    'client_uuid' => (string) Str::uuid(),
+                    'latitude' => 34.5,
+                    'longitude' => 69.1,
+                    'accuracy' => 8,
+                    'recorded_at' => '2026-09-18T20:30:00Z',
+                    'sequence_number' => 1,
+                ]],
+            ], $this->headers())
+                ->assertCreated()
+                ->assertJsonPath('data.accepted', 1);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_gps_validation_rejects_invalid_quality_metadata_per_point(): void
+    {
+        $actor = $this->actor();
+        $this->createActiveSession($actor);
+
+        $badHeading = (string) Str::uuid();
+        $badBattery = (string) Str::uuid();
+
+        $this->postJson('/api/v1/gps/locations', [
+            'batch_uuid' => (string) Str::uuid(),
+            'locations' => [
+                [
+                    'client_uuid' => $badHeading,
+                    'latitude' => 34.5,
+                    'longitude' => 69.1,
+                    'accuracy' => 8,
+                    'heading' => 361,
+                    'recorded_at' => '2026-09-18T05:00:00Z',
+                ],
+                [
+                    'client_uuid' => $badBattery,
+                    'latitude' => 34.5,
+                    'longitude' => 69.1,
+                    'accuracy' => 8,
+                    'battery_level' => 101,
+                    'recorded_at' => '2026-09-18T05:01:00Z',
+                ],
+            ],
+        ], $this->headers())
+            ->assertCreated()
+            ->assertJsonPath('data.accepted', 0)
+            ->assertJsonPath('data.rejected', 2)
+            ->assertJsonFragment(['client_uuid' => $badHeading, 'code' => 'invalid_heading'])
+            ->assertJsonFragment(['client_uuid' => $badBattery, 'code' => 'invalid_battery']);
+    }
+
+    public function test_gps_point_without_work_session_is_rejected(): void
+    {
+        $this->actor();
+        $uuid = (string) Str::uuid();
+
+        $this->postJson('/api/v1/gps/locations', [
+            'batch_uuid' => (string) Str::uuid(),
+            'locations' => [[
+                'client_uuid' => $uuid,
+                'latitude' => 34.5,
+                'longitude' => 69.1,
+                'accuracy' => 8,
+                'recorded_at' => '2026-09-18T05:00:00Z',
+            ]],
+        ], $this->headers())
+            ->assertCreated()
+            ->assertJsonPath('data.rejected', 1)
+            ->assertJsonFragment(['client_uuid' => $uuid, 'code' => 'no_work_session']);
+    }
+
     private function createActiveSession(array $actor, string $start = '2026-09-18 00:00:00'): void
     {
         $this->inTenant($actor, function () use ($actor, $start): void {

@@ -1,9 +1,215 @@
 <?php
+
 namespace App\Http\Controllers\Api;
-use App\Http\Controllers\Controller; use App\Http\Resources\WorkSessionResource; use App\Models\WorkSession; use App\Services\TenantClock; use App\Support\ApiResponse; use Carbon\CarbonImmutable; use Illuminate\Http\Request; use Illuminate\Support\Facades\DB;
-class AttendanceController extends Controller {
- public function start(Request $r,TenantClock $clock){$v=$r->validate(['latitude'=>'required|numeric|between:-90,90|not_in:0','longitude'=>'required|numeric|between:-180,180|not_in:0','accuracy'=>'required|numeric|between:0,200','offline_uuid'=>'required|uuid','started_at'=>'nullable|date']);$u=$r->user()->load(['tenant','salesman']);$device=$r->attributes->get('device'); if($same=WorkSession::where('tenant_id',$u->tenant_id)->where('uuid',$v['offline_uuid'])->first())return ApiResponse::success((new WorkSessionResource($same->load(['user','device'])))->resolve(),200); $start=isset($v['started_at'])?CarbonImmutable::parse($v['started_at'])->utc():now()->toImmutable(); if($start->isFuture()&&$start->diffInMinutes(now())>5)return ApiResponse::error('Start time is too far in the future.',422,['started_at'=>['Invalid start time.']],'VALIDATION_ERROR'); $date=$clock->localDate($u->tenant,$start); if(WorkSession::where('tenant_id',$u->tenant_id)->where('user_id',$u->id)->whereDate('date',$date)->exists())return ApiResponse::error('A work session already exists for this local date.',409,null,'SESSION_ALREADY_EXISTS'); $settings=app(\App\Services\TrackingSettingsService::class)->get($u->tenant); $local=$start->setTimezone($settings['timezone']); $session=DB::transaction(function()use($u,$device,$v,$start,$date,$settings,$local){$late=$local->format('H:i')>$settings['workday_start_time'];return WorkSession::create(['uuid'=>$v['offline_uuid'],'tenant_id'=>$u->tenant_id,'user_id'=>$u->id,'salesman_id'=>$u->salesman->id,'device_id'=>$device->id,'date'=>$date,'start_time'=>$start,'start_latitude'=>$v['latitude'],'start_longitude'=>$v['longitude'],'start_accuracy'=>$v['accuracy'],'status'=>'active','is_late_start'=>$late]);}); return ApiResponse::success((new WorkSessionResource($session->load(['user','device'])))->resolve(),201); }
- public function end(Request $r){$v=$r->validate(['latitude'=>'required|numeric|between:-90,90|not_in:0','longitude'=>'required|numeric|between:-180,180|not_in:0','accuracy'=>'required|numeric|between:0,200','ended_at'=>'nullable|date']);$u=$r->user()->load('tenant');$s=WorkSession::where('tenant_id',$u->tenant_id)->where('user_id',$u->id)->latest('start_time')->first(); if(!$s)return ApiResponse::error('No work session found.',404,null,'SESSION_NOT_FOUND'); if($s->status==='completed')return ApiResponse::success((new WorkSessionResource($s->load(['user','device'])))->resolve());$end=isset($v['ended_at'])?CarbonImmutable::parse($v['ended_at'])->utc():now()->toImmutable(); if($end->lt($s->start_time))$end=now()->toImmutable();$settings=app(\App\Services\TrackingSettingsService::class)->get($u->tenant);$local=$end->setTimezone($settings['timezone']);$s->update(['end_time'=>$end,'end_latitude'=>$v['latitude'],'end_longitude'=>$v['longitude'],'end_accuracy'=>$v['accuracy'],'status'=>'completed','duration_minutes'=>$s->start_time->diffInMinutes($end),'is_early_finish'=>$local->format('H:i')<$settings['workday_end_time']]);return ApiResponse::success((new WorkSessionResource($s->fresh()->load(['user','device'])))->resolve()); }
- public function today(Request $r,TenantClock $clock){$u=$r->user()->load('tenant');$date=$clock->now($u->tenant)->toDateString();$s=WorkSession::where('tenant_id',$u->tenant_id)->where('user_id',$u->id)->whereDate('date',$date)->first();return ApiResponse::success($s?(new WorkSessionResource($s->load(['user','device'])))->resolve():null);}
- public function history(Request $r){$per=min(100,max(1,(int)$r->integer('per_page',20)));$p=WorkSession::where('tenant_id',$r->user()->tenant_id)->where('user_id',$r->user()->id)->with(['user','device'])->latest('date')->paginate($per);return ApiResponse::success(WorkSessionResource::collection($p->items())->resolve(),200,['current_page'=>$p->currentPage(),'last_page'=>$p->lastPage(),'per_page'=>$p->perPage(),'total'=>$p->total()]);}
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\WorkSessionResource;
+use App\Models\WorkSession;
+use App\Services\TenantClock;
+use App\Services\TrackingSettingsService;
+use App\Support\ApiResponse;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class AttendanceController extends Controller
+{
+    public function start(Request $request, TenantClock $clock)
+    {
+        $validated = $request->validate([
+            'latitude' => 'required|numeric|between:-90,90|not_in:0',
+            'longitude' => 'required|numeric|between:-180,180|not_in:0',
+            'accuracy' => 'required|numeric|between:0,200',
+            'offline_uuid' => 'required|uuid',
+            'started_at' => 'nullable|date',
+        ]);
+
+        $user = $request->user()->load(['tenant', 'salesman']);
+        $device = $request->attributes->get('device');
+
+        $existing = WorkSession::where('tenant_id', $user->tenant_id)
+            ->where('uuid', $validated['offline_uuid'])
+            ->first();
+
+        if ($existing) {
+            if ((int) $existing->user_id !== (int) $user->id) {
+                return ApiResponse::error(
+                    'This attendance UUID is already in use.',
+                    409,
+                    null,
+                    'SESSION_UUID_CONFLICT',
+                );
+            }
+
+            return ApiResponse::success(
+                (new WorkSessionResource($existing->load(['user', 'device'])))->resolve(),
+                200,
+            );
+        }
+
+        $startedAt = isset($validated['started_at'])
+            ? CarbonImmutable::parse($validated['started_at'])->utc()
+            : now()->toImmutable();
+
+        if ($startedAt->gt(now()->addMinutes(5))) {
+            return ApiResponse::error(
+                'Start time is too far in the future.',
+                422,
+                ['started_at' => ['Start time may not be more than five minutes in the future.']],
+                'VALIDATION_ERROR',
+            );
+        }
+
+        $localDate = $clock->localDate($user->tenant, $startedAt);
+
+        if (WorkSession::where('tenant_id', $user->tenant_id)
+            ->where('user_id', $user->id)
+            ->whereDate('date', $localDate)
+            ->exists()) {
+            return ApiResponse::error(
+                'A work session already exists for this local date.',
+                409,
+                null,
+                'SESSION_ALREADY_EXISTS',
+            );
+        }
+
+        $settings = app(TrackingSettingsService::class)->get($user->tenant);
+        $localStartedAt = $startedAt->setTimezone($settings['timezone']);
+
+        $session = DB::transaction(function () use (
+            $user,
+            $device,
+            $validated,
+            $startedAt,
+            $localDate,
+            $settings,
+            $localStartedAt
+        ) {
+            return WorkSession::create([
+                'uuid' => $validated['offline_uuid'],
+                'tenant_id' => $user->tenant_id,
+                'user_id' => $user->id,
+                'salesman_id' => $user->salesman->id,
+                'device_id' => $device->id,
+                'date' => $localDate,
+                'start_time' => $startedAt,
+                'start_latitude' => $validated['latitude'],
+                'start_longitude' => $validated['longitude'],
+                'start_accuracy' => $validated['accuracy'],
+                'status' => 'active',
+                'is_late_start' => $localStartedAt->format('H:i') > $settings['workday_start_time'],
+            ]);
+        });
+
+        return ApiResponse::success(
+            (new WorkSessionResource($session->load(['user', 'device'])))->resolve(),
+            201,
+        );
+    }
+
+    public function end(Request $request)
+    {
+        $validated = $request->validate([
+            'latitude' => 'required|numeric|between:-90,90|not_in:0',
+            'longitude' => 'required|numeric|between:-180,180|not_in:0',
+            'accuracy' => 'required|numeric|between:0,200',
+            'ended_at' => 'nullable|date',
+        ]);
+
+        $user = $request->user()->load('tenant');
+
+        $session = WorkSession::where('tenant_id', $user->tenant_id)
+            ->where('user_id', $user->id)
+            ->latest('start_time')
+            ->first();
+
+        if (! $session) {
+            return ApiResponse::error('No work session found.', 404, null, 'SESSION_NOT_FOUND');
+        }
+
+        if ($session->status === 'completed') {
+            return ApiResponse::success(
+                (new WorkSessionResource($session->load(['user', 'device'])))->resolve(),
+            );
+        }
+
+        $endedAt = isset($validated['ended_at'])
+            ? CarbonImmutable::parse($validated['ended_at'])->utc()
+            : now()->toImmutable();
+
+        if ($endedAt->gt(now()->addMinutes(5))) {
+            return ApiResponse::error(
+                'End time is too far in the future.',
+                422,
+                ['ended_at' => ['End time may not be more than five minutes in the future.']],
+                'VALIDATION_ERROR',
+            );
+        }
+
+        if ($endedAt->lt($session->start_time)) {
+            return ApiResponse::error(
+                'End time cannot be before the work session start time.',
+                422,
+                ['ended_at' => ['End time must be on or after the work session start time.']],
+                'VALIDATION_ERROR',
+            );
+        }
+
+        $settings = app(TrackingSettingsService::class)->get($user->tenant);
+        $localEndedAt = $endedAt->setTimezone($settings['timezone']);
+
+        $session->update([
+            'end_time' => $endedAt,
+            'end_latitude' => $validated['latitude'],
+            'end_longitude' => $validated['longitude'],
+            'end_accuracy' => $validated['accuracy'],
+            'status' => 'completed',
+            'duration_minutes' => $session->start_time->diffInMinutes($endedAt),
+            'is_early_finish' => $localEndedAt->format('H:i') < $settings['workday_end_time'],
+        ]);
+
+        return ApiResponse::success(
+            (new WorkSessionResource($session->fresh()->load(['user', 'device'])))->resolve(),
+        );
+    }
+
+    public function today(Request $request, TenantClock $clock)
+    {
+        $user = $request->user()->load('tenant');
+        $date = $clock->now($user->tenant)->toDateString();
+
+        $session = WorkSession::where('tenant_id', $user->tenant_id)
+            ->where('user_id', $user->id)
+            ->whereDate('date', $date)
+            ->first();
+
+        return ApiResponse::success(
+            $session
+                ? (new WorkSessionResource($session->load(['user', 'device'])))->resolve()
+                : null,
+        );
+    }
+
+    public function history(Request $request)
+    {
+        $perPage = min(100, max(1, (int) $request->integer('per_page', 20)));
+
+        $paginator = WorkSession::where('tenant_id', $request->user()->tenant_id)
+            ->where('user_id', $request->user()->id)
+            ->with(['user', 'device'])
+            ->latest('date')
+            ->paginate($perPage);
+
+        return ApiResponse::success(
+            WorkSessionResource::collection($paginator->items())->resolve(),
+            200,
+            [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        );
+    }
 }
