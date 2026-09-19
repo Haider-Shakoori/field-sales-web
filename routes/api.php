@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\CallActivityController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\MasterDataController;
@@ -42,6 +43,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/visits/check-in', [VisitController::class, 'checkIn']);
             Route::post('/visits/{visit:uuid}/check-out', [VisitController::class, 'checkOut']);
             Route::post('/visits/{visit:uuid}/photos', [VisitController::class, 'uploadPhoto']);
+
+            Route::get('/call-activities/history', [CallActivityController::class, 'history']);
+            Route::post('/call-activities', [CallActivityController::class, 'store']);
         });
     });
 });
