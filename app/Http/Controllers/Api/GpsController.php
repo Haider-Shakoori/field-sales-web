@@ -166,8 +166,13 @@ class GpsController extends Controller
                 continue;
             }
 
+            if (! isset($point['recorded_at']) || ! is_string($point['recorded_at']) || trim($point['recorded_at']) === '') {
+                $reject('invalid_timestamp', 'recorded_at must be a valid timestamp.');
+                continue;
+            }
+
             try {
-                $recordedAt = CarbonImmutable::parse($point['recorded_at'] ?? null)->utc();
+                $recordedAt = CarbonImmutable::parse($point['recorded_at'])->utc();
             } catch (\Throwable) {
                 $reject('invalid_timestamp', 'recorded_at must be a valid timestamp.');
                 continue;
@@ -301,7 +306,6 @@ class GpsController extends Controller
             }
 
             $batch->update([
-                'point_count' => count($valid) + count($accepted) * 0 + $batch->point_count,
                 'processed_at' => now(),
             ]);
         });
@@ -324,7 +328,11 @@ class GpsController extends Controller
 
     public function current(Request $request)
     {
-        $target = $this->targetUser($request);
+        $validated = $request->validate([
+            'user_id' => 'nullable|uuid',
+        ]);
+
+        $target = $this->targetUser($request, $validated['user_id'] ?? null);
         $cached = $this->readCachedLatest($request->user()->tenant_id, $target->id);
 
         if ($cached !== null) {
