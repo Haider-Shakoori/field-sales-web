@@ -225,6 +225,11 @@ Validate the merged web/API and Android release candidate across continuous busi
 - Web merged-main gate: 105 tests / 595 assertions, operations scripts and Pint PASS.
 - Mobile PR gate: 26 tests, analyze PASS, debug APK PASS, signed release AAB PASS, signature verification PASS.
 - Mobile merged-main gate: CI #376 PASS at `5447e409914befc87b9607293de9a8fdb7342b73`, including analyze, 26 tests, debug APK, signed release AAB and signature verification.
+- Auditable manual-UAT record added in mobile `UAT_RESULTS_TEMPLATE.md`; PR #11 merged at `18d63ac78b2843016101447d6c87c00a79d16732`.
+- Mobile post-merge gate #384 PASS: analyze clean, 27 tests, debug APK, signed release AAB and signature verification.
+- Automated recovery rehearsal added in web PR #27 and merged at `468e5ed924f08078112eded72c4ea833539f201b`.
+- Web post-merge CI #848 PASS: 105 tests / 595 assertions.
+- Recovery rehearsal #2 PASS: real MySQL backup + manifest checksums + uploaded media + destructive restore + restored-state/readiness/ops verification.
 
 ### Manual UAT Still Required
 
@@ -245,7 +250,7 @@ Batch 19 remains **In Progress — Automated QA Complete / Manual UAT Pending** 
 - notifications/preferences
 - reports/CSV reconciliation
 - operational health observation
-- non-production backup/restore drill
+- non-production/staging backup/restore drill (the CI recovery rehearsal is green but does not replace UAT-15)
 
 ### Completion Gate
 
