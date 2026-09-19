@@ -17,7 +17,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class VisitController extends Controller
@@ -63,7 +62,7 @@ class VisitController extends Controller
             ->latest('start_time')
             ->first();
 
-        if (!$session) {
+        if (! $session) {
             return ApiResponse::error(
                 'A visit must occur inside a work session.',
                 409,
