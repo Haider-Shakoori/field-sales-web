@@ -17,6 +17,7 @@ class OperationalNotification extends Model
     protected function casts(): array
     {
         return [
+            'database_visible' => 'boolean',
             'data' => 'array',
             'read_at' => 'datetime',
         ];
