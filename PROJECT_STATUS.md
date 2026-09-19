@@ -98,6 +98,39 @@ Batch 14 intentionally does not add a PDF library or commission engine. CSV is t
 - Push delivery requires a configured provider endpoint/token; the server-side outbox and retry-safe queue foundation are present.
 - No browser automation or screenshot-based visual QA evidence is claimed for Batch 14.
 
+## Stage 2 — Production Readiness & Release
+
+Batch 15 — BusinessOS Integration is deferred and is not a release blocker.
+
+### Stage 2 Status
+
+| Batch | Name | Status |
+|---|---|---|
+| 16 | Web Production Security & Runtime Readiness | Complete |
+| 17 | Deployment, Workers, Backups & Monitoring | Next |
+| 18 | Android Production Release Engineering | Planned |
+| 19 | Release Candidate QA & UAT | Planned |
+| 20 | Production Launch & Handover | Planned |
+
+### Batch 16 Verification
+
+Verified scope:
+- Web and mobile login endpoints are protected by named rate limiters.
+- Baseline security headers are applied globally.
+- HSTS is emitted only for secure production requests.
+- Public `/ready` checks database connectivity, infrastructure tables, and writable runtime directories without exposing internal failure details.
+- `field-sales:production-check` fails closed when deployment configuration is unsafe and can include service checks.
+- `.env.production.example` provides explicit production-safe defaults.
+- Session encryption, secure-cookie, and SameSite settings are environment-configurable.
+- Production preflight guidance is documented in the repository README.
+- Strict Content-Security-Policy remains deferred until Leaflet/Chart.js assets are self-hosted.
+
+Latest verification gate:
+- GitHub Actions `web-ci`: PASS.
+- Laravel tests: 94 passed, 503 assertions.
+- Stage 2 Batch 16 focused regression suite: PASS.
+- Changed-PHP Pint gate: PASS.
+
 ## Next Batch
 
-Batch 15 — BusinessOS Integration is optional. Core Field Sales batches 1–14 are complete.
+Stage 2 Batch 17 — Deployment, Workers, Backups & Monitoring.
