@@ -91,8 +91,8 @@ Core product development is complete through Batch 14. Batch 15 is intentionally
 |---|---|---|---|
 | 16 | Web Production Security & Runtime Readiness | Complete | Secure runtime defaults, auth throttling, readiness checks and production configuration validation |
 | 17 | Deployment, Workers, Backups & Monitoring | Complete | Repeatable server deployment, queue/scheduler operation, backups, monitoring and rollback |
-| 18 | Android Production Release Engineering | Next | Signed production Android build, production API configuration and mobile release pipeline |
-| 19 | Release Candidate QA & UAT | Planned | End-to-end golden paths, offline recovery, security/regression QA and UAT evidence |
+| 18 | Android Production Release Engineering | Complete | Signed production Android build, production API configuration and mobile release pipeline |
+| 19 | Release Candidate QA & UAT | Next | End-to-end golden paths, offline recovery, security/regression QA and UAT evidence |
 | 20 | Production Launch & Handover | Planned | Release candidate promotion, launch checklist, operational handover and post-launch validation |
 
 ### Stage 2 Release Rules
@@ -162,6 +162,48 @@ Provide a repeatable, recoverable production operations layer for the Laravel we
 - Deployment/rollback/restore/monitor shell scripts pass `bash -n`.
 - Changed PHP files pass Pint.
 - Diff contains production operations work only; no field-sales business workflow semantics are changed.
+
+## Batch 18 — Android Production Release Engineering
+
+### Goal
+
+Make the Flutter Android application release-capable with deterministic dependencies, production-only HTTPS configuration, externalized signing, and a reproducible signed artifact pipeline.
+
+### Delivered Scope
+
+- Explicit production API/version build defines with fail-closed runtime validation.
+- HTTPS-only production API requirement ending in `/api/v1`.
+- Debug-only cleartext traffic override; production cleartext disabled.
+- Android OS backup disabled for sensitive offline field data.
+- External Android signing through ignored local properties or CI secrets.
+- Git-ignored keystore/signing files and a local signing-properties example.
+- Committed `pubspec.lock` and `--enforce-lockfile` in CI/release workflows.
+- Normal CI builds debug APK plus signed release AAB with an ephemeral CI keystore.
+- Production GitHub workflow builds signed AAB + APK using external secrets and the configured production API URL.
+- Version/tag consistency gate.
+- AAB signature and APK signature verification.
+- SHA-256 release-artifact checksum generation.
+- Android production release runbook in `RELEASE.md`.
+- Regression tests for production configuration, manifest security, external signing, release workflow, and deterministic dependencies.
+
+### Completion Gate
+
+- Mobile PR #9 merged to `main`.
+- Mobile main SHA: `3a3df3be34e8cd14174f0dd64f38c12adfe36e42`.
+- Post-merge mobile CI run #367 passes.
+- Flutter analyze passes with no issues.
+- Flutter test passes: 25 tests.
+- Debug APK builds successfully.
+- Signed release AAB builds successfully.
+- AAB signature verification passes.
+- Real production signing secrets remain outside the repository.
+
+### Carry-forward to Batch 19
+
+- Approved production icon/splash branding must replace the Android platform default icon before launch.
+- Configure the real upload keystore/secrets and `PRODUCTION_API_BASE_URL` only against the target production environment.
+- Install the signed release candidate on a real Android device and execute offline/GPS/background-sync UAT.
+- Store/publishing submission is outside Batch 18 and must not be treated as complete until Batch 20 launch.
 
 ## Batch 15 — BusinessOS Integration (Deferred)
 
