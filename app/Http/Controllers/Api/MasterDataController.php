@@ -64,7 +64,7 @@ class MasterDataController extends Controller
 
         $assignment = $this->currentSalesmanAssignment($request);
         $code = strtoupper(
-            $validated['code']
+            ($validated['code'] ?? null)
                 ?: 'CUS-'.substr(str_replace('-', '', $validated['offline_uuid']), 0, 12)
         );
 
