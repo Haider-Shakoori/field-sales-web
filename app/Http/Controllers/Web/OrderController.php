@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\AuditLogger;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -55,6 +56,7 @@ class OrderController extends Controller
         Request $request,
         Order $order,
         AuditLogger $audit,
+        NotificationService $notifications,
     ): RedirectResponse {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['approved', 'rejected', 'cancelled'])],
@@ -98,6 +100,22 @@ class OrderController extends Controller
             'status' => $order->status,
             'status_note' => $order->status_note,
         ]);
+
+        $order->loadMissing('salesman.user');
+        if ($order->salesman?->user) {
+            $notifications->notify(
+                $order->salesman->user,
+                'order.status_changed',
+                'order_updates',
+                'Order '.$order->order_number.' '.str($order->status)->title(),
+                'Your order '.$order->order_number.' is now '.$order->status.'.',
+                [
+                    'order_id' => $order->uuid,
+                    'status' => $order->status,
+                ],
+                in_array($order->status, ['rejected', 'cancelled'], true) ? 'high' : 'normal',
+            );
+        }
 
         return redirect()
             ->route('admin.orders.show', $order)
