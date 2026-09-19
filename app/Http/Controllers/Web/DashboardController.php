@@ -12,12 +12,8 @@ class DashboardController extends Controller
 {
     public function index(Request $request, DashboardService $dashboard): View
     {
-        $user = $request->user()->loadMissing(['tenant', 'roles.permissions']);
-        $permissions = $user->roles
-            ->flatMap(fn ($role) => $role->permissions)
-            ->pluck('slug')
-            ->unique();
-        $canTrack = $permissions->contains('tracking:view');
+        $user = $request->user()->loadMissing('tenant');
+        $canTrack = $user->hasPermission('tracking:view');
         $locations = $dashboard->liveLocations($user);
 
         return view('admin.dashboard.index', [
@@ -28,10 +24,10 @@ class DashboardController extends Controller
             'variant' => $dashboard->dashboardVariant($user),
             'visibility' => [
                 'tracking' => $canTrack,
-                'orders' => $permissions->contains('orders:view'),
-                'collections' => $permissions->contains('collections:view'),
-                'expenses' => $permissions->contains('expenses:view'),
-                'visits' => $permissions->contains('visits:view'),
+                'orders' => $user->hasPermission('orders:view'),
+                'collections' => $user->hasPermission('collections:view'),
+                'expenses' => $user->hasPermission('expenses:view'),
+                'visits' => $user->hasPermission('visits:view'),
             ],
         ]);
     }
