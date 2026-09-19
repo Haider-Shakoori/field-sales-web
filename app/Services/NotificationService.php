@@ -9,6 +9,7 @@ use App\Models\NotificationPreference;
 use App\Models\SalesmanAssignment;
 use App\Models\OperationalNotification;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class NotificationService
 {
@@ -106,13 +107,20 @@ class NotificationService
             ? $visit->checked_in_at->setTimezone($timezone)->toDateString()
             : $this->clock->now($flag->tenant)->toDateString();
 
-        $recipients = User::query()
-            ->where('is_active', true)
-            ->whereHas('roles', fn ($roles) => $roles->whereIn('slug', [
+        $managerUserIds = DB::table('model_has_roles')
+            ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->where('model_has_roles.tenant_id', $flag->tenant_id)
+            ->where('roles.tenant_id', $flag->tenant_id)
+            ->whereIn('roles.slug', [
                 'owner',
                 'company_admin',
                 'sales_manager',
-            ]))
+            ])
+            ->pluck('model_has_roles.user_id');
+
+        $recipients = User::query()
+            ->whereIn('id', $managerUserIds)
+            ->where('is_active', true)
             ->get();
 
         $assignment = SalesmanAssignment::with('supervisor.user')
