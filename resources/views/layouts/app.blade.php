@@ -43,6 +43,9 @@
                     <a href="{{ route('admin.territories.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Territories</a>
                     <a href="{{ route('admin.routes.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Routes</a>
                 @endif
+                @if($currentUser->hasPermission('visits:view'))
+                    <a href="{{ route('admin.visits.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Visits</a>
+                @endif
                 @if($currentUser->hasPermission('catalog:view'))
                     <a href="{{ route('admin.products.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Products</a>
                     <a href="{{ route('admin.price-lists.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Price lists</a>
