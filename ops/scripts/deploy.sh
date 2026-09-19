@@ -37,14 +37,22 @@ release_id="$(date -u +%Y%m%d%H%M%S)-${BASHPID}"
 release_dir="${RELEASES}/${release_id}"
 old_current="$(readlink -f "${CURRENT}" 2>/dev/null || true)"
 maintenance_enabled=0
+current_switched=0
 
 on_error() {
     local exit_code=$?
 
     echo "Deployment failed with exit code ${exit_code}." >&2
 
-    if [[ "${maintenance_enabled}" == "1" && -n "${old_current}" && -f "${old_current}/artisan" ]]; then
+    if [[ "${current_switched}" == "1" && -n "${old_current}" && -f "${old_current}/artisan" ]]; then
+        ln -sfn "${old_current}" "${APP_ROOT}/.current.failed-deploy"
+        mv -Tf "${APP_ROOT}/.current.failed-deploy" "${CURRENT}" || true
+        "${PHP_BIN}" "${old_current}/artisan" queue:restart || true
         "${PHP_BIN}" "${old_current}/artisan" up || true
+    elif [[ "${maintenance_enabled}" == "1" && -n "${old_current}" && -f "${old_current}/artisan" ]]; then
+        "${PHP_BIN}" "${old_current}/artisan" up || true
+    elif [[ "${maintenance_enabled}" == "1" && -f "${release_dir}/artisan" ]]; then
+        "${PHP_BIN}" "${release_dir}/artisan" up || true
     fi
 
     if [[ -d "${release_dir}" && "$(readlink -f "${CURRENT}" 2>/dev/null || true)" != "${release_dir}" ]]; then
@@ -90,8 +98,10 @@ cd "${release_dir}"
 
 if [[ -n "${old_current}" && -f "${old_current}/artisan" ]]; then
     "${PHP_BIN}" "${old_current}/artisan" down --retry=60 --refresh=15
-    maintenance_enabled=1
+else
+    "${PHP_BIN}" artisan down --retry=60 --refresh=15
 fi
+maintenance_enabled=1
 
 "${PHP_BIN}" artisan migrate --force --no-interaction
 "${PHP_BIN}" artisan storage:link
