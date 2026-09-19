@@ -62,6 +62,8 @@ sudo chown deploy:www-data /var/backups/field-sales
 sudo chmod 2775 /var/www/field-sales
 sudo chmod 2775 /var/www/field-sales/releases
 sudo chmod 2775 /var/www/field-sales/shared
+sudo chmod 2775 /var/www/field-sales/shared/storage
+sudo chmod -R g+rwX /var/www/field-sales/shared/storage
 sudo chmod 2770 /var/backups/field-sales
 ```
 
@@ -102,14 +104,14 @@ Run the deploy script from a checked-out copy of the repository:
 bash ops/scripts/deploy.sh main
 ```
 
-The deployment script performs these gates in order:
+The deployment script performs these gates in order. On an existing deployment, Laravel maintenance mode prevents idle workers from taking new jobs while migrations and the release switch are in progress:
 
 1. Fetches the requested Git ref into a new immutable release.
 2. Links shared `.env` and Laravel storage.
 3. Installs production Composer dependencies.
 4. Builds Laravel configuration, route, and view caches.
 5. Runs the configuration-only production readiness check.
-6. Creates a **pre-deploy database + uploaded-media backup**.
+6. Creates a **pre-deploy database snapshot**. Uploaded media is not re-archived on every code deployment because migrations do not mutate visit-photo files.
 7. Places the currently active release in maintenance mode when applicable.
 8. Runs migrations with `--force`.
 9. Verifies runtime/service readiness.
@@ -201,13 +203,13 @@ cd /var/www/field-sales/current
 php artisan field-sales:backup --label=manual
 ```
 
-A successful backup contains:
+A normal scheduled/manual backup contains:
 
 - a compressed MySQL dump including database creation/drop statements for deterministic disaster recovery
 - uploaded visit media from `storage/app/public`
 - a manifest with SHA-256 checksums
 
-Retention defaults to 14 days. **Local server backups alone are not sufficient disaster recovery.** Replicate `/var/backups/field-sales` to an independent encrypted/off-site target using your infrastructure provider or backup system. Credentials for that external target must remain outside this repository.
+Pre-deploy snapshots use `--database-only`; scheduled/manual backups include both database and media. Retention defaults to 14 days. **Local server backups alone are not sufficient disaster recovery.** Replicate `/var/backups/field-sales` to an independent encrypted/off-site target using your infrastructure provider or backup system. Credentials for that external target must remain outside this repository.
 
 ## 10. Restore test and disaster restore
 
