@@ -4,10 +4,12 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CallActivityController;
 use App\Http\Controllers\Api\CollectionController;
+use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\TargetController;
 use App\Http\Controllers\Api\VisitController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +59,13 @@ Route::prefix('v1')->group(function () {
             Route::get('/collections/history', [CollectionController::class, 'history']);
             Route::get('/collections/{collection:uuid}', [CollectionController::class, 'show']);
             Route::post('/collections', [CollectionController::class, 'store']);
+
+            Route::get('/expenses/history', [ExpenseController::class, 'history']);
+            Route::get('/expenses/{expense:uuid}', [ExpenseController::class, 'show']);
+            Route::post('/expenses', [ExpenseController::class, 'store']);
+
+            Route::get('/targets/current', [TargetController::class, 'current']);
+            Route::get('/targets/history', [TargetController::class, 'history']);
         });
     });
 });

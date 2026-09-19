@@ -50,6 +50,12 @@
                 @if($currentUser->hasPermission('orders:view'))
                     <a href="{{ route('admin.orders.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Orders</a>
                 @endif
+                @if($currentUser->hasPermission('expenses:view'))
+                    <a href="{{ route('admin.expenses.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Expenses</a>
+                @endif
+                @if($currentUser->hasPermission('targets:view'))
+                    <a href="{{ route('admin.targets.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Targets</a>
+                @endif
                 @if($currentUser->hasPermission('visits:view'))
                     <a href="{{ route('admin.visits.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Visits</a>
                 @endif
