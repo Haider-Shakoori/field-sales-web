@@ -4,8 +4,6 @@ This document is the canonical release-candidate acceptance record for the indep
 
 Batch 19 intentionally separates **automated evidence** from **manual UAT evidence**. A test is not marked passed unless it was actually executed.
 
-**Current phase:** automated release-candidate QA is complete on merged `main`; manual physical-device/infrastructure UAT remains pending and is not pre-approved.
-
 ## Release-candidate baseline
 
 - Web/admin/API baseline: `field-sales-web/main`
@@ -64,9 +62,10 @@ The normal CI pipelines must remain green:
 - Mobile: lockfile enforcement, Dart format, Flutter analyze, Flutter tests, debug APK, ephemeral release keystore, signed release AAB, AAB signature verification.
 
 Merged-main evidence:
-- Web `main`: `157ec7b32e9f231302fce47f59bd6eb6ab126d71`, CI #833 PASS, 105 tests / 595 assertions.
-- Mobile `main`: `18d63ac78b2843016101447d6c87c00a79d16732`, CI #384 PASS, Flutter analyze clean, 27 tests, debug APK built, signed release AAB built and signature-verified.
-- Web recovery baseline: `468e5ed924f08078112eded72c4ea833539f201b`, normal CI #848 PASS and recovery-rehearsal #2 PASS.
+- Web `main`: `468e5ed924f08078112eded72c4ea833539f201b` after PR #27. PR #27 web-ci #847 and recovery-rehearsal #1 PASS; post-merge web-ci #848/#849 and recovery-rehearsal #2 PASS. The Batch 19 functional baseline remains 105 tests / 595 assertions with operations-script and Pint gates green. The automated recovery rehearsal validates the existing backup/restore tooling on an ephemeral MySQL runner, but it does **not** count as UAT-15.
+- Mobile PR #11 merged to `main` at `18d63ac78b2843016101447d6c87c00a79d16732`; PR CI #383 PASS and the auditable `UAT_RESULTS_TEMPLATE.md` is present.
+- Mobile post-merge CI #384 PASS at `18d63ac78b2843016101447d6c87c00a79d16732`: Dart format PASS, Flutter analyze PASS, 27 tests PASS, debug APK built, ephemeral release signing PASS, signed release AAB built, and release-artifact verification PASS.
+- The preceding mobile functional/release baseline at `5447e409914befc87b9607293de9a8fdb7342b73` remains historical CI #376 PASS evidence.
 
 ### Automated recovery rehearsal
 
