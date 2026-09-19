@@ -9,6 +9,11 @@ PHP_BIN="${FIELD_SALES_PHP_BIN:-/usr/bin/php}"
 COMPOSER_BIN="${FIELD_SALES_COMPOSER_BIN:-/usr/bin/composer}"
 KEEP_RELEASES="${FIELD_SALES_KEEP_RELEASES:-5}"
 
+if [[ ! "${KEEP_RELEASES}" =~ ^[1-9][0-9]*$ ]]; then
+    echo "FIELD_SALES_KEEP_RELEASES must be a positive integer." >&2
+    exit 2
+fi
+
 RELEASES="${APP_ROOT}/releases"
 SHARED="${APP_ROOT}/shared"
 CURRENT="${APP_ROOT}/current"
@@ -28,7 +33,7 @@ for command in git "${PHP_BIN}" "${COMPOSER_BIN}" mysqldump tar; do
     fi
 done
 
-release_id="$(date -u +%Y%m%d%H%M%S)-$"
+release_id="$(date -u +%Y%m%d%H%M%S)-${BASHPID}"
 release_dir="${RELEASES}/${release_id}"
 old_current="$(readlink -f "${CURRENT}" 2>/dev/null || true)"
 maintenance_enabled=0
@@ -64,7 +69,13 @@ rm -rf "${release_dir}/storage"
 ln -s "${SHARED}/storage" "${release_dir}/storage"
 ln -s "${SHARED}/.env" "${release_dir}/.env"
 
-mkdir -p     "${SHARED}/storage/app/public"     "${SHARED}/storage/framework/cache/data"     "${SHARED}/storage/framework/sessions"     "${SHARED}/storage/framework/views"     "${SHARED}/storage/logs"
+mkdir -p "${SHARED}/storage/app/public"
+mkdir -p "${SHARED}/storage/framework/cache/data"
+mkdir -p "${SHARED}/storage/framework/sessions"
+mkdir -p "${SHARED}/storage/framework/views"
+mkdir -p "${SHARED}/storage/logs"
+chmod -R g+rwX "${SHARED}/storage"
+find "${SHARED}/storage" -type d -exec chmod g+s {} +
 
 cd "${release_dir}"
 "${COMPOSER_BIN}" install     --no-dev     --no-interaction     --prefer-dist     --optimize-autoloader     --no-progress
