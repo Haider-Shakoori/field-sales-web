@@ -44,6 +44,26 @@ class Stage2Batch17OperationsTest extends TestCase
         );
     }
 
+    public function test_operational_health_check_detects_stale_reserved_jobs(): void
+    {
+        DB::table('jobs')->insert([
+            'queue' => 'default',
+            'payload' => '{}',
+            'attempts' => 1,
+            'reserved_at' => now()->subSeconds(120)->getTimestamp(),
+            'available_at' => now()->getTimestamp(),
+            'created_at' => now()->subSeconds(120)->getTimestamp(),
+        ]);
+
+        $exitCode = Artisan::call('field-sales:ops-check');
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString(
+            'Stale Reserved Jobs Absent',
+            Artisan::output(),
+        );
+    }
+
     public function test_backup_command_fails_closed_on_non_mysql_connection(): void
     {
         $this->assertSame('sqlite', config('database.default'));
