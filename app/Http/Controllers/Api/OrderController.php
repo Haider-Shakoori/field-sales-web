@@ -31,7 +31,7 @@ class OrderController extends Controller
             'client_estimated_total' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'items' => ['required', 'array', 'min:1', 'max:100'],
-            'items.*.product_id' => ['required', 'uuid'],
+            'items.*.product_id' => ['required', 'uuid', 'distinct'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
             'items.*.discount_percent' => ['nullable', 'numeric', 'between:0,100'],
         ]);
