@@ -1,0 +1,43 @@
+name: batch12-pint-format
+
+on:
+  push:
+    branches:
+      - batch12-offline-sync-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: batch12-offline-sync-hardening
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - name: Format Batch 12 PHP
+        shell: bash
+        run: |
+          PHP_FILES="$(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.php')"
+          if [ -n "$PHP_FILES" ]; then
+            printf '%s\n' "$PHP_FILES" | xargs vendor/bin/pint
+          fi
+      - name: Commit Pint formatting
+        shell: bash
+        run: |
+          if git diff --quiet -- '*.php'; then
+            echo "No formatting changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- '*.php'
+          git commit -m "Batch 12: apply Pint formatting"
+          git push origin HEAD:batch12-offline-sync-hardening
