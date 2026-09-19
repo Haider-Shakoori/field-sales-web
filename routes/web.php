@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ReadinessController;
 use App\Http\Controllers\Web\AlertController;
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
@@ -31,9 +32,10 @@ use App\Http\Controllers\Web\VisitController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin/users');
+Route::get('/ready', ReadinessController::class)->middleware('throttle:60,1')->name('ready');
 
 Route::get('/login', [AuthController::class, 'create'])->name('login');
-Route::post('/login', [AuthController::class, 'store']);
+Route::post('/login', [AuthController::class, 'store'])->middleware('throttle:web-login');
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');

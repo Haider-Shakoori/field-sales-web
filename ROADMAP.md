@@ -20,7 +20,7 @@ _Last updated: 2026-09-19_
 | 12 | Offline Sync Hardening | Complete | Idempotent retries and offline-safe synchronization |
 | 13 | Admin Dashboard & Live Map | Complete | KPI dashboard, analytics, live map and field status |
 | 14 | Notifications, Alerts & Reporting | Complete | Notifications, evidence-based alerts, reports and CSV exports |
-| 15 | BusinessOS Integration | Optional | ERP integration adapter and synchronization |
+| 15 | BusinessOS Integration | Deferred | Optional ERP integration adapter and synchronization |
 
 ## Batch 13 — Admin Dashboard & Live Map
 
@@ -83,7 +83,54 @@ Build operational notifications, suspicious-activity alerting and exportable rep
 - Full CI passes: 89 tests / 465 assertions.
 - Changed PHP files pass Pint.
 
-## Batch 15 — BusinessOS Integration (Optional)
+## Stage 2 — Production Readiness & Release
+
+Core product development is complete through Batch 14. Batch 15 is intentionally deferred and is not a release blocker. Stage 2 prepares the independent Field Sales product for production operation.
+
+| Batch | Name | Status | Primary Outcome |
+|---|---|---|---|
+| 16 | Web Production Security & Runtime Readiness | Complete | Secure runtime defaults, auth throttling, readiness checks and production configuration validation |
+| 17 | Deployment, Workers, Backups & Monitoring | Planned | Repeatable server deployment, queue/scheduler operation, backups, monitoring and rollback |
+| 18 | Android Production Release Engineering | Planned | Signed production Android build, production API configuration and mobile release pipeline |
+| 19 | Release Candidate QA & UAT | Planned | End-to-end golden paths, offline recovery, security/regression QA and UAT evidence |
+| 20 | Production Launch & Handover | Planned | Release candidate promotion, launch checklist, operational handover and post-launch validation |
+
+### Stage 2 Release Rules
+
+- Batch 15 remains deferred until BusinessOS integration is explicitly resumed.
+- No new business modules are introduced during production-readiness batches unless they fix a release blocker.
+- Web and mobile production configuration must be explicit; local/debug defaults are never treated as deployment configuration.
+- Deployment must include queue workers, scheduler, database migrations, backups and rollback procedures.
+- Android release artifacts must be signed through secrets outside the repository; signing keys must never be committed.
+- Final release status requires evidence from both repositories and does not rely only on unit/feature tests.
+
+## Batch 16 — Web Production Security & Runtime Readiness
+
+### Goal
+
+Harden the Laravel web/API runtime for safe production deployment without changing field-sales business workflows.
+
+### Scope
+
+- Authentication rate limiting for web and mobile login.
+- Global baseline security response headers.
+- Public runtime readiness endpoint with fail-closed dependency checks.
+- Production configuration validation command.
+- Secure production environment template.
+- Configurable session encryption, secure-cookie and SameSite settings.
+- Focused regression coverage for the release-hardening controls.
+- Content-Security-Policy is deferred until dashboard CDN assets are self-hosted so security hardening does not break current functionality.
+
+### Completion Gate
+
+- Web and API login bursts are throttled.
+- Security headers are present on application responses.
+- Readiness returns 200 only when required runtime dependencies are available.
+- Production configuration checker fails closed on unsafe configuration.
+- Full CI passes: 94 tests / 503 assertions.
+- Changed-PHP Pint gate passes.
+
+## Batch 15 — BusinessOS Integration (Deferred)
 
 ### Goal
 
