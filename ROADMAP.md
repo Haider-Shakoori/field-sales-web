@@ -92,7 +92,7 @@ Core product development is complete through Batch 14. Batch 15 is intentionally
 | 16 | Web Production Security & Runtime Readiness | Complete | Secure runtime defaults, auth throttling, readiness checks and production configuration validation |
 | 17 | Deployment, Workers, Backups & Monitoring | Complete | Repeatable server deployment, queue/scheduler operation, backups, monitoring and rollback |
 | 18 | Android Production Release Engineering | Complete | Signed production Android build, production API configuration and mobile release pipeline |
-| 19 | Release Candidate QA & UAT | Next | End-to-end golden paths, offline recovery, security/regression QA and UAT evidence |
+| 19 | Release Candidate QA & UAT | In Progress — Manual UAT Pending | End-to-end golden paths, offline recovery, security/regression QA and UAT evidence |
 | 20 | Production Launch & Handover | Planned | Release candidate promotion, launch checklist, operational handover and post-launch validation |
 
 ### Stage 2 Release Rules
@@ -204,6 +204,58 @@ Make the Flutter Android application release-capable with deterministic dependen
 - Configure the real upload keystore/secrets and `PRODUCTION_API_BASE_URL` only against the target production environment.
 - Install the signed release candidate on a real Android device and execute offline/GPS/background-sync UAT.
 - Store/publishing submission is outside Batch 18 and must not be treated as complete until Batch 20 launch.
+
+## Batch 19 — Release Candidate QA & UAT
+
+### Goal
+
+Validate the merged web/API and Android release candidate across continuous business golden paths, offline persistence/retry behavior, release engineering, physical-device behavior, and production-like operational recovery before promotion.
+
+### Automated QA Delivered
+
+- Continuous server-side mobile-to-admin golden path across authentication/device binding, attendance, GPS, visit, order, collection, expense, approvals and End Day.
+- Explicit duplicate/idempotency assertions for offline UUID retry paths.
+- Release CI changed-file fallback regression coverage.
+- Canonical RC acceptance matrix in `docs/RELEASE_CANDIDATE_QA.md`.
+- Mobile offline workday golden path using the real local repositories and SQLite schema.
+- Offline workday survives DB/application restart with attendance start/end ordering and all field records retained pending.
+- Real dependency guard proves pending attendance blocks dependent GPS/visit synchronization.
+- Physical Android execution script in mobile `UAT.md`.
+- Mobile CI concurrency prevents obsolete branch builds consuming release-QA capacity.
+- Web merged-main gate: 105 tests / 595 assertions, operations scripts and Pint PASS.
+- Mobile PR gate: 26 tests, analyze PASS, debug APK PASS, signed release AAB PASS, signature verification PASS.
+
+### Manual UAT Still Required
+
+Batch 19 remains **In Progress — Automated QA Complete / Manual UAT Pending** until actual evidence exists for:
+
+- approved app icon/splash branding
+- real signed RC APK against production-like HTTPS API
+- clean physical-device install/login/device binding
+- permission/privacy flows
+- online Start Day/GPS
+- full airplane-mode field workflow
+- process restart while offline
+- reconnect and idempotent synchronization
+- admin approval/verification round-trip
+- background GPS / screen-lock / OEM battery behavior
+- End Day tracking stop
+- device revocation
+- notifications/preferences
+- reports/CSV reconciliation
+- operational health observation
+- non-production backup/restore drill
+
+### Completion Gate
+
+Batch 19 becomes Complete only after:
+- web and mobile automated gates are green on merged `main`
+- UAT-01 through UAT-14 are executed on a physical Android device with no unresolved release-blocking defects
+- UAT-15 restore drill passes on non-production infrastructure
+- approved production branding is present
+- any failed scenario is fixed/retested or explicitly accepted as non-release-blocking with documented rationale
+
+Stage 2 Batch 20 must not begin as a production-promotion step before these gates are satisfied.
 
 ## Batch 15 — BusinessOS Integration (Deferred)
 

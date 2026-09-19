@@ -113,7 +113,7 @@ Batch 15 — BusinessOS Integration is deferred and is not a release blocker.
 | 16 | Web Production Security & Runtime Readiness | Complete |
 | 17 | Deployment, Workers, Backups & Monitoring | Complete |
 | 18 | Android Production Release Engineering | Complete |
-| 19 | Release Candidate QA & UAT | Next |
+| 19 | Release Candidate QA & UAT | In Progress — Manual UAT Pending |
 | 20 | Production Launch & Handover | Planned |
 
 ### Batch 16 Verification
@@ -184,6 +184,32 @@ Verified scope:
 Known release blocker carried into Batch 19:
 - Approved production Field Sales icon/splash branding is not present in the mobile repository. The release pipeline is production-capable, but shipping the Android platform default icon is not acceptable for launch.
 
-## Next Batch
+### Batch 19 Release-Candidate QA
 
-Stage 2 Batch 19 — Release Candidate QA & UAT.
+Automated release-candidate evidence completed so far:
+- Web PR #24 merged to `main` at `157ec7b32e9f231302fce47f59bd6eb6ab126d71`.
+- Web post-merge CI run #833 passed.
+- Laravel suite: 105 tests passed / 595 assertions.
+- Continuous web/API golden path crosses login/device binding, attendance, GPS, visit, server-priced order, admin order approval, collection verification/balance reduction, expense approval, attendance end, and retry/idempotency cardinality checks.
+- Web release-candidate acceptance matrix is documented in `docs/RELEASE_CANDIDATE_QA.md`.
+- Mobile PR #10 merged to `main` at `5447e409914befc87b9607293de9a8fdb7342b73`.
+- Mobile PR gate passed with Flutter analyze clean, 26 tests, debug APK, signed release AAB, and AAB signature verification.
+- Mobile offline golden path proves attendance/GPS/visit/order/collection/expense/End Day records survive SQLite close/reopen and remain retry-safe/pending in dependency-safe state.
+- Physical-device execution script is documented in mobile `UAT.md`.
+- CI concurrency now cancels obsolete mobile branch builds.
+
+Batch 19 is **not complete** yet. The remaining gates require real execution evidence rather than simulation:
+- approved production icon/splash branding
+- signed RC APK using the real external upload/release key
+- production-like/staging HTTPS deployment with healthy workers/readiness
+- physical Android install and UAT-01 through UAT-14
+- background GPS and Android permission/OEM behavior on a real device
+- reconnect/idempotent sync and admin round-trip
+- non-production backup/restore drill (UAT-15)
+- off-site backup/monitoring validation as applicable
+
+Manual UAT results must remain PASS / FAIL / BLOCKED with evidence. CI success must not be substituted for physical-device or infrastructure acceptance.
+
+## Next Gate
+
+Complete the documented Batch 19 manual UAT and resolve all release-blocking defects before Stage 2 Batch 20 — Production Launch & Handover.
