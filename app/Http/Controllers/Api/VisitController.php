@@ -255,6 +255,22 @@ class VisitController extends Controller
     {
         abort_unless((int) $visit->user_id === (int) $request->user()->id, 404);
 
+        $idempotency = $request->validate([
+            'client_uuid' => ['required', 'uuid'],
+        ]);
+
+        $existing = VisitPhoto::where('uuid', $idempotency['client_uuid'])->first();
+
+        if ($existing) {
+            abort_unless(
+                (int) $existing->visit_id === (int) $visit->id
+                && (int) $existing->user_id === (int) $request->user()->id,
+                409
+            );
+
+            return ApiResponse::success($this->photoPayload($existing));
+        }
+
         $validated = $request->validate([
             'photo' => ['required', 'image', 'max:5120'],
             'captured_at' => ['nullable', 'date'],
@@ -267,6 +283,7 @@ class VisitController extends Controller
         $path = $file->store('visits/'.$visit->uuid, 'public');
 
         $photo = VisitPhoto::create([
+            'uuid' => $idempotency['client_uuid'],
             'visit_id' => $visit->id,
             'user_id' => $request->user()->id,
             'disk' => 'public',
