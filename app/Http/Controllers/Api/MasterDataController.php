@@ -8,8 +8,9 @@ use App\Models\Customer;
 use App\Models\PriceList;
 use App\Models\PriceListItem;
 use App\Models\Product;
-use App\Models\SalesmanAssignment;
+use App\Models\RouteCustomer;
 use App\Models\SalesRoute;
+use App\Models\SalesmanAssignment;
 use App\Models\Territory;
 use App\Support\ApiResponse;
 use Carbon\CarbonImmutable;
@@ -24,16 +25,19 @@ class MasterDataController extends Controller
     public function customers(Request $request): JsonResponse
     {
         $this->ensurePermission($request, 'customers:view');
-        $query = Customer::with(['branch', 'territory', 'priceList', 'routeMemberships.route'])
-            ->orderBy('name');
+
+        $query = Customer::with([
+            'branch',
+            'territory',
+            'priceList',
+            'routeMemberships.route',
+        ])->orderBy('name')->orderBy('id');
 
         $this->applyUpdatedSince($request, $query);
         $this->applySalesmanCustomerScope($request, $query);
 
-        $page = $query->paginate($this->perPage($request));
-
         return $this->paginated(
-            $page,
+            $query->paginate($this->perPage($request)),
             fn (Customer $customer) => $this->customerPayload($customer)
         );
     }
@@ -47,14 +51,21 @@ class MasterDataController extends Controller
 
         if ($existing) {
             return ApiResponse::success(
-                $this->customerPayload($existing->load(['branch', 'territory', 'priceList', 'routeMemberships.route']))
+                $this->customerPayload(
+                    $existing->load([
+                        'branch',
+                        'territory',
+                        'priceList',
+                        'routeMemberships.route',
+                    ])
+                )
             );
         }
 
         $assignment = $this->currentSalesmanAssignment($request);
         $code = strtoupper(
-            ($validated['code'] ?? null)
-            ?: 'CUS-'.substr(str_replace('-', '', $validated['offline_uuid']), 0, 10)
+            $validated['code']
+                ?: 'CUS-'.substr(str_replace('-', '', $validated['offline_uuid']), 0, 12)
         );
 
         if (Customer::where('code', $code)->exists()) {
@@ -76,6 +87,7 @@ class MasterDataController extends Controller
         }
 
         $customer = Customer::create([
+            // The client's stable offline UUID becomes the canonical public UUID.
             'uuid' => $validated['offline_uuid'],
             'offline_uuid' => $validated['offline_uuid'],
             'branch_id' => $assignment?->branch_id ?? $user->branch_id,
@@ -97,7 +109,12 @@ class MasterDataController extends Controller
 
         return ApiResponse::success(
             $this->customerPayload(
-                $customer->load(['branch', 'territory', 'priceList', 'routeMemberships.route'])
+                $customer->load([
+                    'branch',
+                    'territory',
+                    'priceList',
+                    'routeMemberships.route',
+                ])
             ),
             201
         );
@@ -107,7 +124,10 @@ class MasterDataController extends Controller
     {
         $this->ensurePermission($request, 'customers:view');
 
-        $query = Territory::with('branch')->orderBy('name');
+        $query = Territory::with('branch')
+            ->orderBy('name')
+            ->orderBy('id');
+
         $this->applyUpdatedSince($request, $query);
 
         if ($this->isSalesman($request)) {
@@ -141,7 +161,10 @@ class MasterDataController extends Controller
     {
         $this->ensurePermission($request, 'customers:view');
 
-        $query = SalesRoute::with(['branch', 'territory'])->orderBy('name');
+        $query = SalesRoute::with(['branch', 'territory'])
+            ->orderBy('name')
+            ->orderBy('id');
+
         $this->applyUpdatedSince($request, $query);
 
         if ($this->isSalesman($request)) {
@@ -169,18 +192,24 @@ class MasterDataController extends Controller
         $this->ensurePermission($request, 'customers:view');
         $this->ensureRouteVisibleToSalesman($request, $route);
 
-        $query = Customer::query()
-            ->select('customers.*')
-            ->join('route_customers', 'route_customers.customer_id', '=', 'customers.id')
-            ->where('route_customers.route_id', $route->id)
-            ->with(['branch', 'territory', 'priceList', 'routeMemberships.route'])
-            ->orderBy('route_customers.sequence_number');
+        $query = RouteCustomer::where('route_id', $route->id)
+            ->with('customer')
+            ->orderBy('sequence_number')
+            ->orderBy('id');
 
         $this->applyUpdatedSince($request, $query);
 
         return $this->paginated(
             $query->paginate($this->perPage($request)),
-            fn (Customer $customer) => $this->customerPayload($customer)
+            fn (RouteCustomer $membership) => [
+                'id' => $membership->uuid,
+                'route_id' => $route->uuid,
+                'customer_id' => $membership->customer?->uuid,
+                'sequence_number' => $membership->sequence_number,
+                'planned_visit_minutes' => $membership->planned_visit_minutes,
+                'notes' => $membership->notes,
+                'updated_at' => $membership->updated_at?->toISOString(),
+            ]
         );
     }
 
@@ -188,7 +217,10 @@ class MasterDataController extends Controller
     {
         $this->ensurePermission($request, 'catalog:view');
 
-        $query = Product::query()->orderBy('name');
+        $query = Product::query()
+            ->orderBy('name')
+            ->orderBy('id');
+
         $this->applyUpdatedSince($request, $query);
 
         return $this->paginated(
@@ -212,7 +244,10 @@ class MasterDataController extends Controller
     {
         $this->ensurePermission($request, 'catalog:view');
 
-        $query = PriceList::query()->orderBy('name');
+        $query = PriceList::query()
+            ->orderBy('name')
+            ->orderBy('id');
+
         $this->applyUpdatedSince($request, $query);
 
         return $this->paginated(
@@ -228,7 +263,8 @@ class MasterDataController extends Controller
         $query = PriceListItem::where('price_list_id', $priceList->id)
             ->with('product')
             ->orderBy('product_id')
-            ->orderBy('min_quantity');
+            ->orderBy('min_quantity')
+            ->orderBy('id');
 
         $this->applyUpdatedSince($request, $query);
 
@@ -265,7 +301,7 @@ class MasterDataController extends Controller
             'price_list_id' => $customer->priceList?->uuid,
             'route_ids' => $customer->relationLoaded('routeMemberships')
                 ? $customer->routeMemberships
-                    ->map(fn ($membership) => $membership->route?->uuid)
+                    ->map(fn (RouteCustomer $membership) => $membership->route?->uuid)
                     ->filter()
                     ->values()
                     ->all()
@@ -371,8 +407,11 @@ class MasterDataController extends Controller
             $scope->where('created_by', $userId);
 
             if ($assignment?->route_id) {
-                $scope->orWhereHas('routeMemberships', fn (Builder $membership) => $membership
-                    ->where('route_id', $assignment->route_id));
+                $scope->orWhereHas(
+                    'routeMemberships',
+                    fn (Builder $membership) => $membership
+                        ->where('route_id', $assignment->route_id)
+                );
 
                 return;
             }
