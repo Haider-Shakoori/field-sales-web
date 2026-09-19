@@ -203,8 +203,10 @@ Automated release-candidate evidence completed so far:
 - CI concurrency now cancels obsolete mobile branch builds.
 - Mobile PR #12 merged approved FieldPulse production branding to `main` at `ec30a1d44d234d04a4994795780428d3fe4d4c41`; the Android app label, launcher icon, native splash, Flutter startup branding, and branding regression coverage now use FieldPulse.
 - Mobile post-merge `main` CI run #412 passed at `ec30a1d44d234d04a4994795780428d3fe4d4c41`: Dart format PASS, Flutter analyze PASS, 28 tests PASS, debug APK PASS, ephemeral release signing PASS, signed release AAB PASS, AAB signature verification PASS, and SHA-256 output PASS.
+- Web PR #31 set the canonical production target to `https://fieldpulse.businessos.af`, the canonical mobile API to `https://fieldpulse.businessos.af/api/v1`, and added `ops/FIELDPULSE_PRODUCTION.md`; it merged to `main` at `5e1620ef43263eb46c9448a99730cb21fc43b79a`, with web post-merge CI #888 PASS.
+- Mobile PR #13 recorded the same canonical production API profile in release documentation and merged to `main` at `a5d69a68e8729a21ace0e48880b1b88a589ea8e6`; mobile post-merge CI #416 PASS with format, analyze, 28 tests, debug APK, ephemeral signing, signed release AAB, signature verification and SHA-256 output.
 
-Batch 19 is **not complete** yet. Repository-side production branding is resolved; the remaining gates require real execution evidence rather than simulation:
+Batch 19 is **not complete** yet. Repository-side production branding and canonical production endpoint configuration are resolved. The remaining gates require real infrastructure/physical-device execution evidence rather than simulation:
 - signed RC APK using the real external upload/release key
 - production-like/staging HTTPS deployment with healthy workers/readiness
 - physical Android install and UAT-01 through UAT-14
