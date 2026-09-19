@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\CurrentLocation;
+use App\Models\Customer;
+use App\Models\CustomerVisit;
 use App\Models\Device;
+use App\Models\Order;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Salesman;
@@ -97,8 +100,12 @@ class Batch13DashboardLiveMapTest extends TestCase
 
         $this->assertCount(3, $rows);
         $this->assertSame('live', $rows[$liveSalesman->uuid]['freshness']);
+        $this->assertSame('online', $rows[$liveSalesman->uuid]['status']);
+        $this->assertSame('LIVE-1', $rows[$liveSalesman->uuid]['employee_code']);
         $this->assertSame('stale', $rows[$staleSalesman->uuid]['freshness']);
+        $this->assertSame('idle', $rows[$staleSalesman->uuid]['status']);
         $this->assertSame('offline', $rows[$offlineSalesman->uuid]['freshness']);
+        $this->assertSame('offline', $rows[$offlineSalesman->uuid]['status']);
         $this->assertNull($rows[$offlineSalesman->uuid]['location']);
         $this->assertFalse($rows->has($otherSalesman->uuid));
     }
@@ -158,11 +165,87 @@ class Batch13DashboardLiveMapTest extends TestCase
 
         $this->actingAs($reportsOnly)
             ->get(route('admin.dashboard'))
-            ->assertOk();
+            ->assertOk()
+            ->assertSee('Audit operations dashboard')
+            ->assertDontSee('Live salesman map');
 
         $this->actingAs($reportsOnly)
             ->getJson(route('admin.dashboard.live-locations'))
             ->assertForbidden();
+    }
+
+    public function test_dashboard_renders_real_analytics_and_recent_activity(): void
+    {
+        [$tenant, $admin] = $this->tenantUser(
+            'dashboard-analytics@example.test',
+            ['reports:view', 'tracking:view', 'orders:view', 'visits:view'],
+            'company_admin',
+            'Analytics Tenant',
+            'analytics-tenant',
+        );
+        [$salesman, $device] = $this->salesman($tenant, 'AN-1', 'Analytics');
+
+        app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($admin, $device, $salesman, $tenant): void {
+                $customer = Customer::create([
+                    'tenant_id' => $tenant->id,
+                    'code' => 'CUST-AN-1',
+                    'name' => 'Analytics Customer',
+                    'latitude' => 34.5553,
+                    'longitude' => 69.2075,
+                    'created_by' => $admin->id,
+                    'is_active' => true,
+                ]);
+
+                Order::create([
+                    'tenant_id' => $tenant->id,
+                    'user_id' => $salesman->user_id,
+                    'salesman_id' => $salesman->id,
+                    'device_id' => $device->id,
+                    'customer_id' => $customer->id,
+                    'order_number' => 'ORD-DASH-1',
+                    'ordered_at' => now(),
+                    'payment_type' => 'cash',
+                    'status' => 'approved',
+                    'currency' => 'AFN',
+                    'subtotal' => 125,
+                    'discount_total' => 0,
+                    'grand_total' => 125,
+                ]);
+
+                CustomerVisit::create([
+                    'tenant_id' => $tenant->id,
+                    'user_id' => $salesman->user_id,
+                    'salesman_id' => $salesman->id,
+                    'device_id' => $device->id,
+                    'customer_id' => $customer->id,
+                    'is_planned' => false,
+                    'status' => 'completed',
+                    'outcome' => 'order_placed',
+                    'checked_in_at' => now()->subMinutes(20),
+                    'checked_out_at' => now()->subMinutes(5),
+                    'checkin_latitude' => 34.5553,
+                    'checkin_longitude' => 69.2075,
+                    'checkin_accuracy' => 8,
+                    'checkout_latitude' => 34.5554,
+                    'checkout_longitude' => 69.2076,
+                    'checkout_accuracy' => 8,
+                    'duration_seconds' => 900,
+                ]);
+            }
+        );
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Company operations dashboard')
+            ->assertSee('Sales trend')
+            ->assertSee('Visit completion')
+            ->assertSee('Salesman status')
+            ->assertSee('ORD-DASH-1')
+            ->assertSee('125')
+            ->assertDontSee('CarbonCarbonImmutable');
     }
 
     private function tenantUser(
