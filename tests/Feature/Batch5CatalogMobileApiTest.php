@@ -346,7 +346,7 @@ class Batch5CatalogMobileApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.id', $priceList->uuid);
 
-        $this->getJson('/api/v1/price-lists/'.$priceList->id.'/items', $actor['headers'])
+        $this->getJson('/api/v1/price-lists/'.$priceList->uuid.'/items', $actor['headers'])
             ->assertOk()
             ->assertJsonPath('data.0.product_id', $product->uuid);
 
@@ -355,10 +355,18 @@ class Batch5CatalogMobileApiTest extends TestCase
             ->assertJsonPath('data.0.id', $customer->uuid)
             ->assertJsonPath('data.0.price_list_id', $priceList->uuid);
 
-        $this->getJson('/api/v1/routes/'.$route->id.'/customers', $actor['headers'])
+        $membership = $this->tenantScope(
+            $tenant,
+            fn () => RouteCustomer::where('route_id', $route->id)
+                ->where('customer_id', $customer->id)
+                ->firstOrFail()
+        );
+
+        $this->getJson('/api/v1/routes/'.$route->uuid.'/customers', $actor['headers'])
             ->assertOk()
-            ->assertJsonPath('data.0.id', $customer->uuid)
-            ->assertJsonPath('data.0.route_ids.0', $route->uuid);
+            ->assertJsonPath('data.0.id', $membership->uuid)
+            ->assertJsonPath('data.0.route_id', $route->uuid)
+            ->assertJsonPath('data.0.customer_id', $customer->uuid);
     }
 
     public function test_mobile_customer_creation_is_idempotent_and_maps_offline_uuid_to_uuid(): void
