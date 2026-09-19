@@ -34,12 +34,43 @@ class CustomerVisit extends Model
         ];
     }
 
-    public function customer(): BelongsTo { return $this->belongsTo(Customer::class); }
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function salesman(): BelongsTo { return $this->belongsTo(Salesman::class); }
-    public function device(): BelongsTo { return $this->belongsTo(Device::class); }
-    public function route(): BelongsTo { return $this->belongsTo(SalesRoute::class, 'route_id'); }
-    public function workSession(): BelongsTo { return $this->belongsTo(WorkSession::class); }
-    public function photos(): HasMany { return $this->hasMany(VisitPhoto::class, 'visit_id'); }
-    public function suspiciousFlags(): HasMany { return $this->hasMany(VisitSuspiciousFlag::class, 'visit_id'); }
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function salesman(): BelongsTo
+    {
+        return $this->belongsTo(Salesman::class);
+    }
+
+    public function device(): BelongsTo
+    {
+        return $this->belongsTo(Device::class);
+    }
+
+    public function route(): BelongsTo
+    {
+        return $this->belongsTo(SalesRoute::class, 'route_id');
+    }
+
+    public function workSession(): BelongsTo
+    {
+        return $this->belongsTo(WorkSession::class);
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(VisitPhoto::class, 'visit_id');
+    }
+
+    public function suspiciousFlags(): HasMany
+    {
+        return $this->hasMany(VisitSuspiciousFlag::class, 'visit_id');
+    }
 }
