@@ -68,7 +68,7 @@ class CollectionController extends Controller
             abort_unless((int) $existing->user_id === (int) $user->id, 409);
 
             return ApiResponse::success(
-                $this->payload($existing->load($this->relations()), $balances)
+                $this->payload($existing->load($this->relations()), $balances, true)
             );
         }
 
@@ -155,7 +155,7 @@ class CollectionController extends Controller
         ]);
 
         return ApiResponse::success(
-            $this->payload($collection->load($this->relations()), $balances),
+            $this->payload($collection->load($this->relations()), $balances, true),
             201,
         );
     }
@@ -232,7 +232,7 @@ class CollectionController extends Controller
         abort_unless((int) $collection->user_id === (int) $request->user()->id, 404);
 
         return ApiResponse::success(
-            $this->payload($collection->load($this->relations()), $balances)
+            $this->payload($collection->load($this->relations()), $balances, true)
         );
     }
 
@@ -244,6 +244,7 @@ class CollectionController extends Controller
     private function payload(
         Collection $collection,
         CustomerBalanceService $balances,
+        bool $includeBalances = false,
     ): array {
         return [
             'id' => $collection->uuid,
@@ -269,7 +270,7 @@ class CollectionController extends Controller
             'notes' => $collection->notes,
             'status_note' => $collection->status_note,
             'status_changed_at' => $collection->status_changed_at?->toISOString(),
-            'customer_balances' => $collection->customer
+            'customer_balances' => $includeBalances && $collection->customer
                 ? $balances->forCustomer($collection->customer)
                 : [],
         ];
