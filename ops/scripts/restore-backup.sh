@@ -33,32 +33,60 @@ for command in "${PHP_BIN}" mysql gzip tar; do
     fi
 done
 
-database_archive="${BACKUP_DIR}/database.sql.gz"
-media_archive="${BACKUP_DIR}/public-storage.tar.gz"
 manifest="${BACKUP_DIR}/manifest.json"
 
-for required in "${database_archive}" "${manifest}" "${CURRENT}/artisan"; do
+for required in "${manifest}" "${CURRENT}/artisan"; do
     if [[ ! -f "${required}" ]]; then
         echo "Required restore input is missing: ${required}" >&2
         exit 1
     fi
 done
 
-"${PHP_BIN}" -r '
+mapfile -t manifest_files < <("${PHP_BIN}" -r '
 $manifest = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);
 $base = dirname($argv[1]);
-foreach (["database", "public_storage"] as $key) {
-    $entry = $manifest[$key] ?? null;
+$database = $manifest["database"] ?? null;
+$media = $manifest["public_storage"] ?? null;
+
+if (!$database || empty($database["file"]) || empty($database["sha256"])) {
+    fwrite(STDERR, "Backup manifest is missing database metadata.\n");
+    exit(1);
+}
+
+foreach (["database" => $database, "public_storage" => $media] as $key => $entry) {
     if (!$entry) {
         continue;
     }
-    $path = $base.DIRECTORY_SEPARATOR.$entry["file"];
-    if (!is_file($path) || !hash_equals($entry["sha256"], hash_file("sha256", $path))) {
+
+    $file = (string) ($entry["file"] ?? "");
+    $expected = (string) ($entry["sha256"] ?? "");
+
+    if ($file === "" || basename($file) !== $file || $expected === "") {
+        fwrite(STDERR, "Backup manifest contains invalid {$key} metadata.\n");
+        exit(1);
+    }
+
+    $path = $base.DIRECTORY_SEPARATOR.$file;
+    $actual = is_file($path) ? hash_file("sha256", $path) : false;
+
+    if ($actual === false || !hash_equals($expected, $actual)) {
         fwrite(STDERR, "Backup checksum verification failed for {$key}.\n");
         exit(1);
     }
 }
-' "${manifest}"
+
+echo $database["file"], PHP_EOL;
+echo $media["file"] ?? "", PHP_EOL;
+' "${manifest}")
+
+database_name="${manifest_files[0]:-}"
+media_name="${manifest_files[1]:-}"
+database_archive="${BACKUP_DIR}/${database_name}"
+media_archive=""
+
+if [[ -n "${media_name}" ]]; then
+    media_archive="${BACKUP_DIR}/${media_name}"
+fi
 
 # Preserve a stable live-state snapshot before any destructive restore begins.
 "${PHP_BIN}" "${CURRENT}/artisan" down --retry=120 --refresh=15
@@ -67,7 +95,7 @@ foreach (["database", "public_storage"] as $key) {
 echo "Restoring database. The application will remain in maintenance mode if any restore step fails."
 gzip -dc "${database_archive}" | mysql --defaults-extra-file="${MYSQL_DEFAULTS_FILE}"
 
-if [[ -f "${media_archive}" ]]; then
+if [[ -n "${media_archive}" ]]; then
     restore_temp="$(mktemp -d "${SHARED}/storage/app/.restore.XXXXXX")"
     tar -xzf "${media_archive}" -C "${restore_temp}"
 
