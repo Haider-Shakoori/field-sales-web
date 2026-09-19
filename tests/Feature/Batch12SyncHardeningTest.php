@@ -8,6 +8,7 @@ use App\Models\Device;
 use App\Models\Salesman;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\VisitPhoto;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -93,7 +94,7 @@ class Batch12SyncHardeningTest extends TestCase
 
         $photo = app(TenantContext::class)->withTenant(
             $actor['tenant'],
-            fn () => \App\Models\VisitPhoto::where('uuid', $clientUuid)->firstOrFail()
+            fn () => VisitPhoto::where('uuid', $clientUuid)->firstOrFail()
         );
 
         Storage::disk('public')->assertExists($photo->path);
