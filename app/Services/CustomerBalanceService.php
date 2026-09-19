@@ -11,99 +11,118 @@ class CustomerBalanceService
 {
     public function forCustomer(Customer $customer): array
     {
-        $orderTotals = Order::query()
-            ->where('customer_id', $customer->id)
-            ->where('payment_type', 'credit')
-            ->where('status', 'approved')
-            ->selectRaw('currency, SUM(grand_total) as total')
-            ->groupBy('currency')
-            ->pluck('total', 'currency');
-
-        $verifiedTotals = Collection::query()
-            ->where('customer_id', $customer->id)
-            ->where('status', 'verified')
-            ->selectRaw('currency, SUM(amount) as total')
-            ->groupBy('currency')
-            ->pluck('total', 'currency');
-
-        $pendingTotals = Collection::query()
-            ->where('customer_id', $customer->id)
-            ->where('status', 'pending')
-            ->selectRaw('currency, SUM(amount) as total')
-            ->groupBy('currency')
-            ->pluck('total', 'currency');
-
-        $currencies = collect()
-            ->merge($orderTotals->keys())
-            ->merge($verifiedTotals->keys())
-            ->merge($pendingTotals->keys())
-            ->unique()
-            ->sort()
-            ->values();
-
-        return $currencies->map(function (string $currency) use (
-            $orderTotals,
-            $verifiedTotals,
-            $pendingTotals,
-        ): array {
-            $receivable = round((float) ($orderTotals[$currency] ?? 0), 4);
-            $verified = round((float) ($verifiedTotals[$currency] ?? 0), 4);
-            $pending = round((float) ($pendingTotals[$currency] ?? 0), 4);
-            $outstanding = round(max(0, $receivable - $verified), 4);
-            $available = round(max(0, $outstanding - $pending), 4);
-
-            return [
-                'currency' => $currency,
-                'receivable_total' => $receivable,
-                'verified_collections' => $verified,
-                'pending_collections' => $pending,
-                'outstanding_balance' => $outstanding,
-                'available_to_collect' => $available,
-            ];
-        })->all();
-    }
-
-    public function snapshot(Customer $customer, string $currency): array
-    {
-        $currency = strtoupper($currency);
-        $row = collect($this->forCustomer($customer))
-            ->firstWhere('currency', $currency);
-
-        return $row ?? [
-            'currency' => $currency,
-            'receivable_total' => 0.0,
-            'verified_collections' => 0.0,
-            'pending_collections' => 0.0,
-            'outstanding_balance' => 0.0,
-            'available_to_collect' => 0.0,
-        ];
+        return $this->forCustomers(collect([$customer]))[0]['balances'] ?? [];
     }
 
     public function outstanding(Customer $customer, string $currency): float
     {
-        return round(
-            (float) $this->snapshot($customer, $currency)['outstanding_balance'],
-            4,
-        );
-    }
+        $row = collect($this->forCustomer($customer))
+            ->firstWhere('currency', strtoupper($currency));
 
-    public function availableToCollect(Customer $customer, string $currency): float
-    {
-        return round(
-            (float) $this->snapshot($customer, $currency)['available_to_collect'],
-            4,
-        );
+        return round((float) ($row['outstanding_balance'] ?? 0), 4);
     }
 
     public function forCustomers(SupportCollection $customers): array
     {
-        return $customers
-            ->map(fn (Customer $customer) => [
+        if ($customers->isEmpty()) {
+            return [];
+        }
+
+        $customerIds = $customers->pluck('id')->all();
+
+        $orderRows = Order::query()
+            ->whereIn('customer_id', $customerIds)
+            ->where('payment_type', 'credit')
+            ->where('status', 'approved')
+            ->selectRaw('customer_id, currency, SUM(grand_total) as total')
+            ->groupBy('customer_id', 'currency')
+            ->get();
+
+        $verifiedRows = Collection::query()
+            ->whereIn('customer_id', $customerIds)
+            ->where('status', 'verified')
+            ->selectRaw('customer_id, currency, SUM(amount) as total')
+            ->groupBy('customer_id', 'currency')
+            ->get();
+
+        $pendingRows = Collection::query()
+            ->whereIn('customer_id', $customerIds)
+            ->where('status', 'pending')
+            ->selectRaw('customer_id, currency, SUM(amount) as total')
+            ->groupBy('customer_id', 'currency')
+            ->get();
+
+        $orders = $this->indexTotals($orderRows);
+        $verified = $this->indexTotals($verifiedRows);
+        $pending = $this->indexTotals($pendingRows);
+
+        return $customers->map(function (Customer $customer) use (
+            $orders,
+            $verified,
+            $pending,
+        ): array {
+            $prefix = $customer->id.'|';
+
+            $currencies = collect()
+                ->merge($this->currenciesFor($orders, $prefix))
+                ->merge($this->currenciesFor($verified, $prefix))
+                ->merge($this->currenciesFor($pending, $prefix))
+                ->unique()
+                ->sort()
+                ->values();
+
+            $balances = $currencies->map(function (string $currency) use (
+                $customer,
+                $orders,
+                $verified,
+                $pending,
+            ): array {
+                $key = $customer->id.'|'.$currency;
+                $receivable = round((float) ($orders[$key] ?? 0), 4);
+                $verifiedAmount = round((float) ($verified[$key] ?? 0), 4);
+                $pendingAmount = round((float) ($pending[$key] ?? 0), 4);
+
+                return [
+                    'currency' => $currency,
+                    'receivable_total' => $receivable,
+                    'verified_collections' => $verifiedAmount,
+                    'pending_collections' => $pendingAmount,
+                    'outstanding_balance' => round(
+                        max(0, $receivable - $verifiedAmount),
+                        4
+                    ),
+                ];
+            })->all();
+
+            return [
                 'customer_id' => $customer->uuid,
                 'customer_name' => $customer->name,
-                'balances' => $this->forCustomer($customer),
-            ])
-            ->values()
-            ->all();
+                'balances' => $balances,
+            ];
+        })->values()->all();
+    }
+
+    private function indexTotals(SupportCollection $rows): array
+    {
+        $indexed = [];
+
+        foreach ($rows as $row) {
+            $indexed[$row->customer_id.'|'.$row->currency] = (float) $row->total;
+        }
+
+        return $indexed;
+    }
+
+    private function currenciesFor(array $totals, string $prefix): array
+    {
+        $currencies = [];
+
+        foreach (array_keys($totals) as $key) {
+            if (str_starts_with($key, $prefix)) {
+                $currencies[] = substr($key, strlen($prefix));
+            }
+        }
+
+        return $currencies;
     }
 }
