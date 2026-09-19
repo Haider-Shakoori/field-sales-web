@@ -248,12 +248,12 @@ class Batch5ProductsPriceListsMobileApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.id', $fixture['priceList']->uuid);
 
-        $this->getJson('/api/v1/price-lists/'.$fixture['priceList']->id.'/items', $headers)
+        $this->getJson('/api/v1/price-lists/'.$fixture['priceList']->uuid.'/items', $headers)
             ->assertOk()
             ->assertJsonPath('data.0.product_id', $fixture['product']->uuid)
             ->assertJsonPath('data.0.price_list_id', $fixture['priceList']->uuid);
 
-        $this->getJson('/api/v1/routes/'.$fixture['route']->id.'/customers', $headers)
+        $this->getJson('/api/v1/routes/'.$fixture['route']->uuid.'/customers', $headers)
             ->assertOk()
             ->assertJsonPath('data.0.id', $fixture['membership']->uuid)
             ->assertJsonPath('data.0.route_id', $fixture['route']->uuid)
