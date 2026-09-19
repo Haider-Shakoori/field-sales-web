@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+umask 0002
 
 APP_ROOT="${FIELD_SALES_APP_ROOT:-/var/www/field-sales}"
 REPO_URL="${FIELD_SALES_REPO_URL:?Set FIELD_SALES_REPO_URL to the private Git repository URL.}"
@@ -27,7 +28,7 @@ for command in git "${PHP_BIN}" "${COMPOSER_BIN}" mysqldump tar; do
     fi
 done
 
-release_id="$(date -u +%Y%m%d%H%M%S)"
+release_id="$(date -u +%Y%m%d%H%M%S)-$"
 release_dir="${RELEASES}/${release_id}"
 old_current="$(readlink -f "${CURRENT}" 2>/dev/null || true)"
 maintenance_enabled=0
@@ -74,7 +75,7 @@ cd "${release_dir}"
 "${PHP_BIN}" artisan field-sales:production-check --no-interaction
 
 # A deployment does not proceed without a restorable pre-migration snapshot.
-"${PHP_BIN}" artisan field-sales:backup --label=pre-deploy --no-interaction
+"${PHP_BIN}" artisan field-sales:backup --label=pre-deploy --database-only --no-interaction
 
 if [[ -n "${old_current}" && -f "${old_current}/artisan" ]]; then
     "${PHP_BIN}" "${old_current}/artisan" down --retry=60 --refresh=15
