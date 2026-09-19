@@ -107,17 +107,20 @@ maintenance_enabled=1
 "${PHP_BIN}" artisan storage:link
 "${PHP_BIN}" artisan field-sales:production-check --services --no-interaction
 
+ln -sfn "${release_dir}" "${APP_ROOT}/.current.next"
+mv -Tf "${APP_ROOT}/.current.next" "${CURRENT}"
+current_switched=1
+
+"${PHP_BIN}" "${CURRENT}/artisan" queue:restart
+"${PHP_BIN}" "${CURRENT}/artisan" up
+maintenance_enabled=0
+
 if [[ -n "${old_current}" ]]; then
     ln -sfn "${old_current}" "${APP_ROOT}/.previous.next"
     mv -Tf "${APP_ROOT}/.previous.next" "${PREVIOUS}"
 fi
 
-ln -sfn "${release_dir}" "${APP_ROOT}/.current.next"
-mv -Tf "${APP_ROOT}/.current.next" "${CURRENT}"
-
-"${PHP_BIN}" "${CURRENT}/artisan" queue:restart
-"${PHP_BIN}" "${CURRENT}/artisan" up
-maintenance_enabled=0
+current_switched=0
 
 mapfile -t old_releases < <(find "${RELEASES}" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -rn | awk '{print $2}' | tail -n "+$((KEEP_RELEASES + 1))")
 
