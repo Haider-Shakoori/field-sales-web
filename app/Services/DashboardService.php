@@ -358,26 +358,25 @@ class DashboardService
 
     public function dashboardVariant(User $actor): array
     {
-        $actor->loadMissing('roles');
-        $roles = $actor->roles->pluck('slug');
+        $role = (string) $actor->role;
 
-        return match (true) {
-            $roles->contains('supervisor') => [
+        return match ($role) {
+            'supervisor' => [
                 'key' => 'supervisor',
                 'title' => 'Team operations dashboard',
                 'subtitle' => 'Current salesman assignments and field activity.',
             ],
-            $roles->contains('accountant') => [
+            'accountant' => [
                 'key' => 'accountant',
                 'title' => 'Finance operations dashboard',
                 'subtitle' => 'Collections, expenses, and financial activity.',
             ],
-            $roles->contains('auditor') => [
+            'auditor' => [
                 'key' => 'auditor',
                 'title' => 'Audit operations dashboard',
                 'subtitle' => 'Read-only operational visibility across the tenant.',
             ],
-            $roles->contains('sales_manager') => [
+            'sales_manager' => [
                 'key' => 'sales_manager',
                 'title' => 'Sales operations dashboard',
                 'subtitle' => 'Team performance, approvals, and field execution.',
