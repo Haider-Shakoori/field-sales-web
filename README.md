@@ -62,3 +62,8 @@ Runtime probes:
 - `/ready` — Field Sales readiness probe; returns HTTP 200 only when required runtime dependencies are available.
 
 Stage 2 Batch 17 provides the repeatable server deployment, worker/scheduler, backup, monitoring, restore, and rollback package. See `ops/README.md` for the production operations runbook.
+
+
+## Release candidate QA
+
+Stage 2 Batch 19 automated acceptance coverage and the manual UAT evidence matrix are documented in [docs/RELEASE_CANDIDATE_QA.md](docs/RELEASE_CANDIDATE_QA.md). Manual scenarios remain unpassed until they are executed on the target staging infrastructure and a physical Android device.
