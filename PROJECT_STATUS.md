@@ -202,6 +202,7 @@ Automated release-candidate evidence completed so far:
 - Physical-device execution script is documented in mobile `UAT.md`.
 - CI concurrency now cancels obsolete mobile branch builds.
 - Mobile PR #12 merged approved FieldPulse production branding to `main` at `ec30a1d44d234d04a4994795780428d3fe4d4c41`; the Android app label, launcher icon, native splash, Flutter startup branding, and branding regression coverage now use FieldPulse.
+- Mobile post-merge `main` CI run #412 passed at `ec30a1d44d234d04a4994795780428d3fe4d4c41`: Dart format PASS, Flutter analyze PASS, 28 tests PASS, debug APK PASS, ephemeral release signing PASS, signed release AAB PASS, AAB signature verification PASS, and SHA-256 output PASS.
 
 Batch 19 is **not complete** yet. Repository-side production branding is resolved; the remaining gates require real execution evidence rather than simulation:
 - signed RC APK using the real external upload/release key
