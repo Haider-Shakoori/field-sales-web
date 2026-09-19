@@ -209,7 +209,9 @@ A normal scheduled/manual backup contains:
 - uploaded visit media from `storage/app/public`
 - a manifest with SHA-256 checksums
 
-Pre-deploy snapshots use `--database-only`; scheduled/manual backups include both database and media. Retention defaults to 14 days. **Local server backups alone are not sufficient disaster recovery.** Replicate `/var/backups/field-sales` to an independent encrypted/off-site target using your infrastructure provider or backup system. Credentials for that external target must remain outside this repository.
+Pre-deploy snapshots use `--database-only`; scheduled/manual backups include both database and media. Retention defaults to 14 days.
+
+The production `.env`, TLS private keys, Git deploy key, MySQL restore credentials, and other server secrets are intentionally **not** included in application backups. Protect and recover those through your server/secret-management process. **Local server backups alone are not sufficient disaster recovery.** Replicate `/var/backups/field-sales` to an independent encrypted/off-site target using your infrastructure provider or backup system. Credentials for that external target must remain outside this repository.
 
 ## 10. Restore test and disaster restore
 
@@ -246,7 +248,7 @@ bash /var/www/field-sales/current/ops/scripts/restore-backup.sh \
     --confirm-destructive-restore
 ```
 
-The restore flow verifies manifest checksums, takes a pre-restore backup, enters maintenance mode, restores the database and public media, migrates forward to the current release if needed, runs readiness checks, restarts queues, and only then re-enables traffic.
+The restore flow verifies manifest checksums and tooling first, enters maintenance mode, takes a stable pre-restore backup, restores the database and public media, migrates forward to the current release if needed, runs readiness checks, restarts queues, and only then re-enables traffic.
 
 If any destructive restore step fails, the application intentionally remains in maintenance mode for operator intervention.
 
@@ -261,11 +263,13 @@ The local monitoring command checks:
 - failed-job threshold
 - oldest queued-job age
 
-Run it manually:
+Run the complete production check manually:
 
 ```bash
-php /var/www/field-sales/current/artisan field-sales:ops-check
+php /var/www/field-sales/current/artisan field-sales:ops-check --backup-tooling
 ```
+
+Without `--backup-tooling`, the command checks application runtime and queue health only.
 
 Install the five-minute timer:
 
