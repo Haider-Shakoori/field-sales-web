@@ -12,6 +12,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WorkSession;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -20,6 +21,18 @@ use Tests\TestCase;
 class Batch8CustomerVisitsTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        CarbonImmutable::setTestNow('2026-09-19T06:30:00Z');
+    }
+
+    protected function tearDown(): void
+    {
+        CarbonImmutable::setTestNow();
+        parent::tearDown();
+    }
 
     private ?string $token = null;
 
