@@ -90,8 +90,8 @@ Core product development is complete through Batch 14. Batch 15 is intentionally
 | Batch | Name | Status | Primary Outcome |
 |---|---|---|---|
 | 16 | Web Production Security & Runtime Readiness | Complete | Secure runtime defaults, auth throttling, readiness checks and production configuration validation |
-| 17 | Deployment, Workers, Backups & Monitoring | Planned | Repeatable server deployment, queue/scheduler operation, backups, monitoring and rollback |
-| 18 | Android Production Release Engineering | Planned | Signed production Android build, production API configuration and mobile release pipeline |
+| 17 | Deployment, Workers, Backups & Monitoring | Complete | Repeatable server deployment, queue/scheduler operation, backups, monitoring and rollback |
+| 18 | Android Production Release Engineering | Next | Signed production Android build, production API configuration and mobile release pipeline |
 | 19 | Release Candidate QA & UAT | Planned | End-to-end golden paths, offline recovery, security/regression QA and UAT evidence |
 | 20 | Production Launch & Handover | Planned | Release candidate promotion, launch checklist, operational handover and post-launch validation |
 
@@ -129,6 +129,39 @@ Harden the Laravel web/API runtime for safe production deployment without changi
 - Production configuration checker fails closed on unsafe configuration.
 - Full CI passes: 94 tests / 503 assertions.
 - Changed-PHP Pint gate passes.
+
+## Batch 17 — Deployment, Workers, Backups & Monitoring
+
+### Goal
+
+Provide a repeatable, recoverable production operations layer for the Laravel web/API without coupling deployment to a specific hosting vendor.
+
+### Delivered Scope
+
+- Release-based deployment with shared environment/storage and atomic `current`/ `previous` symlinks.
+- Failure-safe deployment and code rollback scripts.
+- Pre-migration database snapshots.
+- MySQL database + uploaded-media backup command with compression, checksums, manifests and retention.
+- Explicit destructive restore script with protected MySQL restore credentials and checksum verification.
+- Nginx first-TLS bootstrap and final HTTPS/PHP-FPM configuration.
+- PHP production runtime overrides.
+- systemd queue workers, Laravel scheduler timer, daily backup timer and five-minute operations monitor.
+- Queue monitoring for backlog, failed jobs, oldest waiting jobs and stale reserved jobs.
+- Backup tooling/directory readiness monitoring.
+- Seven-day failed-job pruning schedule.
+- Production operations runbook.
+- CI shell-syntax validation for operational scripts.
+- No live-host deployment or restore-drill claim; those require the actual target infrastructure.
+
+### Completion Gate
+
+- Full CI passes: 102 tests / 531 assertions.
+- Stage 2 Batch 17 focused regression suite passes.
+- Queue worker timeout remains lower than database `retry_after`.
+- HTTPS state is explicitly propagated from Nginx to Laravel.
+- Deployment/rollback/restore/monitor shell scripts pass `bash -n`.
+- Changed PHP files pass Pint.
+- Diff contains production operations work only; no field-sales business workflow semantics are changed.
 
 ## Batch 15 — BusinessOS Integration (Deferred)
 
