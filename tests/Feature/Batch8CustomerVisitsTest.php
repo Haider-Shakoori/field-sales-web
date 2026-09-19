@@ -124,6 +124,41 @@ class Batch8CustomerVisitsTest extends TestCase
         ]);
     }
 
+    public function test_customer_call_activity_is_optional_offline_idempotent_and_visible_in_history(): void
+    {
+        $actor = $this->actor();
+        $customer = $this->customer($actor);
+        $uuid = (string) Str::uuid();
+
+        $payload = [
+            'offline_uuid' => $uuid,
+            'customer_id' => $customer->uuid,
+            'phone_number' => '+93700000000',
+            'called_at' => '2026-09-19T05:30:00Z',
+            'outcome' => 'payment_follow_up',
+            'notes' => 'Customer asked for a reminder tomorrow.',
+        ];
+
+        $this->postJson('/api/v1/call-activities', $payload, $this->headers())
+            ->assertCreated()
+            ->assertJsonPath('data.id', $uuid)
+            ->assertJsonPath('data.customer_id', $customer->uuid)
+            ->assertJsonPath('data.outcome', 'payment_follow_up');
+
+        $this->postJson('/api/v1/call-activities', $payload, $this->headers())
+            ->assertOk();
+
+        $this->assertDatabaseCount('customer_call_activities', 1);
+
+        $this->getJson(
+            '/api/v1/call-activities/history?customer_id='.$customer->uuid,
+            $this->headers(),
+        )
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $uuid);
+    }
+
     private function actor(): array
     {
         $tenant = Tenant::create([
