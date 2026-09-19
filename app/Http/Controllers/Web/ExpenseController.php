@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Services\AuditLogger;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -39,6 +40,7 @@ class ExpenseController extends Controller
         Request $request,
         Expense $expense,
         AuditLogger $audit,
+        NotificationService $notifications,
     ): RedirectResponse {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['approved', 'rejected', 'cancelled'])],
@@ -76,6 +78,22 @@ class ExpenseController extends Controller
             'status' => $expense->status,
             'review_note' => $expense->review_note,
         ]);
+
+        $expense->loadMissing('salesman.user');
+        if ($expense->salesman?->user) {
+            $notifications->notify(
+                $expense->salesman->user,
+                'expense.status_changed',
+                'expense_updates',
+                'Expense '.$expense->expense_number.' '.str($expense->status)->title(),
+                'Your expense '.$expense->expense_number.' is now '.$expense->status.'.',
+                [
+                    'expense_id' => $expense->uuid,
+                    'status' => $expense->status,
+                ],
+                $expense->status === 'rejected' ? 'high' : 'normal',
+            );
+        }
 
         return redirect()
             ->route('admin.expenses.show', $expense)

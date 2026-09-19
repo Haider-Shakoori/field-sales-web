@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Web\AlertController;
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\BranchController;
@@ -9,10 +10,12 @@ use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\ExpenseController;
+use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Web\PriceListController;
 use App\Http\Controllers\Web\PriceListItemController;
 use App\Http\Controllers\Web\ProductController;
+use App\Http\Controllers\Web\ReportController;
 use App\Http\Controllers\Web\RoleController;
 use App\Http\Controllers\Web\RouteCustomerController;
 use App\Http\Controllers\Web\SalesmanAssignmentController;
@@ -42,6 +45,29 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard/live-locations', [DashboardController::class, 'liveLocations'])
             ->middleware('permission:tracking:view')
             ->name('dashboard.live-locations');
+
+        Route::get('/notifications', [NotificationController::class, 'index'])
+            ->name('notifications.index');
+        Route::patch('/notifications/read-all', [NotificationController::class, 'readAll'])
+            ->name('notifications.read-all');
+        Route::patch('/notifications/{notification}/read', [NotificationController::class, 'read'])
+            ->name('notifications.read');
+        Route::put('/notifications/preferences', [NotificationController::class, 'updatePreferences'])
+            ->name('notifications.preferences');
+
+        Route::get('/alerts', [AlertController::class, 'index'])
+            ->middleware('permission:reports:view')
+            ->name('alerts.index');
+        Route::patch('/alerts/{flag}/review', [AlertController::class, 'review'])
+            ->middleware('permission:visits:manage')
+            ->name('alerts.review');
+
+        Route::get('/reports', [ReportController::class, 'index'])
+            ->middleware('permission:reports:view')
+            ->name('reports.index');
+        Route::get('/reports/export/csv', [ReportController::class, 'csv'])
+            ->middleware('permission:reports:view')
+            ->name('reports.csv');
 
         Route::resource('users', UserController::class)
             ->except(['show'])
