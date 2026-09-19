@@ -255,16 +255,11 @@ class VisitController extends Controller
     {
         abort_unless((int) $visit->user_id === (int) $request->user()->id, 404);
 
-        $validated = $request->validate([
+        $idempotency = $request->validate([
             'client_uuid' => ['required', 'uuid'],
-            'photo' => ['required', 'image', 'max:5120'],
-            'captured_at' => ['nullable', 'date'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
-            'accuracy' => ['nullable', 'numeric', 'between:0,200'],
         ]);
 
-        $existing = VisitPhoto::where('uuid', $validated['client_uuid'])->first();
+        $existing = VisitPhoto::where('uuid', $idempotency['client_uuid'])->first();
 
         if ($existing) {
             abort_unless(
@@ -276,11 +271,19 @@ class VisitController extends Controller
             return ApiResponse::success($this->photoPayload($existing));
         }
 
+        $validated = $request->validate([
+            'photo' => ['required', 'image', 'max:5120'],
+            'captured_at' => ['nullable', 'date'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'accuracy' => ['nullable', 'numeric', 'between:0,200'],
+        ]);
+
         $file = $request->file('photo');
         $path = $file->store('visits/'.$visit->uuid, 'public');
 
         $photo = VisitPhoto::create([
-            'uuid' => $validated['client_uuid'],
+            'uuid' => $idempotency['client_uuid'],
             'visit_id' => $visit->id,
             'user_id' => $request->user()->id,
             'disk' => 'public',
