@@ -40,7 +40,7 @@ class Batch8CustomerVisitsTest extends TestCase
     {
         $actor = $this->actor();
         [$customer, $route] = $this->plannedCustomer($actor);
-        $this->session($actor);
+        $this->createWorkSession($actor);
 
         $uuid = (string) Str::uuid();
         $checkIn = [
@@ -89,7 +89,7 @@ class Batch8CustomerVisitsTest extends TestCase
     {
         $actor = $this->actor();
         $customer = $this->customer($actor);
-        $this->session($actor);
+        $this->createWorkSession($actor);
 
         $uuid = (string) Str::uuid();
 
@@ -221,7 +221,7 @@ class Batch8CustomerVisitsTest extends TestCase
         });
     }
 
-    private function session(array $actor): void
+    private function createWorkSession(array $actor): void
     {
         app(TenantContext::class)->withTenant($actor['t'], fn () => WorkSession::create([
             'uuid' => (string) Str::uuid(),
