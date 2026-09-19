@@ -37,7 +37,6 @@ Artisan::command('field-sales:production-check {--services : Include database an
     return 0;
 });
 
-
 Schedule::command('queue:prune-failed --hours=168')
     ->dailyAt('03:30')
     ->withoutOverlapping();
