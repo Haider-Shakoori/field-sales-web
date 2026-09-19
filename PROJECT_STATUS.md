@@ -99,7 +99,7 @@ Batch 14 intentionally does not add a PDF library or commission engine. CSV is t
 - No browser automation or screenshot-based visual QA evidence is claimed for Batch 14.
 - Batch 17 provides deployment/operations artifacts and CI validation, but no live production-host deployment or disaster-restore drill is claimed yet.
 - Off-site backup replication remains infrastructure-provider specific; the application creates local verified backup sets that must be copied to an independent encrypted target before launch.
-- Mobile production release engineering is complete, but approved production app icon/splash assets are not yet present; Android still uses the platform default icon and this is a Batch 19 UAT/launch blocker.
+- Approved FieldPulse production launcher and splash branding is now present in the mobile repository and the platform default icon has been replaced. Physical-device launcher-mask/splash verification remains part of Batch 19 UAT.
 - A real production keystore, GitHub release secrets, production API repository variable, store submission, and real-device release installation are not falsely claimed by Batch 18.
 
 ## Stage 2 — Production Readiness & Release
@@ -181,8 +181,8 @@ Verified scope:
 - Signed release AAB build: PASS.
 - AAB signature verification: PASS.
 
-Known release blocker carried into Batch 19:
-- Approved production Field Sales icon/splash branding is not present in the mobile repository. The release pipeline is production-capable, but shipping the Android platform default icon is not acceptable for launch.
+Batch 19 branding carry-forward status:
+- Resolved in mobile PR #12: approved FieldPulse launcher and splash branding replaced the Android platform default icon and added branding regression coverage. Physical-device visual verification remains required before launch.
 
 ### Batch 19 Release-Candidate QA
 
@@ -201,9 +201,9 @@ Automated release-candidate evidence completed so far:
 - Mobile offline golden path proves attendance/GPS/visit/order/collection/expense/End Day records survive SQLite close/reopen and remain retry-safe/pending in dependency-safe state.
 - Physical-device execution script is documented in mobile `UAT.md`.
 - CI concurrency now cancels obsolete mobile branch builds.
+- Mobile PR #12 merged approved FieldPulse production branding to `main` at `ec30a1d44d234d04a4994795780428d3fe4d4c41`; the Android app label, launcher icon, native splash, Flutter startup branding, and branding regression coverage now use FieldPulse.
 
-Batch 19 is **not complete** yet. The remaining gates require real execution evidence rather than simulation:
-- approved production icon/splash branding
+Batch 19 is **not complete** yet. Repository-side production branding is resolved; the remaining gates require real execution evidence rather than simulation:
 - signed RC APK using the real external upload/release key
 - production-like/staging HTTPS deployment with healthy workers/readiness
 - physical Android install and UAT-01 through UAT-14
