@@ -12,7 +12,7 @@ _Last updated: 2026-09-19_
 
 ## Current Delivery Status
 
-Batches 1–12 are complete and merged. Batch 13 — Admin Dashboard & Live Map — was initially merged in PR #18, then repository review found missing roadmap scope and an untested activity timestamp rendering defect. The Batch 13 hardening branch completes the missing work and is CI-green.
+Batches 1–12 are complete and merged. Batch 13 — Admin Dashboard & Live Map — was initially merged in PR #18, then repository review found missing roadmap scope and an untested activity timestamp rendering defect. The Batch 13 hardening work completes the missing roadmap scope and is CI-green.
 
 ### Batch Status
 
@@ -30,11 +30,9 @@ Batches 1–12 are complete and merged. Batch 13 — Admin Dashboard & Live Map 
 | 10 | Collections | Complete |
 | 11 | Expenses & Targets | Complete |
 | 12 | Offline Sync / Idempotency Hardening | Complete |
-| 13 | Admin Dashboard & Live Map | Complete on hardening branch; merge pending |
+| 13 | Admin Dashboard & Live Map | Complete |
 
 ## Batch 13 Verification
-
-Hardening branch: `batch13-admin-dashboard-live-map-hardening`
 
 Verified scope:
 - Tenant-scoped KPI dashboard.
