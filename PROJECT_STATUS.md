@@ -195,9 +195,16 @@ Automated release-candidate evidence completed so far:
 - Mobile PR #10 merged to `main` at `5447e409914befc87b9607293de9a8fdb7342b73`.
 - Mobile PR gate passed with Flutter analyze clean, 26 tests, debug APK, signed release AAB, and AAB signature verification.
 - Mobile post-merge `main` CI run #376 passed at `5447e409914befc87b9607293de9a8fdb7342b73` with Flutter analyze clean, 26 tests, debug APK, signed release AAB, AAB signature verification, and SHA-256 output.
+- Mobile PR #11 added the auditable physical-device UAT evidence record and merged to `main` at `18d63ac78b2843016101447d6c87c00a79d16732`.
+- Mobile post-merge CI #384 passed at that SHA with Flutter analyze clean, **27 tests**, debug APK, signed release AAB, and AAB signature verification.
+- Physical UAT execution remains unclaimed; `UAT_RESULTS_TEMPLATE.md` defaults every UAT-01 through UAT-15 result to NOT EXECUTED and requires device/environment/UUID/GPS/admin/report/restore evidence.
 - Mobile offline golden path proves attendance/GPS/visit/order/collection/expense/End Day records survive SQLite close/reopen and remain retry-safe/pending in dependency-safe state.
 - Physical-device execution script is documented in mobile `UAT.md`.
 - CI concurrency now cancels obsolete mobile branch builds.
+- Web PR #27 added an isolated MySQL 8 recovery rehearsal and merged to `main` at `468e5ed924f08078112eded72c4ea833539f201b`.
+- Web post-merge CI #848 passed with **105 tests / 595 assertions**.
+- Post-merge recovery rehearsal #2 passed using the real backup service and destructive restore script: database + uploaded-media probes were backed up, deliberately mutated, restored, checksum/readiness validated, and operational health passed.
+- The CI recovery rehearsal reduces recovery risk but does **not** substitute for UAT-15 on approved non-production/staging infrastructure.
 
 Batch 19 is **not complete** yet. The remaining gates require real execution evidence rather than simulation:
 - approved production icon/splash branding
