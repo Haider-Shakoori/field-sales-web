@@ -19,7 +19,7 @@ _Last updated: 2026-09-19_
 | 11 | Expenses & Targets | Complete | Expense workflow and target management |
 | 12 | Offline Sync Hardening | Complete | Idempotent retries and offline-safe synchronization |
 | 13 | Admin Dashboard & Live Map | Complete | KPI dashboard, analytics, live map and field status |
-| 14 | Notifications, Alerts & Reporting | Next | Alerts, fraud indicators, reports and exports |
+| 14 | Notifications, Alerts & Reporting | Complete | Notifications, evidence-based alerts, reports and CSV exports |
 | 15 | BusinessOS Integration | Optional | ERP integration adapter and synchronization |
 
 ## Batch 13 — Admin Dashboard & Live Map
@@ -60,27 +60,28 @@ Provide managers and authorized operational users with a tenant-scoped view of c
 
 Build operational notifications, suspicious-activity alerting and exportable reporting.
 
-### Planned Scope
+### Delivered Scope
 
 - Database notification model and delivery pipeline.
 - Notification preferences.
-- Push notification foundation for mobile.
-- Suspicious visit/GPS alert surfacing.
+- Provider-neutral queued push notification foundation for mobile.
+- Suspicious visit/GPS evidence surfacing and manager/supervisor notification.
 - Admin alerts page.
 - Sales, visits, GPS and performance reports.
 - Date/branch/salesman/territory filters where applicable.
 - CSV export.
-- PDF export where operationally justified.
-- Basic commission-rule foundation only if it does not destabilize reporting.
+- PDF export deferred until a concrete formatted-report requirement justifies an additional rendering dependency.
+- Commission-rule foundation deferred to a dedicated specification because it introduces compensation/accounting semantics.
 
-### Verification
+### Completion Gate
 
-- Notifications are created and permission-scoped.
+- Notifications are created, user-scoped, preference-aware, and accessible through authenticated web/mobile surfaces.
 - Fraud/suspicious indicators are surfaced from existing evidence, not invented heuristics.
 - Report totals match source transactions.
 - Filters are tenant-safe.
 - CSV exports match filtered report data.
-- CI and formatting gates remain green.
+- Full CI passes: 89 tests / 465 assertions.
+- Changed PHP files pass Pint.
 
 ## Batch 15 — BusinessOS Integration (Optional)
 
