@@ -13,11 +13,22 @@ class DashboardController extends Controller
     public function index(Request $request, DashboardService $dashboard): View
     {
         $user = $request->user()->loadMissing('tenant');
+        $canTrack = $user->hasPermission('tracking:view');
+        $locations = $dashboard->liveLocations($user);
 
         return view('admin.dashboard.index', [
-            'summary' => $dashboard->summary($user),
+            'summary' => $dashboard->summary($user, $locations),
+            'analytics' => $dashboard->analytics($user),
             'recentActivity' => $dashboard->recentActivity($user),
-            'canTrack' => $user->hasPermission('tracking:view'),
+            'initialLocations' => $canTrack ? $locations : [],
+            'variant' => $dashboard->dashboardVariant($user),
+            'visibility' => [
+                'tracking' => $canTrack,
+                'orders' => $user->hasPermission('orders:view'),
+                'collections' => $user->hasPermission('collections:view'),
+                'expenses' => $user->hasPermission('expenses:view'),
+                'visits' => $user->hasPermission('visits:view'),
+            ],
         ]);
     }
 
