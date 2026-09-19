@@ -11,6 +11,7 @@ use App\Models\VisitPhoto;
 use App\Models\VisitSuspiciousFlag;
 use App\Models\WorkSession;
 use App\Services\GeofenceService;
+use App\Services\NotificationService;
 use App\Support\ApiResponse;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +22,8 @@ use Illuminate\Validation\Rule;
 
 class VisitController extends Controller
 {
+    public function __construct(private readonly NotificationService $notifications) {}
+
     public function checkIn(Request $request, GeofenceService $geofence): JsonResponse
     {
         $validated = $request->validate([
@@ -321,12 +324,14 @@ class VisitController extends Controller
             return;
         }
 
-        VisitSuspiciousFlag::create([
+        $flag = VisitSuspiciousFlag::create([
             'visit_id' => $visit->id,
             'reason_code' => $reason,
             'severity' => $severity,
             'details' => $details,
         ]);
+
+        $this->notifications->notifySuspiciousVisit($flag);
     }
 
     private function relations(): array
