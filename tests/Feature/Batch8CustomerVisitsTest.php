@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Customer;
 use App\Models\Device;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\RouteCustomer;
 use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
@@ -178,6 +180,23 @@ class Batch8CustomerVisitsTest extends TestCase
                 'role' => 'salesman',
                 'is_active' => true,
             ]);
+
+            $permission = Permission::firstOrCreate(
+                ['slug' => 'customers:view'],
+                [
+                    'name' => 'Customers View',
+                    'group' => 'customers',
+                ]
+            );
+
+            $role = Role::create([
+                'tenant_id' => $tenant->id,
+                'name' => 'Salesman',
+                'slug' => 'salesman',
+                'is_system' => true,
+            ]);
+            $role->permissions()->sync([$permission->id]);
+            $user->syncPrimaryRole($role);
 
             $salesman = Salesman::create([
                 'tenant_id' => $tenant->id,
