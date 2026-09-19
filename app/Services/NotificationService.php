@@ -6,9 +6,10 @@ use App\Jobs\SendPushNotification;
 use App\Models\Device;
 use App\Models\NotificationDelivery;
 use App\Models\NotificationPreference;
-use App\Models\SalesmanAssignment;
 use App\Models\OperationalNotification;
+use App\Models\SalesmanAssignment;
 use App\Models\User;
+use App\Models\VisitSuspiciousFlag;
 use Illuminate\Support\Facades\DB;
 
 class NotificationService
@@ -93,7 +94,7 @@ class NotificationService
         return $notification;
     }
 
-    public function notifySuspiciousVisit(\App\Models\VisitSuspiciousFlag $flag): void
+    public function notifySuspiciousVisit(VisitSuspiciousFlag $flag): void
     {
         $flag->loadMissing(['tenant', 'visit.salesman']);
         $visit = $flag->visit;
