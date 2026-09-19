@@ -42,6 +42,16 @@ class Salesman extends Model
         return $this->hasMany(Collection::class)->latest('collected_at');
     }
 
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class)->latest('spent_at');
+    }
+
+    public function targets(): HasMany
+    {
+        return $this->hasMany(SalesTarget::class)->latest('period_start');
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class)->latest('ordered_at');
