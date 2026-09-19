@@ -224,6 +224,7 @@ Validate the merged web/API and Android release candidate across continuous busi
 - Mobile CI concurrency prevents obsolete branch builds consuming release-QA capacity.
 - Web merged-main gate: 105 tests / 595 assertions, operations scripts and Pint PASS.
 - Mobile PR gate: 26 tests, analyze PASS, debug APK PASS, signed release AAB PASS, signature verification PASS.
+- Mobile merged-main gate: CI #376 PASS at `5447e409914befc87b9607293de9a8fdb7342b73`, including analyze, 26 tests, debug APK, signed release AAB and signature verification.
 
 ### Manual UAT Still Required
 
