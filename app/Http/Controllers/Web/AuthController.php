@@ -59,10 +59,22 @@ class AuthController extends Controller
 
         $webPermissions = [
             'settings:view',
+            'settings:manage',
             'users:view',
+            'users:manage',
             'roles:view',
+            'roles:manage',
             'branches:view',
+            'branches:manage',
             'audit:view',
+            'sales-team:view',
+            'sales-team:manage',
+            'customers:manage',
+            'catalog:manage',
+            'collections:manage',
+            'expenses:manage',
+            'targets:manage',
+            'reports:view',
         ];
 
         if (! $user->hasAnyPermission($webPermissions)) {
@@ -90,6 +102,9 @@ class AuthController extends Controller
     {
         return match (true) {
             $user->hasPermission('users:view') => route('admin.users.index'),
+            $user->hasPermission('sales-team:view') => route('admin.salesmen.index'),
+            $user->hasPermission('customers:manage') => route('admin.customers.index'),
+            $user->hasPermission('catalog:manage') => route('admin.products.index'),
             $user->hasPermission('roles:view') => route('admin.roles.index'),
             $user->hasPermission('branches:view') => route('admin.branches.index'),
             $user->hasPermission('settings:view') => route('tracking.edit'),
