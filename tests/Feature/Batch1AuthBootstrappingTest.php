@@ -102,6 +102,11 @@ class Batch1AuthBootstrappingTest extends TestCase
 
         $this->assertSame(TenantContextState::Uninitialized, $this->context->state());
 
+        // Simulate a new real HTTP request: the authenticated User object is
+        // no longer cached in memory and must be restored from the session id.
+        Auth::forgetGuards();
+        $this->context->clear();
+
         $this->get('/admin/tracking-settings')
             ->assertOk()
             ->assertSee('Attendance');
