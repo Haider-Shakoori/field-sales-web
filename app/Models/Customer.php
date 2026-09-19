@@ -62,6 +62,11 @@ class Customer extends Model
         return $this->hasMany(CustomerVisit::class);
     }
 
+    public function collections(): HasMany
+    {
+        return $this->hasMany(Collection::class)->latest('collected_at');
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class)->latest('ordered_at');
