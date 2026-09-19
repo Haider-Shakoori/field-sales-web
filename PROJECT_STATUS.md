@@ -197,7 +197,7 @@ Automated release-candidate evidence completed so far:
 - Mobile post-merge `main` CI run #376 passed at `5447e409914befc87b9607293de9a8fdb7342b73` with Flutter analyze clean, 26 tests, debug APK, signed release AAB, AAB signature verification, and SHA-256 output.
 - Mobile PR #11 added the auditable `UAT_RESULTS_TEMPLATE.md` and merged to `main` at `18d63ac78b2843016101447d6c87c00a79d16732`; its PR CI run #383 passed.
 - Mobile post-merge `main` CI run #384 passed at `18d63ac78b2843016101447d6c87c00a79d16732`: Dart format PASS, Flutter analyze PASS, 27 tests PASS, debug APK PASS, ephemeral release signing PASS, signed release AAB PASS, and release-artifact verification PASS.
-- Web PR #26 reconciled merged-main RC evidence and merged to `main` at `852274c1b91ea018a549e40b171e46c76623ffd9`; web post-merge CI runs #844 and #845 passed.
+- Web PR #26 reconciled merged-main RC evidence and merged at `852274c1b91ea018a549e40b171e46c76623ffd9`; PR #27 then added the isolated backup/restore recovery rehearsal and advanced web `main` to `468e5ed924f08078112eded72c4ea833539f201b`. PR #27 web-ci #847 and recovery-rehearsal #1 passed; post-merge web-ci #848/#849 and recovery-rehearsal #2 passed. The CI rehearsal does not complete UAT-15.
 - Mobile offline golden path proves attendance/GPS/visit/order/collection/expense/End Day records survive SQLite close/reopen and remain retry-safe/pending in dependency-safe state.
 - Physical-device execution script is documented in mobile `UAT.md`.
 - CI concurrency now cancels obsolete mobile branch builds.
