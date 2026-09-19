@@ -120,6 +120,9 @@ class Batch10CollectionsTest extends TestCase
             'subject_id' => $collection->id,
         ]);
 
+        auth()->logout();
+        app('auth')->forgetGuards();
+
         $this->getJson(
             '/api/v1/collections/balances?customer_id='.$customer->uuid,
             $this->headers()
