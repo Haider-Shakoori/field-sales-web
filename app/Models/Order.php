@@ -31,13 +31,40 @@ class Order extends Model
         ];
     }
 
-    public function customer(): BelongsTo { return $this->belongsTo(Customer::class); }
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function salesman(): BelongsTo { return $this->belongsTo(Salesman::class); }
-    public function device(): BelongsTo { return $this->belongsTo(Device::class); }
-    public function visit(): BelongsTo { return $this->belongsTo(CustomerVisit::class); }
-    public function priceList(): BelongsTo { return $this->belongsTo(PriceList::class); }
-    public function statusChanger(): BelongsTo { return $this->belongsTo(User::class, 'status_changed_by'); }
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function salesman(): BelongsTo
+    {
+        return $this->belongsTo(Salesman::class);
+    }
+
+    public function device(): BelongsTo
+    {
+        return $this->belongsTo(Device::class);
+    }
+
+    public function visit(): BelongsTo
+    {
+        return $this->belongsTo(CustomerVisit::class);
+    }
+
+    public function priceList(): BelongsTo
+    {
+        return $this->belongsTo(PriceList::class);
+    }
+
+    public function statusChanger(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'status_changed_by');
+    }
 
     public function items(): HasMany
     {
