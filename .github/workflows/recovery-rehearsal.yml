@@ -1,0 +1,203 @@
+name: recovery-rehearsal
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/recovery-rehearsal.yml'
+      - 'app/Services/Operations/BackupService.php'
+      - 'app/Console/Commands/BackupFieldSales.php'
+      - 'ops/scripts/restore-backup.sh'
+      - 'config/operations.php'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/recovery-rehearsal.yml'
+      - 'app/Services/Operations/BackupService.php'
+      - 'app/Console/Commands/BackupFieldSales.php'
+      - 'ops/scripts/restore-backup.sh'
+      - 'config/operations.php'
+
+permissions:
+  contents: read
+
+jobs:
+  restore-drill:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: field_sales_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          extensions: pdo_mysql
+
+      - name: Install MySQL client tooling
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
+
+      - run: composer install --no-interaction --prefer-dist
+
+      - name: Prepare production-like runtime layout
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APP_ROOT="${RUNNER_TEMP}/field-sales"
+          SHARED="${APP_ROOT}/shared"
+
+          mkdir -p "${APP_ROOT}/releases" "${SHARED}/storage/app/public/visits"
+          mkdir -p "${SHARED}/storage/framework/cache/data"
+          mkdir -p "${SHARED}/storage/framework/sessions"
+          mkdir -p "${SHARED}/storage/framework/views"
+          mkdir -p "${SHARED}/storage/logs"
+          mkdir -p "${RUNNER_TEMP}/field-sales-backups"
+
+          rm -rf storage
+          ln -s "${SHARED}/storage" storage
+          ln -s "${GITHUB_WORKSPACE}" "${APP_ROOT}/current"
+
+          cat > .env <<EOF
+          APP_NAME="Field Sales"
+          APP_ENV=production
+          APP_KEY=
+          APP_DEBUG=false
+          APP_URL=https://field-sales-ci.invalid
+
+          LOG_CHANNEL=stderr
+          LOG_LEVEL=warning
+
+          DB_CONNECTION=mysql
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_DATABASE=field_sales_ci
+          DB_USERNAME=root
+          DB_PASSWORD=root
+
+          CACHE_STORE=database
+          QUEUE_CONNECTION=database
+          DB_QUEUE=default
+          DB_QUEUE_RETRY_AFTER=90
+
+          SESSION_DRIVER=database
+          SESSION_LIFETIME=120
+          SESSION_ENCRYPT=true
+          SESSION_SECURE_COOKIE=true
+          SESSION_SAME_SITE=lax
+
+          FIELD_SALES_BACKUP_DIR=${RUNNER_TEMP}/field-sales-backups
+          FIELD_SALES_BACKUP_RETENTION_DAYS=14
+          EOF
+
+          php artisan key:generate --force
+          php artisan migrate --force --no-interaction
+          php artisan field-sales:production-check --services --no-interaction
+
+          printf 'before-restore\n' > "${SHARED}/storage/app/public/visits/recovery-probe.txt"
+
+          mysql -h127.0.0.1 -P3306 -uroot -proot field_sales_ci <<'SQL'
+          CREATE TABLE recovery_probe (
+              id INT PRIMARY KEY,
+              marker VARCHAR(64) NOT NULL
+          );
+          INSERT INTO recovery_probe (id, marker) VALUES (1, 'before-restore');
+          SQL
+
+      - name: Create verified backup
+        id: backup
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          php artisan field-sales:backup --label=ci-restore-drill --no-interaction
+
+          BACKUP_DIR="$(find "${RUNNER_TEMP}/field-sales-backups" -mindepth 1 -maxdepth 1 -type d -name '*ci-restore-drill*' | sort | tail -n 1)"
+          test -n "${BACKUP_DIR}"
+          test -s "${BACKUP_DIR}/database.sql.gz"
+          test -s "${BACKUP_DIR}/public-storage.tar.gz"
+          test -s "${BACKUP_DIR}/manifest.json"
+
+          php -r '
+          $manifest = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);
+          foreach (["database", "public_storage"] as $key) {
+              $entry = $manifest[$key] ?? null;
+              if (!$entry) {
+                  fwrite(STDERR, "Missing {$key} manifest entry.\n");
+                  exit(1);
+              }
+              $path = dirname($argv[1]).DIRECTORY_SEPARATOR.$entry["file"];
+              $actual = hash_file("sha256", $path);
+              if ($actual === false || !hash_equals($entry["sha256"], $actual)) {
+                  fwrite(STDERR, "Checksum mismatch for {$key}.\n");
+                  exit(1);
+              }
+          }
+          ' "${BACKUP_DIR}/manifest.json"
+
+          echo "backup_dir=${BACKUP_DIR}" >> "${GITHUB_OUTPUT}"
+
+      - name: Mutate database and uploaded media
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mysql -h127.0.0.1 -P3306 -uroot -proot field_sales_ci             -e "UPDATE recovery_probe SET marker='mutated-after-backup' WHERE id=1;"
+
+          printf 'mutated-after-backup\n' > "${RUNNER_TEMP}/field-sales/shared/storage/app/public/visits/recovery-probe.txt"
+
+          test "$(mysql -N -h127.0.0.1 -P3306 -uroot -proot field_sales_ci -e "SELECT marker FROM recovery_probe WHERE id=1;")" = "mutated-after-backup"
+          test "$(cat "${RUNNER_TEMP}/field-sales/shared/storage/app/public/visits/recovery-probe.txt")" = "mutated-after-backup"
+
+      - name: Restore backup destructively
+        shell: bash
+        env:
+          FIELD_SALES_APP_ROOT: ${{ runner.temp }}/field-sales
+          FIELD_SALES_MYSQL_DEFAULTS_FILE: ${{ runner.temp }}/mysql-restore.cnf
+        run: |
+          set -euo pipefail
+
+          cat > "${FIELD_SALES_MYSQL_DEFAULTS_FILE}" <<'EOF'
+          [client]
+          host=127.0.0.1
+          port=3306
+          user=root
+          password=root
+          EOF
+          chmod 600 "${FIELD_SALES_MYSQL_DEFAULTS_FILE}"
+
+          bash ops/scripts/restore-backup.sh             "${{ steps.backup.outputs.backup_dir }}"             --confirm-destructive-restore
+
+      - name: Verify restored state
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DB_MARKER="$(mysql -N -h127.0.0.1 -P3306 -uroot -proot field_sales_ci -e "SELECT marker FROM recovery_probe WHERE id=1;")"
+          MEDIA_MARKER="$(cat "${RUNNER_TEMP}/field-sales/shared/storage/app/public/visits/recovery-probe.txt")"
+
+          test "${DB_MARKER}" = "before-restore"
+          test "${MEDIA_MARKER}" = "before-restore"
+
+          php artisan field-sales:production-check --services --no-interaction
+          php artisan field-sales:ops-check --backup-tooling --no-interaction
+
+          echo "Recovery rehearsal restored database and uploaded media successfully."
