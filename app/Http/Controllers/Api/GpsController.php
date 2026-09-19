@@ -100,11 +100,13 @@ class GpsController extends Controller
 
             if (! is_string($uuid) || ! Str::isUuid($uuid)) {
                 $reject('malformed_uuid', 'client_uuid must be a valid UUID.');
+
                 continue;
             }
 
             if (isset($seenInBatch[$uuid]) || $knownUuids->has($uuid)) {
                 $duplicates[] = $uuid;
+
                 continue;
             }
 
@@ -128,46 +130,55 @@ class GpsController extends Controller
                 || (float) $longitude > 180
                 || ((float) $latitude === 0.0 && (float) $longitude === 0.0)) {
                 $reject('invalid_coordinates', 'Latitude/longitude are outside the accepted range.');
+
                 continue;
             }
 
             if (! is_numeric($accuracy) || (float) $accuracy < 0 || (float) $accuracy > 200) {
                 $reject('low_accuracy', 'accuracy must be between 0 and 200 metres.');
+
                 continue;
             }
 
             if ($speed !== null && (! is_numeric($speed) || (float) $speed < 0 || (float) $speed > 55)) {
                 $reject('invalid_speed', 'speed must be between 0 and 55 m/s.');
+
                 continue;
             }
 
             if ($heading !== null && (! is_numeric($heading) || (float) $heading < 0 || (float) $heading > 360)) {
                 $reject('invalid_heading', 'heading must be between 0 and 360 degrees.');
+
                 continue;
             }
 
             if ($battery !== null && (! is_numeric($battery) || (int) $battery < 0 || (int) $battery > 100)) {
                 $reject('invalid_battery', 'battery_level must be between 0 and 100.');
+
                 continue;
             }
 
             if ($sequence !== null && (filter_var($sequence, FILTER_VALIDATE_INT) === false || (int) $sequence < 0)) {
                 $reject('invalid_sequence', 'sequence_number must be a non-negative integer.');
+
                 continue;
             }
 
             if ($network !== null && (! is_string($network) || mb_strlen($network) > 20)) {
                 $reject('invalid_network', 'network_status may not exceed 20 characters.');
+
                 continue;
             }
 
             if ($provider !== null && (! is_string($provider) || mb_strlen($provider) > 50)) {
                 $reject('invalid_provider', 'provider may not exceed 50 characters.');
+
                 continue;
             }
 
             if (! isset($point['recorded_at']) || ! is_string($point['recorded_at']) || trim($point['recorded_at']) === '') {
                 $reject('invalid_timestamp', 'recorded_at must be a valid timestamp.');
+
                 continue;
             }
 
@@ -175,11 +186,13 @@ class GpsController extends Controller
                 $recordedAt = CarbonImmutable::parse($point['recorded_at'])->utc();
             } catch (\Throwable) {
                 $reject('invalid_timestamp', 'recorded_at must be a valid timestamp.');
+
                 continue;
             }
 
             if ($recordedAt->gt(now()->addMinutes(5))) {
                 $reject('future_timestamp', 'recorded_at may not be more than five minutes in the future.');
+
                 continue;
             }
 
@@ -201,6 +214,7 @@ class GpsController extends Controller
 
             if (! $hasWorkSession) {
                 $reject('no_work_session', 'No work session covers this tenant-local date/time.');
+
                 continue;
             }
 
@@ -376,6 +390,7 @@ class GpsController extends Controller
 
             if ((float) $previous->horizontal_accuracy > 50
                 || (float) $current->horizontal_accuracy > 50) {
+
                 continue;
             }
 
