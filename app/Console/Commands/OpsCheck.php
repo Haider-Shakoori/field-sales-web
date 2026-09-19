@@ -6,11 +6,12 @@ use App\Support\ProductionReadiness;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Symfony\Component\Process\ExecutableFinder;
 use Throwable;
 
 class OpsCheck extends Command
 {
-    protected $signature = 'field-sales:ops-check';
+    protected $signature = 'field-sales:ops-check {--backup-tooling : Include backup path and binary checks}';
 
     protected $description = 'Check runtime dependencies and database queue health for monitoring.';
 
@@ -23,6 +24,10 @@ class OpsCheck extends Command
         } catch (Throwable $exception) {
             report($exception);
             $checks['queue_health_query'] = false;
+        }
+
+        if ($this->option('backup-tooling')) {
+            $checks = array_merge($checks, $this->backupToolingChecks());
         }
 
         $this->table(
@@ -45,6 +50,19 @@ class OpsCheck extends Command
         $this->info('Operational health check passed.');
 
         return self::SUCCESS;
+    }
+
+    private function backupToolingChecks(): array
+    {
+        $backupDirectory = (string) config('operations.backup.directory');
+        $finder = new ExecutableFinder;
+
+        return [
+            'backup_directory_is_writable' => is_dir($backupDirectory) && is_writable($backupDirectory),
+            'mysqldump_is_available' => $finder->find('mysqldump') !== null,
+            'tar_is_available' => $finder->find('tar') !== null,
+            'gzip_extension_is_available' => function_exists('gzopen'),
+        ];
     }
 
     private function queueChecks(): array
