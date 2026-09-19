@@ -18,6 +18,7 @@ use App\Http\Controllers\Web\SupervisorController;
 use App\Http\Controllers\Web\TerritoryController;
 use App\Http\Controllers\Web\TrackingSettingsController;
 use App\Http\Controllers\Web\UserController;
+use App\Http\Controllers\Web\VisitController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin/users');
@@ -112,6 +113,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('/price-lists/{priceList}/items/{priceListItem}', [PriceListItemController::class, 'destroy'])
             ->middleware('permission:catalog:manage')
             ->name('price-lists.items.destroy');
+
+        Route::resource('visits', VisitController::class)
+            ->only(['index', 'show'])
+            ->middleware('permission:visits:view');
 
         Route::get('/audit-logs', [AuditLogController::class, 'index'])
             ->middleware('permission:audit:view')
