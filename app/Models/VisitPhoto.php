@@ -18,6 +18,13 @@ class VisitPhoto extends Model
         return ['captured_at' => 'datetime'];
     }
 
-    public function visit(): BelongsTo { return $this->belongsTo(CustomerVisit::class, 'visit_id'); }
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
+    public function visit(): BelongsTo
+    {
+        return $this->belongsTo(CustomerVisit::class, 'visit_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 }
