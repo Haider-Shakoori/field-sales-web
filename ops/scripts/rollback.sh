@@ -31,23 +31,53 @@ if [[ "${target_real}" == "${current_real}" ]]; then
     exit 0
 fi
 
-# Refuse to switch to code that cannot operate against the current schema/runtime.
+maintenance_enabled=0
+current_switched=0
+
+on_error() {
+    local exit_code=$?
+
+    echo "Code rollback failed with exit code ${exit_code}." >&2
+
+    if [[ "${current_switched}" == "1" && -n "${current_real}" && -f "${current_real}/artisan" ]]; then
+        ln -sfn "${current_real}" "${APP_ROOT}/.current.rollback-failed"
+        mv -Tf "${APP_ROOT}/.current.rollback-failed" "${CURRENT}" || true
+        "${PHP_BIN}" "${current_real}/artisan" queue:restart || true
+        "${PHP_BIN}" "${current_real}/artisan" up || true
+    elif [[ "${maintenance_enabled}" == "1" && -n "${current_real}" && -f "${current_real}/artisan" ]]; then
+        "${PHP_BIN}" "${current_real}/artisan" up || true
+    fi
+
+    exit "${exit_code}"
+}
+
+trap on_error ERR
+
+"${PHP_BIN}" "${target_real}/artisan" config:cache
+"${PHP_BIN}" "${target_real}/artisan" route:cache
+"${PHP_BIN}" "${target_real}/artisan" view:cache
 "${PHP_BIN}" "${target_real}/artisan" field-sales:production-check --services --no-interaction
 
 if [[ -n "${current_real}" && -f "${current_real}/artisan" ]]; then
     "${PHP_BIN}" "${current_real}/artisan" down --retry=60 --refresh=15
+    maintenance_enabled=1
 fi
 
 ln -sfn "${target_real}" "${APP_ROOT}/.current.rollback"
 mv -Tf "${APP_ROOT}/.current.rollback" "${CURRENT}"
+current_switched=1
+
+"${PHP_BIN}" "${CURRENT}/artisan" queue:restart
+"${PHP_BIN}" "${CURRENT}/artisan" up
+maintenance_enabled=0
 
 if [[ -n "${current_real}" ]]; then
     ln -sfn "${current_real}" "${APP_ROOT}/.previous.rollback"
     mv -Tf "${APP_ROOT}/.previous.rollback" "${PREVIOUS}"
 fi
 
-"${PHP_BIN}" "${CURRENT}/artisan" queue:restart
-"${PHP_BIN}" "${CURRENT}/artisan" up
+current_switched=0
+trap - ERR
 
 echo "Code rollback completed."
 echo "Current release: ${target_real}"
