@@ -4,6 +4,8 @@ This document is the canonical release-candidate acceptance record for the indep
 
 Batch 19 intentionally separates **automated evidence** from **manual UAT evidence**. A test is not marked passed unless it was actually executed.
 
+**Current phase:** automated release-candidate QA is complete on merged `main`; manual physical-device/infrastructure UAT remains pending and is not pre-approved.
+
 ## Release-candidate baseline
 
 - Web/admin/API baseline: `field-sales-web/main`
