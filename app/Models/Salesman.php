@@ -37,6 +37,11 @@ class Salesman extends Model
         return $this->hasMany(SalesmanAssignment::class);
     }
 
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class)->latest('ordered_at');
+    }
+
     public function visits(): HasMany
     {
         return $this->hasMany(CustomerVisit::class);
