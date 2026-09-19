@@ -81,6 +81,14 @@ class Batch12SyncHardeningTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $clientUuid);
 
+        $this->post(
+            '/api/v1/visits/'.$visit->uuid.'/photos',
+            ['client_uuid' => $clientUuid],
+            $this->headers(),
+        )
+            ->assertOk()
+            ->assertJsonPath('data.id', $clientUuid);
+
         $this->assertDatabaseCount('visit_photos', 1);
 
         $photo = app(TenantContext::class)->withTenant(
