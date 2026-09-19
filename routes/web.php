@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\CallActivityController;
 use App\Http\Controllers\Web\CollectionController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DeviceController;
+use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\ExpenseController;
 use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Web\PriceListController;
@@ -35,6 +36,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
 
     Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->middleware('permission:reports:view')
+            ->name('dashboard');
+        Route::get('/dashboard/live-locations', [DashboardController::class, 'liveLocations'])
+            ->middleware('permission:tracking:view')
+            ->name('dashboard.live-locations');
+
         Route::resource('users', UserController::class)
             ->except(['show'])
             ->middlewareFor('index', 'permission:users:view')
