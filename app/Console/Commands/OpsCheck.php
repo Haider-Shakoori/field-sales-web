@@ -55,9 +55,15 @@ class OpsCheck extends Command
             ];
         }
 
-        $queuedJobs = (int) DB::table('jobs')->count();
+        $waitingJobs = DB::table('jobs')->whereNull('reserved_at');
+        $queuedJobs = (int) (clone $waitingJobs)->count();
         $failedJobs = (int) DB::table('failed_jobs')->count();
-        $oldestCreatedAt = DB::table('jobs')->min('created_at');
+        $oldestCreatedAt = (clone $waitingJobs)->min('created_at');
+        $retryAfter = max(1, (int) config('queue.connections.database.retry_after', 90));
+        $staleReservedJobs = (int) DB::table('jobs')
+            ->whereNotNull('reserved_at')
+            ->where('reserved_at', '<', now()->getTimestamp() - $retryAfter)
+            ->count();
         $oldestAge = $oldestCreatedAt
             ? max(0, now()->getTimestamp() - (int) $oldestCreatedAt)
             : 0;
@@ -75,6 +81,7 @@ class OpsCheck extends Command
                 1,
                 (int) config('operations.monitoring.max_oldest_job_seconds', 600),
             ),
+            'stale_reserved_jobs_absent' => $staleReservedJobs === 0,
         ];
     }
 }
