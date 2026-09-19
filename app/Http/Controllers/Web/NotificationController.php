@@ -19,6 +19,7 @@ class NotificationController extends Controller
 
         $items = OperationalNotification::query()
             ->where('user_id', $user->id)
+            ->where('database_visible', true)
             ->latest()
             ->paginate(30);
 
@@ -32,7 +33,11 @@ class NotificationController extends Controller
         Request $request,
         OperationalNotification $notification,
     ): RedirectResponse {
-        abort_unless((int) $notification->user_id === (int) $request->user()->id, 404);
+        abort_unless(
+            (int) $notification->user_id === (int) $request->user()->id
+            && $notification->database_visible,
+            404,
+        );
 
         $notification->markRead();
 
@@ -43,6 +48,7 @@ class NotificationController extends Controller
     {
         OperationalNotification::query()
             ->where('user_id', $request->user()->id)
+            ->where('database_visible', true)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
