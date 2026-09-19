@@ -89,7 +89,7 @@ Core product development is complete through Batch 14. Batch 15 is intentionally
 
 | Batch | Name | Status | Primary Outcome |
 |---|---|---|---|
-| 16 | Web Production Security & Runtime Readiness | In Progress | Secure runtime defaults, auth throttling, readiness checks and production configuration validation |
+| 16 | Web Production Security & Runtime Readiness | Complete | Secure runtime defaults, auth throttling, readiness checks and production configuration validation |
 | 17 | Deployment, Workers, Backups & Monitoring | Planned | Repeatable server deployment, queue/scheduler operation, backups, monitoring and rollback |
 | 18 | Android Production Release Engineering | Planned | Signed production Android build, production API configuration and mobile release pipeline |
 | 19 | Release Candidate QA & UAT | Planned | End-to-end golden paths, offline recovery, security/regression QA and UAT evidence |
@@ -127,7 +127,8 @@ Harden the Laravel web/API runtime for safe production deployment without changi
 - Security headers are present on application responses.
 - Readiness returns 200 only when required runtime dependencies are available.
 - Production configuration checker fails closed on unsafe configuration.
-- Full CI and changed-PHP Pint gates pass.
+- Full CI passes: 94 tests / 503 assertions.
+- Changed-PHP Pint gate passes.
 
 ## Batch 15 — BusinessOS Integration (Deferred)
 
