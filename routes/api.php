@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CallActivityController;
 use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\MasterDataController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\VisitController;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +47,10 @@ Route::prefix('v1')->group(function () {
 
             Route::get('/call-activities/history', [CallActivityController::class, 'history']);
             Route::post('/call-activities', [CallActivityController::class, 'store']);
+
+            Route::get('/orders/history', [OrderController::class, 'history']);
+            Route::get('/orders/{order:uuid}', [OrderController::class, 'show']);
+            Route::post('/orders', [OrderController::class, 'store']);
         });
     });
 });
