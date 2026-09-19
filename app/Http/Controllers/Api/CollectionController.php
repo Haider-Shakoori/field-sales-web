@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\CustomerVisit;
 use App\Models\SalesmanAssignment;
 use App\Services\CustomerBalanceService;
+use App\Services\GeofenceService;
 use App\Support\ApiResponse;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,6 +22,7 @@ class CollectionController extends Controller
     public function store(
         Request $request,
         CustomerBalanceService $balances,
+        GeofenceService $geofence,
     ): JsonResponse {
         abort_unless($request->user()->hasPermission('collections:view'), 403);
 
@@ -29,7 +31,7 @@ class CollectionController extends Controller
             'customer_id' => ['required', 'uuid'],
             'visit_id' => ['nullable', 'uuid'],
             'collected_at' => ['required', 'date'],
-            'currency' => ['required', 'string', 'size:3'],
+            'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
             'amount' => ['required', 'numeric', 'gt:0'],
             'payment_method' => ['required', Rule::in(Collection::PAYMENT_METHODS)],
             'reference_number' => ['nullable', 'string', 'max:160'],
@@ -116,7 +118,12 @@ class CollectionController extends Controller
 
         $currency = strtoupper($validated['currency']);
         $amount = round((float) $validated['amount'], 4);
-        $outstanding = $balances->outstanding($customer, $currency);
+        $snapshot = $balances->snapshot($customer, $currency);
+        $geo = $geofence->evaluate(
+            $customer,
+            (float) $validated['latitude'],
+            (float) $validated['longitude'],
+        );
         $compactUuid = strtoupper(substr(
             str_replace('-', '', $validated['offline_uuid']),
             0,
@@ -140,8 +147,10 @@ class CollectionController extends Controller
             'latitude' => $validated['latitude'],
             'longitude' => $validated['longitude'],
             'accuracy' => $validated['accuracy'],
-            'balance_before' => $outstanding,
-            'overpayment_flag' => $amount > $outstanding + 0.0001,
+            'distance_meters' => $geo['distance_meters'],
+            'within_geofence' => $geo['within_geofence'],
+            'balance_before' => $snapshot['outstanding_balance'],
+            'overpayment_flag' => $amount > ((float) $snapshot['available_to_collect'] + 0.0001),
             'notes' => $validated['notes'] ?? null,
         ]);
 
@@ -251,6 +260,10 @@ class CollectionController extends Controller
             'latitude' => (float) $collection->latitude,
             'longitude' => (float) $collection->longitude,
             'accuracy' => (float) $collection->accuracy,
+            'distance_meters' => $collection->distance_meters === null
+                ? null
+                : (float) $collection->distance_meters,
+            'within_geofence' => $collection->within_geofence,
             'balance_before' => (float) $collection->balance_before,
             'overpayment_flag' => $collection->overpayment_flag,
             'notes' => $collection->notes,
