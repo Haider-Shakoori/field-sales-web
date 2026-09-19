@@ -63,6 +63,8 @@ class AuthController extends Controller
             'roles:view',
             'branches:view',
             'audit:view',
+            'reports:view',
+            'tracking:view',
         ];
 
         if (! $user->hasAnyPermission($webPermissions)) {
@@ -89,6 +91,7 @@ class AuthController extends Controller
     private function landingPage(User $user): string
     {
         return match (true) {
+            $user->hasPermission('reports:view') => route('admin.dashboard'),
             $user->hasPermission('users:view') => route('admin.users.index'),
             $user->hasPermission('roles:view') => route('admin.roles.index'),
             $user->hasPermission('branches:view') => route('admin.branches.index'),
