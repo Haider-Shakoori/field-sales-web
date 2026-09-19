@@ -22,6 +22,9 @@
 
         @if($currentUser)
             <div class="flex flex-1 flex-wrap items-center gap-2 text-sm">
+                @if($currentUser->hasPermission('reports:view'))
+                    <a href="{{ route('admin.dashboard') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Dashboard</a>
+                @endif
                 @if($currentUser->hasPermission('users:view'))
                     <a href="{{ route('admin.users.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Users</a>
                 @endif
