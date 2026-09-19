@@ -63,7 +63,7 @@ class VisitController extends Controller
             ->latest('start_time')
             ->first();
 
-        if (! $session) {
+        if (!$session) {
             return ApiResponse::error(
                 'A visit must occur inside a work session.',
                 409,
