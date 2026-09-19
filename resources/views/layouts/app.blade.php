@@ -66,6 +66,11 @@
                     <a href="{{ route('admin.products.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Products</a>
                     <a href="{{ route('admin.price-lists.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Price lists</a>
                 @endif
+                @if($currentUser->hasPermission('reports:view'))
+                    <a href="{{ route('admin.alerts.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Alerts</a>
+                    <a href="{{ route('admin.reports.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Reports</a>
+                @endif
+                <a href="{{ route('admin.notifications.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Notifications</a>
                 @if($currentUser->hasPermission('audit:view'))
                     <a href="{{ route('admin.audit.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10">Audit</a>
                 @endif
