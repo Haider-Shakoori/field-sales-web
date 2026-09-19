@@ -26,14 +26,16 @@ class ReportService
         abort_unless(in_array($type, self::TYPES, true), 404);
 
         [$start, $end, $fromDate, $toDate] = $this->window($actor, $filters);
-        $salesmanIds = $this->visibleSalesmanIds($actor, $toDate, $filters);
+        $identityFilters = array_intersect_key($filters, ['salesman_id' => true]);
+        $visibleSalesmanIds = $this->visibleSalesmanIds($actor, $toDate, $identityFilters);
+        $assignmentScopedIds = $this->visibleSalesmanIds($actor, $toDate, $filters);
 
         return match ($type) {
-            'sales' => $this->sales($salesmanIds, $start, $end, $filters, $fromDate, $toDate),
-            'visits' => $this->visits($salesmanIds, $start, $end, $filters, $fromDate, $toDate),
-            'gps' => $this->gps($salesmanIds, $start, $end, $fromDate, $toDate),
+            'sales' => $this->sales($visibleSalesmanIds, $start, $end, $filters, $fromDate, $toDate),
+            'visits' => $this->visits($visibleSalesmanIds, $start, $end, $filters, $fromDate, $toDate),
+            'gps' => $this->gps($assignmentScopedIds, $start, $end, $fromDate, $toDate),
             'performance' => $this->performance(
-                $salesmanIds,
+                $assignmentScopedIds,
                 $start,
                 $end,
                 $fromDate,
@@ -423,10 +425,10 @@ class ReportService
     {
         $timezone = $this->clock->timezone($actor->tenant);
         $today = $this->clock->now($actor->tenant)->toDateString();
-        $fromDate = $filters['date_from'] ?? CarbonImmutable::parse($today, $timezone)
+        $toDate = $filters['date_to'] ?? $today;
+        $fromDate = $filters['date_from'] ?? CarbonImmutable::parse($toDate, $timezone)
             ->subDays(29)
             ->toDateString();
-        $toDate = $filters['date_to'] ?? $today;
 
         $start = CarbonImmutable::parse($fromDate.' 00:00:00', $timezone)->utc();
         $end = CarbonImmutable::parse($toDate.' 00:00:00', $timezone)->addDay()->utc();
