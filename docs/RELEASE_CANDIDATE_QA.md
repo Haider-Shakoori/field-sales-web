@@ -67,6 +67,22 @@ Merged-main evidence:
 - Mobile post-merge CI #384 PASS at `18d63ac78b2843016101447d6c87c00a79d16732`: Dart format PASS, Flutter analyze PASS, 27 tests PASS, debug APK built, ephemeral release signing PASS, signed release AAB built, and release-artifact verification PASS.
 - The preceding mobile functional/release baseline at `5447e409914befc87b9607293de9a8fdb7342b73` remains historical CI #376 PASS evidence.
 
+### Automated recovery rehearsal
+
+`.github/workflows/recovery-rehearsal.yml` exercises the existing production backup/restore tooling against an isolated MySQL 8 service:
+
+1. Builds a production-shaped Laravel/shared-storage layout.
+2. Runs migrations and production readiness checks.
+3. Creates a database probe and uploaded-media probe.
+4. Runs the real `field-sales:backup` command.
+5. Verifies database/media files and SHA-256 manifest entries.
+6. Deliberately mutates both database and uploaded media.
+7. Runs the real destructive `ops/scripts/restore-backup.sh`.
+8. Confirms both probes return to the original values.
+9. Runs production readiness and `field-sales:ops-check --backup-tooling`.
+
+Merged-main recovery rehearsal #2 passed. This is automated recovery evidence only; it does **not** mark UAT-15 PASS because UAT-15 must still be executed on approved non-production/staging infrastructure.
+
 ## Manual UAT prerequisites
 
 Manual UAT must not begin until all of these are available:
@@ -99,7 +115,7 @@ Manual UAT must not begin until all of these are available:
 | UAT-14 | Queue/monitoring observation | No abnormal failed-job growth or stale queue reservations during the UAT run | Not Executed |
 | UAT-15 | Backup/restore drill on non-production environment | Backup checksum verifies and a restore recreates DB + uploaded visit media successfully | Not Executed |
 
-The mobile repository contains the device-oriented execution script in `UAT.md`.
+The mobile repository contains the device-oriented execution script in `UAT.md` and the auditable result record in `UAT_RESULTS_TEMPLATE.md`. The template defaults every scenario to `NOT EXECUTED`; it must be copied and completed for the actual release candidate.
 
 ## Evidence to capture during manual UAT
 
@@ -123,7 +139,7 @@ Do not include passwords, tokens, private signing data or customer production da
 
 1. **Approved mobile branding is missing.** The current Android manifest still references the platform default application icon. Batch 20 promotion must not ship that default icon.
 2. **Physical-device UAT is not yet executed.** CI cannot prove Android permission prompts, background-service behavior, OEM battery-management effects, camera/photo capture UX or actual restart/reconnect behavior on a phone.
-3. **Production-like deployment validation is not yet executed.** The repository contains deployment/readiness tooling, but public TLS, external monitoring, off-site backup replication and restore drill require the target infrastructure.
+3. **Production-like deployment validation is not yet executed.** The automated MySQL/database + uploaded-media recovery rehearsal passes, but public TLS, external monitoring, off-site backup replication and the UAT-15 restore drill still require the target infrastructure.
 4. **Real production signing/release secrets are intentionally not present in Git.** They must be configured in the release environment before a distributable RC can be generated.
 
 ### Conditional blocker
