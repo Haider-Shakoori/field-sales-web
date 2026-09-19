@@ -11,7 +11,7 @@ if [[ ! -f "${CURRENT}/artisan" ]]; then
 fi
 
 cd "${CURRENT}"
-"${PHP_BIN}" artisan field-sales:ops-check --no-interaction
+"${PHP_BIN}" artisan field-sales:ops-check --backup-tooling --no-interaction
 
 if [[ -n "${FIELD_SALES_HEALTH_URL:-}" ]]; then
     curl --fail --silent --show-error --max-time 15 "${FIELD_SALES_HEALTH_URL}" >/dev/null
