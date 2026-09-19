@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\DeviceException;
 use App\Http\Middleware\BootstrapTenantForAuth;
 use App\Http\Middleware\BootstrapTenantForWebAuth;
 use App\Http\Middleware\EnforceMinimumAppVersion;
@@ -72,7 +73,7 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $exceptions->render(function (ValidationException $e, Request $request) {
-            if ($request->expectsJson()) {
+            if ($request->is('api/*') || $request->expectsJson()) {
                 return ApiResponse::error(
                     'The given data was invalid.',
                     422,
@@ -82,13 +83,13 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (AuthenticationException $e, Request $request) {
-            if ($request->expectsJson()) {
+            if ($request->is('api/*') || $request->expectsJson()) {
                 return ApiResponse::error('Unauthenticated.', 401);
             }
         });
 
         $exceptions->render(function (TenantContextMissingException $e, Request $request) {
-            if ($request->expectsJson()) {
+            if ($request->is('api/*') || $request->expectsJson()) {
                 return ApiResponse::error(
                     'Tenant context is required before accessing tenant-owned data.',
                     500,
@@ -97,11 +98,15 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (HttpException $e, Request $request) {
-            if ($request->expectsJson()) {
-                return ApiResponse::error(
-                    $e->getMessage() ?: (Response::$statusTexts[$e->getStatusCode()] ?? 'Error'),
-                    $e->getStatusCode(),
-                );
+            if (! ($request->is('api/*') || $request->expectsJson())) {
+                return null;
             }
+
+            return ApiResponse::error(
+                $e->getMessage() ?: (Response::$statusTexts[$e->getStatusCode()] ?? 'Error'),
+                $e->getStatusCode(),
+                null,
+                $e instanceof DeviceException ? $e->errorCode : null,
+            );
         });
     })->create();

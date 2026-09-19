@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Exceptions\DeviceException;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +20,7 @@ class RequireActiveDevice extends EnsureActiveDevice
     public function handle(Request $request, Closure $next): Response
     {
         if ($request->header('X-Device-UUID') === null) {
-            abort(403, 'Device identification is required.');
+            throw DeviceException::required();
         }
 
         if ($request->attributes->get('device') !== null) {

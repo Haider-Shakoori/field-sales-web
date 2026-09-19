@@ -3,6 +3,7 @@
 use App\Models\CurrentLocation;
 use App\Models\LocationHistory;
 use App\Models\LocationSyncBatch;
+use App\Models\WorkSession;
 use App\Support\Tracking\LatestLocationCache;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
@@ -61,8 +62,9 @@ it('accepts a valid batch and stores history, current location, batch, and cache
 
     $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
     $mobile = makeMobileSalesman($tenant);
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
     batch7OpenSession($mobile);
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     $response = batch7Upload($mobile, [
         batch7GpsPoint((string) Str::uuid(), '2026-01-15T09:00:00Z', ['latitude' => 34.5001]),
@@ -100,8 +102,9 @@ it('accepts a valid batch and stores history, current location, batch, and cache
 it('rejects batches larger than one hundred points at the request level', function (): void {
     $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
     $mobile = makeMobileSalesman($tenant);
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
     batch7OpenSession($mobile);
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     $locations = collect(range(1, 101))
         ->map(fn () => batch7GpsPoint((string) Str::uuid(), '2026-01-15T09:00:00Z'))
@@ -121,8 +124,9 @@ it('rejects batches larger than one hundred points at the request level', functi
 it('rejects invalid points individually while accepting valid ones', function (): void {
     $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
     $mobile = makeMobileSalesman($tenant);
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
     batch7OpenSession($mobile);
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     $response = batch7Upload($mobile, [
         batch7GpsPoint((string) Str::uuid(), '2026-01-15T09:00:00Z'),
@@ -156,8 +160,9 @@ it('rejects invalid points individually while accepting valid ones', function ()
 it('counts duplicate client uuids and is safe on batch retry', function (): void {
     $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
     $mobile = makeMobileSalesman($tenant);
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
     batch7OpenSession($mobile);
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     $batchUuid = (string) Str::uuid();
     $points = [
@@ -186,8 +191,9 @@ it('counts duplicate client uuids and is safe on batch retry', function (): void
 it('preserves mock location as a signal instead of rejecting it', function (): void {
     $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
     $mobile = makeMobileSalesman($tenant);
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
     batch7OpenSession($mobile);
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     batch7Upload($mobile, [
         batch7GpsPoint((string) Str::uuid(), '2026-01-15T09:00:00Z', ['is_mock_location' => true]),
@@ -213,8 +219,9 @@ it('never regresses the current location with an older offline point', function 
 
     $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
     $mobile = makeMobileSalesman($tenant);
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
     batch7OpenSession($mobile);
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     batch7Upload($mobile, [
         batch7GpsPoint((string) Str::uuid(), '2026-01-15T09:00:00Z', ['latitude' => 34.6]),
@@ -243,8 +250,9 @@ it('never regresses the current location with an older offline point', function 
 it('chooses the newest point of a batch regardless of array order', function (): void {
     $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
     $mobile = makeMobileSalesman($tenant);
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
     batch7OpenSession($mobile);
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     batch7Upload($mobile, [
         batch7GpsPoint((string) Str::uuid(), '2026-01-15T09:00:00Z', ['latitude' => 34.6]),
@@ -268,8 +276,9 @@ it('keeps accepted gps data when the redis cache fails', function (): void {
 
     $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
     $mobile = makeMobileSalesman($tenant);
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
     batch7OpenSession($mobile);
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     batch7Upload($mobile, [
         batch7GpsPoint((string) Str::uuid(), '2026-01-15T09:00:00Z'),
@@ -287,8 +296,9 @@ it('keeps accepted gps data when the redis cache fails', function (): void {
 it('derives tenant, user, salesman, and device from the authenticated device', function (): void {
     $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
     $mobile = makeMobileSalesman($tenant);
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
     batch7OpenSession($mobile);
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     batch7Upload($mobile, [
         batch7GpsPoint((string) Str::uuid(), '2026-01-15T09:00:00Z', [
@@ -356,8 +366,9 @@ it('requires an active device for gps uploads', function (): void {
 it('returns own current location and own history with summary', function (): void {
     $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
     $mobile = makeMobileSalesman($tenant);
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
     batch7OpenSession($mobile);
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     $this->withToken($mobile['token'])->withHeaders($mobile['headers'])
         ->getJson('/api/v1/gps/current')
@@ -398,9 +409,11 @@ it('keeps gps data tenant isolated', function (): void {
     $mobileA = makeMobileSalesman($tenantA);
     $mobileB = makeMobileSalesman($tenantB);
 
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
 
     batch7OpenSession($mobileA);
+
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     batch7Upload($mobileA, [
         batch7GpsPoint((string) Str::uuid(), '2026-01-15T09:00:00Z'),
@@ -433,8 +446,9 @@ it('returns per-point uuid verdicts for a valid upload', function (): void {
     $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
     $mobile = makeMobileSalesman($tenant);
 
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
     batch7OpenSession($mobile);
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     $uuid = (string) Str::uuid();
 
@@ -457,8 +471,9 @@ it('returns uuid verdicts and invariant counts for a mixed batch', function (): 
     $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
     $mobile = makeMobileSalesman($tenant);
 
-    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 06:00:00', 'UTC'));
     batch7OpenSession($mobile);
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
 
     $duplicate = (string) Str::uuid();
 
@@ -490,6 +505,145 @@ it('returns uuid verdicts and invariant counts for a mixed batch', function (): 
 
     withTenantContext($tenant, function (): void {
         expect(LocationHistory::query()->count())->toBe(3);
+    });
+
+    $this->travelBack();
+});
+
+it('accepts gps after local midnight for an active overnight session', function (): void {
+    $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
+    $mobile = makeMobileSalesman($tenant);
+
+    // 18:30 Kabul — session opens and stays active.
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 15:00:00', 'UTC'));
+    batch7OpenSession($mobile);
+
+    // 01:00 Kabul on the NEXT tenant-local date, still inside the active session.
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 20:30:00', 'UTC'));
+
+    batch7Upload($mobile, [
+        batch7GpsPoint((string) Str::uuid(), '2026-01-15T20:30:00Z'),
+    ])->assertStatus(201)
+        ->assertJsonPath('data.accepted', 1)
+        ->assertJsonPath('data.rejected', 0);
+
+    withTenantContext($tenant, function (): void {
+        expect(LocationHistory::query()->count())->toBe(1);
+
+        $session = WorkSession::query()->firstOrFail();
+
+        expect($session->date->toDateString())->toBe('2026-01-15')
+            ->and($session->end_time)->toBeNull();
+    });
+
+    $this->travelBack();
+});
+
+it('accepts delayed gps inside a completed overnight session window', function (): void {
+    $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
+    $mobile = makeMobileSalesman($tenant);
+
+    // Session: 20:00 → 04:00 Kabul (15:30 → 23:30 UTC).
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 15:30:00', 'UTC'));
+    batch7OpenSession($mobile);
+
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 23:30:00', 'UTC'));
+    $this->withToken($mobile['token'])->withHeaders($mobile['headers'])
+        ->postJson('/api/v1/attendance/end', [
+            'latitude' => 34.56,
+            'longitude' => 69.21,
+            'accuracy' => 8.2,
+        ])
+        ->assertOk();
+
+    // Upload at 10:00 Kabul the next morning for a point recorded at 02:00 Kabul.
+    $this->travelTo(CarbonImmutable::parse('2026-01-16 05:30:00', 'UTC'));
+
+    batch7Upload($mobile, [
+        batch7GpsPoint((string) Str::uuid(), '2026-01-15T21:30:00Z'),
+    ])->assertStatus(201)
+        ->assertJsonPath('data.accepted', 1)
+        ->assertJsonPath('data.rejected', 0);
+
+    $this->travelBack();
+});
+
+it('rejects gps outside the overnight session interval', function (): void {
+    $tenant = makeTenant(['timezone' => 'Asia/Kabul']);
+    $mobile = makeMobileSalesman($tenant);
+
+    // Completed session: 20:00 → 04:00 Kabul (15:30 → 23:30 UTC).
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 15:30:00', 'UTC'));
+    batch7OpenSession($mobile);
+
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 23:30:00', 'UTC'));
+    $this->withToken($mobile['token'])->withHeaders($mobile['headers'])
+        ->postJson('/api/v1/attendance/end', [
+            'latitude' => 34.56,
+            'longitude' => 69.21,
+            'accuracy' => 8.2,
+        ])
+        ->assertOk();
+
+    $this->travelTo(CarbonImmutable::parse('2026-01-16 06:00:00', 'UTC'));
+
+    // 19:30 Kabul, before the session started.
+    $before = (string) Str::uuid();
+    // 04:30 Kabul, after the session ended.
+    $after = (string) Str::uuid();
+
+    batch7Upload($mobile, [
+        batch7GpsPoint($before, '2026-01-15T15:00:00Z'),
+        batch7GpsPoint($after, '2026-01-16T00:00:00Z'),
+    ])->assertStatus(201)
+        ->assertJsonPath('data.accepted', 0)
+        ->assertJsonPath('data.rejected', 2)
+        ->assertJsonPath('data.rejected_uuids', [$before, $after])
+        ->assertJsonPath('data.rejected_details.0.code', 'no_work_session')
+        ->assertJsonPath('data.rejected_details.1.code', 'no_work_session');
+
+    withTenantContext($tenant, function (): void {
+        expect(LocationHistory::query()->count())->toBe(0);
+    });
+
+    $this->travelBack();
+});
+
+it('still rejects gps outside a normal daytime session window', function (): void {
+    $tenant = makeTenant(['timezone' => 'UTC']);
+    $mobile = makeMobileSalesman($tenant);
+
+    // Session: 08:00 → 17:00 UTC.
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 08:00:00', 'UTC'));
+    batch7OpenSession($mobile);
+
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 12:00:00', 'UTC'));
+    batch7Upload($mobile, [
+        batch7GpsPoint((string) Str::uuid(), '2026-01-15T12:00:00Z'),
+    ])->assertStatus(201)
+        ->assertJsonPath('data.accepted', 1);
+
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 17:00:00', 'UTC'));
+    $this->withToken($mobile['token'])->withHeaders($mobile['headers'])
+        ->postJson('/api/v1/attendance/end', [
+            'latitude' => 34.56,
+            'longitude' => 69.21,
+            'accuracy' => 8.2,
+        ])
+        ->assertOk();
+
+    // 18:30, after a 08:00 → 17:00 daytime session.
+    $this->travelTo(CarbonImmutable::parse('2026-01-15 18:30:00', 'UTC'));
+
+    batch7Upload($mobile, [
+        batch7GpsPoint((string) Str::uuid(), '2026-01-15T18:30:00Z'),
+    ])->assertStatus(201)
+        ->assertJsonPath('data.accepted', 0)
+        ->assertJsonPath('data.rejected', 1)
+        ->assertJsonPath('data.rejected_details.0.code', 'no_work_session');
+
+    withTenantContext($tenant, function (): void {
+        expect(LocationHistory::query()->count())->toBe(1);
     });
 
     $this->travelBack();

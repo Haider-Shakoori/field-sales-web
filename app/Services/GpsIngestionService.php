@@ -11,7 +11,6 @@ use App\Models\User;
 use App\Models\WorkSession;
 use App\Support\Tenancy\TenantContext;
 use App\Support\Tracking\LatestLocationCache;
-use App\Support\Tracking\TenantClock;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -22,9 +21,12 @@ use Throwable;
  *
  * Identity (tenant, user, salesman, device) is always derived server-side. Each
  * point is validated and deduplicated independently so one bad point never
- * rejects a whole batch. `location_history` is append-only; `current_locations`
- * only advances when an accepted point is newer than the stored state, which
- * keeps out-of-order offline uploads from regressing the latest location.
+ * rejects a whole batch. A point is authorized when its `recorded_at` falls
+ * inside a real work-session interval (start_time..end_time, or start_time..now
+ * for active sessions), which supports overnight sessions and delayed offline
+ * uploads. `location_history` is append-only; `current_locations` only advances
+ * when an accepted point is newer than the stored state, which keeps
+ * out-of-order offline uploads from regressing the latest location.
  *
  * Redis is written after the database transaction commits and never affects
  * database truth.
@@ -54,14 +56,14 @@ class GpsIngestionService
         $salesman = $user->salesmanProfile;
         abort_if($salesman === null, 403, 'Only salesmen with a field profile can upload locations.');
 
-        $timezone = TenantClock::timezoneFor($user);
         $existingUuids = $this->existingClientUuids($locations);
 
-        $result = DB::transaction(function () use ($user, $device, $tenantId, $salesman, $locations, $batchUuid, $timezone, $existingUuids): array {
+        $result = DB::transaction(function () use ($user, $device, $tenantId, $salesman, $locations, $batchUuid, $existingUuids): array {
             $receivedAt = CarbonImmutable::now('UTC');
             $batch = $this->resolveBatch($tenantId, $user->id, $device->id, $batchUuid, count($locations), $receivedAt);
 
             $seen = array_fill_keys($existingUuids, true);
+            $validatedPoints = [];
             $acceptedRows = [];
             $acceptedUuids = [];
             $duplicateUuids = [];
@@ -69,8 +71,10 @@ class GpsIngestionService
             $rejectedDetails = [];
             $duplicates = 0;
             $newest = null;
-            $sessionDates = [];
+            $earliestRecordedAt = null;
+            $latestRecordedAt = null;
 
+            // Pass 1: validate and de-duplicate every point without hitting sessions.
             foreach ($locations as $index => $point) {
                 if (! is_array($point)) {
                     $rejectedDetails[] = ['index' => $index, 'code' => 'malformed_point', 'reason' => 'malformed_point'];
@@ -107,17 +111,46 @@ class GpsIngestionService
                     continue;
                 }
 
-                $localDate = $validated['recorded_at']->setTimezone($timezone)->toDateString();
+                $validatedPoints[] = ['index' => $index, 'client_uuid' => $clientUuid, 'data' => $validated];
 
-                if (! array_key_exists($localDate, $sessionDates)) {
-                    $sessionDates[$localDate] = WorkSession::query()
-                        ->where('user_id', $user->id)
-                        ->whereDate('date', $localDate)
-                        ->exists();
+                $recordedAt = $validated['recorded_at'];
+                $earliestRecordedAt = $earliestRecordedAt === null || $recordedAt->lessThan($earliestRecordedAt) ? $recordedAt : $earliestRecordedAt;
+                $latestRecordedAt = $latestRecordedAt === null || $recordedAt->greaterThan($latestRecordedAt) ? $recordedAt : $latestRecordedAt;
+            }
+
+            // One bounded query loads every session that can contain a point in
+            // this batch. Overnight sessions are matched by their UTC interval,
+            // not by the point's tenant-local calendar date.
+            $sessions = $validatedPoints === []
+                ? collect()
+                : WorkSession::query()
+                    ->where('user_id', $user->id)
+                    ->where('start_time', '<=', $latestRecordedAt)
+                    ->where(function ($query) use ($earliestRecordedAt): void {
+                        $query->whereNull('end_time')->orWhere('end_time', '>=', $earliestRecordedAt);
+                    })
+                    ->get(['id', 'start_time', 'end_time']);
+
+            // Pass 2: authorize each point against a real session interval.
+            foreach ($validatedPoints as $entry) {
+                $clientUuid = $entry['client_uuid'];
+                $validated = $entry['data'];
+                $recordedAt = $validated['recorded_at'];
+
+                if (isset($seen[$clientUuid])) {
+                    $duplicates++;
+                    $duplicateUuids[] = $clientUuid;
+
+                    continue;
                 }
 
-                if (! $sessionDates[$localDate]) {
-                    $rejectedDetails[] = ['index' => $index, 'client_uuid' => $clientUuid, 'code' => 'no_work_session', 'reason' => 'no_work_session'];
+                $hasSession = $sessions->contains(
+                    fn (WorkSession $session) => $session->start_time->lessThanOrEqualTo($recordedAt)
+                        && ($session->end_time === null || $session->end_time->greaterThanOrEqualTo($recordedAt)),
+                );
+
+                if (! $hasSession) {
+                    $rejectedDetails[] = ['index' => $entry['index'], 'client_uuid' => $clientUuid, 'code' => 'no_work_session', 'reason' => 'no_work_session'];
                     $rejectedUuids[] = $clientUuid;
 
                     continue;
@@ -136,7 +169,7 @@ class GpsIngestionService
                     $receivedAt,
                 );
 
-                if ($newest === null || $validated['recorded_at']->greaterThan($newest['recorded_at'])) {
+                if ($newest === null || $recordedAt->greaterThan($newest['recorded_at'])) {
                     $newest = $validated;
                 }
             }

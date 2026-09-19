@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Exceptions\DeviceException;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\DeviceResource;
 use App\Http\Resources\TenantResource;
@@ -148,7 +149,7 @@ class AuthController extends Controller
 
             if ($device !== null) {
                 if (! $device->isActive()) {
-                    abort(403, 'This device has been revoked. Reinstall the app or contact support.');
+                    throw DeviceException::revoked('This device has been revoked. Reinstall the app or contact support.');
                 }
 
                 $device->update([

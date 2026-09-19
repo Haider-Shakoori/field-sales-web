@@ -8,6 +8,10 @@ use Illuminate\Http\JsonResponse;
  * Standard JSON envelope for every API response:
  *
  * { "success": bool, "data": mixed, "meta": object, "error": object }
+ *
+ * Error responses carry a stable machine-readable `error.code` (null when no
+ * specific domain code applies) plus the human `error.message` and optional
+ * `error.details`.
  */
 class ApiResponse
 {
@@ -21,13 +25,14 @@ class ApiResponse
         ], $status, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public static function error(string $message, int $status = 400, mixed $details = null): JsonResponse
+    public static function error(string $message, int $status = 400, mixed $details = null, ?string $code = null): JsonResponse
     {
         return response()->json([
             'success' => false,
             'data' => null,
             'meta' => (object) [],
             'error' => [
+                'code' => $code,
                 'message' => $message,
                 'details' => $details,
             ],

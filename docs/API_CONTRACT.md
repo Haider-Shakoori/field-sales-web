@@ -771,9 +771,14 @@ GET /api/v1/sync/pull?since=2025-01-14T00:00:00Z&types[]=customers&types[]=produ
   "latitude": 34.5553,
   "longitude": 69.2075,
   "accuracy": 10.5,
-  "offline_uuid": "client-uuid-att-001"
+  "offline_uuid": "client-uuid-att-001",
+  "started_at": "2026-01-15T08:00:00Z"
 }
 ```
+
+> - `started_at` is **optional** and client-recorded: offline clients may sync Start Day later while preserving the actual event time. When absent, server-now is used (existing online behaviour).
+> - The stored `start_time` is UTC; the work-session `date` is derived from `started_at` in the **tenant timezone** (`TenantClock`). Values more than 5 minutes in the future are rejected.
+> - Retries with the same `offline_uuid` return the existing session unchanged, even if a different `started_at` is supplied.
 
 **Response 201:**
 
@@ -800,9 +805,13 @@ GET /api/v1/sync/pull?since=2025-01-14T00:00:00Z&types[]=customers&types[]=produ
 {
   "latitude": 34.5600,
   "longitude": 69.2100,
-  "accuracy": 8.2
+  "accuracy": 8.2,
+  "ended_at": "2026-01-15T17:00:00Z"
 }
 ```
+
+> - `ended_at` is **optional** and client-recorded (same offline-sync rules as `started_at`): it must be valid ISO-8601, not more than 5 minutes in the future, and not before the session `start_time`. `duration_minutes` is always server-calculated from the accepted UTC event timestamps.
+> - Retrying End Day after completion returns the completed session unchanged; retries never mutate `end_time` or duration.
 
 **Response 200:**
 
@@ -1052,6 +1061,10 @@ GET /api/v1/gps/history?date=2025-01-15&user_id=5
 > - Acknowledgements are only recorded when explicitly submitted — never auto-created on login or Start Day.
 
 **GPS upload per-point verdicts** — `POST /api/v1/gps/locations` responses keep `accepted`, `rejected`, `duplicates`, `batch_id`, and `rejected_details`, and add `accepted_uuids`, `duplicate_uuids`, and `rejected_uuids`. The invariant `accepted + duplicates + rejected = submitted points` holds; duplicates are never counted as accepted. `rejected_details` entries include both `code` and `reason` (same canonical value).
+
+**GPS work-session matching** — a point is accepted only when its `recorded_at` falls inside one of the authenticated user's work-session intervals: `start_time <= recorded_at <= end_time`, or `start_time <= recorded_at` while the session is still active (`end_time` null). Matching uses the actual UTC interval, so overnight sessions (e.g. 20:00 → 04:00) accept points recorded after local midnight, and delayed offline uploads still match completed sessions. Points outside every interval are rejected with `no_work_session`; request arrival time is never used for authorization. The batch session lookup is a single bounded query per request (max 100 points).
+
+**Device error codes** — device-binding failures use the canonical envelope with a stable machine-readable `error.code`: `DEVICE_REQUIRED` (missing `X-Device-UUID`, 403), `DEVICE_NOT_FOUND` (unknown device, 404), `DEVICE_MISMATCH` (device cannot be validated, 403), `DEVICE_REVOKED` (revoked device, 403 — also returned by `POST /api/v1/auth/login` for a revoked device).
 
 ---
 

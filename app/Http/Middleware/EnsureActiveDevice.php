@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Exceptions\DeviceException;
 use App\Models\Device;
 use App\Support\Tenancy\TenantContext;
 use Closure;
@@ -28,7 +29,7 @@ class EnsureActiveDevice
         $user = $request->user();
 
         if ($user === null || ! TenantContext::hasContext()) {
-            abort(403, 'Device cannot be validated.');
+            throw DeviceException::mismatch();
         }
 
         $device = Device::query()
@@ -36,9 +37,13 @@ class EnsureActiveDevice
             ->where('user_id', $user->id)
             ->first();
 
-        abort_if($device === null, 404, 'Device not found.');
+        if ($device === null) {
+            throw DeviceException::notFound();
+        }
 
-        abort_if(! $device->isActive(), 403, 'This device has been revoked. Please reinstall the app.');
+        if (! $device->isActive()) {
+            throw DeviceException::revoked();
+        }
 
         $request->attributes->set('device', $device);
 

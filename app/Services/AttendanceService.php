@@ -8,6 +8,7 @@ use App\Models\WorkSession;
 use App\Support\Tenancy\TenantContext;
 use App\Support\Tracking\TenantClock;
 use Carbon\CarbonImmutable;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
@@ -15,7 +16,11 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
  *
  * Start Day is idempotent per client `offline_uuid` (mapped to the canonical
  * work session UUID) and one session per user per tenant-local work date is
- * enforced. Duration is always calculated server-side from UTC timestamps.
+ * enforced. The work date is derived from the accepted start event time (the
+ * client-supplied `started_at` for offline sync, or server-now when absent).
+ *
+ * Duration is always calculated server-side from UTC event timestamps; client
+ * duration values are never trusted.
  *
  * Schedule-aware flags (`is_late_start`, `is_early_finish`) are intentionally
  * left false: no working-hour configuration exists yet (Batch 7 scope).
@@ -23,7 +28,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 class AttendanceService
 {
     /**
-     * @param  array{latitude: float|int|string, longitude: float|int|string, offline_uuid: string}  $data
+     * @param  array{latitude: float|int|string, longitude: float|int|string, offline_uuid: string, started_at?: string|null}  $data
      * @return array{0: WorkSession, 1: bool} [session, created]
      */
     public function start(User $user, Device $device, array $data): array
@@ -43,10 +48,13 @@ class AttendanceService
                 throw new ConflictHttpException('This offline session identifier is already in use.');
             }
 
+            // UUID identity wins: retries never mutate the original event time.
             return [$existing, false];
         }
 
-        $date = TenantClock::dateFor($user);
+        $startTime = $this->eventTime($data['started_at'] ?? null);
+
+        $date = TenantClock::dateFor($user, $startTime);
 
         $sameDay = WorkSession::query()
             ->where('user_id', $user->id)
@@ -64,7 +72,7 @@ class AttendanceService
             'salesman_id' => $salesman->id,
             'device_id' => $device->id,
             'date' => $date,
-            'start_time' => CarbonImmutable::now('UTC'),
+            'start_time' => $startTime,
             'start_latitude' => $data['latitude'],
             'start_longitude' => $data['longitude'],
             'status' => WorkSession::STATUS_ACTIVE,
@@ -76,10 +84,11 @@ class AttendanceService
     }
 
     /**
-     * End the current active work session. Retrying after completion returns the
-     * already-completed session instead of recalculating state.
+     * End the current active work session using the accepted end event time
+     * (`ended_at` for offline sync, or server-now when absent). Retrying after
+     * completion returns the already-completed session unchanged.
      *
-     * @param  array{latitude: float|int|string, longitude: float|int|string}  $data
+     * @param  array{latitude: float|int|string, longitude: float|int|string, ended_at?: string|null}  $data
      * @return array{0: WorkSession, 1: bool} [session, ended]
      */
     public function end(User $user, array $data): array
@@ -91,19 +100,30 @@ class AttendanceService
             ->first();
 
         if ($session === null) {
-            $today = WorkSession::query()
+            // Idempotent retry: a recently completed session (including one that
+            // crossed midnight) is returned unchanged instead of forcing another
+            // End Day call. The 24h window avoids resurfacing stale sessions.
+            $recent = WorkSession::query()
                 ->where('user_id', $user->id)
-                ->whereDate('date', TenantClock::dateFor($user))
+                ->whereNotNull('end_time')
+                ->where('end_time', '>=', CarbonImmutable::now('UTC')->subDay())
+                ->latest('start_time')
                 ->first();
 
-            if ($today !== null && ! $today->isActive()) {
-                return [$today, false];
+            if ($recent !== null) {
+                return [$recent, false];
             }
 
             throw new ConflictHttpException('No active work session found.');
         }
 
-        $endTime = CarbonImmutable::now('UTC');
+        $endTime = $this->eventTime($data['ended_at'] ?? null);
+
+        if ($endTime->lessThan($session->start_time)) {
+            throw ValidationException::withMessages([
+                'ended_at' => 'The ended at time must be after the work session start time.',
+            ]);
+        }
 
         $session->update([
             'end_time' => $endTime,
@@ -123,5 +143,18 @@ class AttendanceService
             ->where('user_id', $user->id)
             ->whereDate('date', TenantClock::dateFor($user))
             ->first();
+    }
+
+    /**
+     * Resolve the accepted event time: the client timestamp for offline sync,
+     * or server-now when the client did not supply one.
+     */
+    private function eventTime(?string $value): CarbonImmutable
+    {
+        if ($value === null || $value === '') {
+            return CarbonImmutable::now('UTC');
+        }
+
+        return CarbonImmutable::parse($value)->utc();
     }
 }
