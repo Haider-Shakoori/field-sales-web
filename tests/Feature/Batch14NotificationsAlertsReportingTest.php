@@ -174,6 +174,7 @@ class Batch14NotificationsAlertsReportingTest extends TestCase
                 ]);
 
                 WorkSession::create([
+                    'uuid' => (string) Str::uuid(),
                     'user_id' => $salesmanUser->id,
                     'salesman_id' => $salesman->id,
                     'device_id' => $device->id,
