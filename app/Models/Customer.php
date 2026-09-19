@@ -57,6 +57,16 @@ class Customer extends Model
         return $this->hasMany(RouteCustomer::class);
     }
 
+    public function visits(): HasMany
+    {
+        return $this->hasMany(CustomerVisit::class);
+    }
+
+    public function callActivities(): HasMany
+    {
+        return $this->hasMany(CustomerCallActivity::class)->latest('called_at');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);

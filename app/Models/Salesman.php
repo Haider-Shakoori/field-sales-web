@@ -37,6 +37,11 @@ class Salesman extends Model
         return $this->hasMany(SalesmanAssignment::class);
     }
 
+    public function visits(): HasMany
+    {
+        return $this->hasMany(CustomerVisit::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
