@@ -6,11 +6,14 @@ use App\Jobs\SendPushNotification;
 use App\Models\Device;
 use App\Models\NotificationDelivery;
 use App\Models\NotificationPreference;
+use App\Models\SalesmanAssignment;
 use App\Models\OperationalNotification;
 use App\Models\User;
 
 class NotificationService
 {
+    public function __construct(private readonly TenantClock $clock) {}
+
     public function preferences(User $user): NotificationPreference
     {
         return NotificationPreference::firstOrCreate(
@@ -37,7 +40,7 @@ class NotificationService
     ): ?OperationalNotification {
         $preferences = $this->preferences($recipient);
 
-        if (! $preferences->database_enabled || ! $this->categoryEnabled($preferences, $category)) {
+        if (! $this->categoryEnabled($preferences, $category)) {
             return null;
         }
 
@@ -48,6 +51,7 @@ class NotificationService
             'priority' => $priority,
             'title' => $title,
             'message' => $message,
+            'database_visible' => $preferences->database_enabled,
             'data' => $data ?: null,
         ]);
 
@@ -86,6 +90,60 @@ class NotificationService
         }
 
         return $notification;
+    }
+
+    public function notifySuspiciousVisit(\App\Models\VisitSuspiciousFlag $flag): void
+    {
+        $flag->loadMissing(['tenant', 'visit.salesman']);
+        $visit = $flag->visit;
+
+        if (! $visit) {
+            return;
+        }
+
+        $timezone = $this->clock->timezone($flag->tenant);
+        $localDate = $visit->checked_in_at
+            ? $visit->checked_in_at->setTimezone($timezone)->toDateString()
+            : $this->clock->now($flag->tenant)->toDateString();
+
+        $recipients = User::query()
+            ->where('is_active', true)
+            ->whereHas('roles', fn ($roles) => $roles->whereIn('slug', [
+                'owner',
+                'company_admin',
+                'sales_manager',
+            ]))
+            ->get();
+
+        $assignment = SalesmanAssignment::with('supervisor.user')
+            ->where('salesman_id', $visit->salesman_id)
+            ->current($localDate)
+            ->latest('effective_from')
+            ->first();
+
+        if ($assignment?->supervisor?->user?->is_active) {
+            $recipients->push($assignment->supervisor->user);
+        }
+
+        $recipients
+            ->unique('id')
+            ->each(function (User $recipient) use ($flag, $visit): void {
+                $this->notify(
+                    $recipient,
+                    'visit.suspicious_flag',
+                    'suspicious_alerts',
+                    'Suspicious visit evidence detected',
+                    ($visit->salesman?->full_name ?? 'A salesman')
+                        .' triggered '.str($flag->reason_code)->replace('_', ' ').'.',
+                    [
+                        'visit_id' => $visit->uuid,
+                        'flag_id' => $flag->uuid,
+                        'reason' => $flag->reason_code,
+                        'severity' => $flag->severity,
+                    ],
+                    $flag->severity === 'high' ? 'high' : 'normal',
+                );
+            });
     }
 
     private function categoryEnabled(
