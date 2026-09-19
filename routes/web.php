@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ReadinessController;
 use App\Http\Controllers\Web\AlertController;
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
@@ -28,7 +29,6 @@ use App\Http\Controllers\Web\TerritoryController;
 use App\Http\Controllers\Web\TrackingSettingsController;
 use App\Http\Controllers\Web\UserController;
 use App\Http\Controllers\Web\VisitController;
-use App\Http\Controllers\ReadinessController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin/users');
