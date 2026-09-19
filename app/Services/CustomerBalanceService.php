@@ -16,10 +16,28 @@ class CustomerBalanceService
 
     public function outstanding(Customer $customer, string $currency): float
     {
-        $row = collect($this->forCustomer($customer))
-            ->firstWhere('currency', strtoupper($currency));
+        return $this->snapshot($customer, $currency)['outstanding_balance'];
+    }
 
-        return round((float) ($row['outstanding_balance'] ?? 0), 4);
+    public function snapshot(Customer $customer, string $currency): array
+    {
+        $currency = strtoupper($currency);
+        $row = collect($this->forCustomer($customer))
+            ->firstWhere('currency', $currency);
+
+        $receivable = round((float) ($row['receivable_total'] ?? 0), 4);
+        $verified = round((float) ($row['verified_collections'] ?? 0), 4);
+        $pending = round((float) ($row['pending_collections'] ?? 0), 4);
+        $outstanding = round(max(0, $receivable - $verified), 4);
+
+        return [
+            'currency' => $currency,
+            'receivable_total' => $receivable,
+            'verified_collections' => $verified,
+            'pending_collections' => $pending,
+            'outstanding_balance' => $outstanding,
+            'available_to_collect' => round(max(0, $outstanding - $pending), 4),
+        ];
     }
 
     public function forCustomers(SupportCollection $customers): array
