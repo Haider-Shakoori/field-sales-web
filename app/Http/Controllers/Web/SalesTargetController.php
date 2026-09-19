@@ -46,7 +46,7 @@ class SalesTargetController extends Controller
     public function create(): View
     {
         return view('admin.targets.form', [
-            'target' => new SalesTarget(),
+            'target' => new SalesTarget,
             'salesmen' => Salesman::active()->orderBy('first_name')->orderBy('last_name')->get(),
             'action' => route('admin.targets.store'),
             'method' => 'POST',
