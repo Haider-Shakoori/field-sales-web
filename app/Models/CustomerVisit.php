@@ -64,6 +64,11 @@ class CustomerVisit extends Model
         return $this->belongsTo(WorkSession::class);
     }
 
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'visit_id');
+    }
+
     public function photos(): HasMany
     {
         return $this->hasMany(VisitPhoto::class, 'visit_id');
