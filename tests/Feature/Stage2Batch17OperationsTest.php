@@ -88,6 +88,26 @@ class Stage2Batch17OperationsTest extends TestCase
         );
     }
 
+    public function test_queue_worker_timeout_stays_below_database_retry_window(): void
+    {
+        $unit = file_get_contents(base_path('ops/systemd/field-sales-queue@.service'));
+
+        $this->assertNotFalse($unit);
+        $this->assertSame(1, preg_match('/--timeout=(\d+)/', $unit, $matches));
+        $this->assertLessThan(
+            (int) config('queue.connections.database.retry_after'),
+            (int) $matches[1],
+        );
+    }
+
+    public function test_tls_nginx_configuration_propagates_secure_request_state(): void
+    {
+        $nginx = file_get_contents(base_path('ops/nginx/field-sales.conf'));
+
+        $this->assertNotFalse($nginx);
+        $this->assertStringContainsString('fastcgi_param HTTPS on;', $nginx);
+    }
+
     public function test_production_operations_artifacts_are_present(): void
     {
         $paths = [
