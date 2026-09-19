@@ -18,12 +18,12 @@ class DashboardService
 {
     public function __construct(private readonly TenantClock $clock) {}
 
-    public function summary(User $actor): array
+    public function summary(User $actor, ?array $locations = null): array
     {
         $actor->loadMissing(['tenant', 'supervisor']);
         [$start, $end, $localDate] = $this->window($actor);
         $salesmanIds = $this->visibleSalesmanIds($actor, $localDate);
-        $locations = $this->liveLocations($actor, $salesmanIds);
+        $locations ??= $this->liveLocations($actor, $salesmanIds);
 
         return [
             'local_date' => $localDate,
@@ -183,6 +183,93 @@ class DashboardService
             ->all();
     }
 
+    public function analytics(User $actor, int $days = 7): array
+    {
+        $actor->loadMissing(['tenant', 'supervisor']);
+        $days = max(2, min(31, $days));
+        $timezone = $this->clock->timezone($actor->tenant);
+        $localToday = $this->clock->now($actor->tenant)->startOfDay();
+        $localStart = $localToday->subDays($days - 1);
+        $start = $localStart->utc();
+        $end = $localToday->addDay()->utc();
+        $salesmanIds = $this->visibleSalesmanIds($actor, $localToday->toDateString());
+
+        $dates = collect(range(0, $days - 1))
+            ->map(fn (int $offset) => $localStart->addDays($offset)->toDateString());
+        $dateIndex = $dates->flip();
+
+        $salesByCurrency = [];
+        $orders = Order::query()
+            ->whereIn('salesman_id', $salesmanIds)
+            ->where('status', 'approved')
+            ->whereBetween('ordered_at', [$start, $end])
+            ->get(['ordered_at', 'currency', 'grand_total']);
+
+        foreach ($orders as $order) {
+            $date = CarbonImmutable::parse($order->ordered_at)
+                ->setTimezone($timezone)
+                ->toDateString();
+            $index = $dateIndex->get($date);
+
+            if ($index === null) {
+                continue;
+            }
+
+            $currency = strtoupper((string) $order->currency);
+            $salesByCurrency[$currency] ??= array_fill(0, $days, 0.0);
+            $salesByCurrency[$currency][$index] += (float) $order->grand_total;
+        }
+
+        ksort($salesByCurrency);
+
+        $visitStarted = array_fill(0, $days, 0);
+        $visitCompleted = array_fill(0, $days, 0);
+        $visits = CustomerVisit::query()
+            ->whereIn('salesman_id', $salesmanIds)
+            ->whereBetween('checked_in_at', [$start, $end])
+            ->get(['checked_in_at', 'status']);
+
+        foreach ($visits as $visit) {
+            $date = CarbonImmutable::parse($visit->checked_in_at)
+                ->setTimezone($timezone)
+                ->toDateString();
+            $index = $dateIndex->get($date);
+
+            if ($index === null) {
+                continue;
+            }
+
+            $visitStarted[$index]++;
+
+            if ($visit->status === 'completed') {
+                $visitCompleted[$index]++;
+            }
+        }
+
+        return [
+            'days' => $days,
+            'labels' => $dates
+                ->map(fn (string $date) => CarbonImmutable::parse($date, $timezone)->format('M j'))
+                ->all(),
+            'sales' => [
+                'datasets' => collect($salesByCurrency)
+                    ->map(fn (array $values, string $currency) => [
+                        'currency' => $currency,
+                        'values' => array_map(
+                            fn (float $value) => round($value, 4),
+                            $values,
+                        ),
+                    ])
+                    ->values()
+                    ->all(),
+            ],
+            'visits' => [
+                'started' => $visitStarted,
+                'completed' => $visitCompleted,
+            ],
+        ];
+    }
+
     public function liveLocations(User $actor, ?SupportCollection $salesmanIds = null): array
     {
         $actor->loadMissing(['tenant', 'supervisor']);
@@ -217,8 +304,10 @@ class DashboardService
             if (! $location) {
                 return [
                     'salesman_id' => $salesman->uuid,
+                    'employee_code' => $salesman->employee_code,
                     'salesman_name' => $salesman->full_name,
                     'freshness' => 'offline',
+                    'status' => 'offline',
                     'age_seconds' => null,
                     'on_duty' => $onDutyIds->has($salesman->id),
                     'location' => null,
@@ -237,8 +326,14 @@ class DashboardService
 
             return [
                 'salesman_id' => $salesman->uuid,
+                'employee_code' => $salesman->employee_code,
                 'salesman_name' => $salesman->full_name,
                 'freshness' => $freshness,
+                'status' => match ($freshness) {
+                    'live' => 'online',
+                    'stale' => 'idle',
+                    default => 'offline',
+                },
                 'age_seconds' => $ageSeconds,
                 'on_duty' => $onDutyIds->has($salesman->id),
                 'location' => [
@@ -259,6 +354,40 @@ class DashboardService
                 ],
             ];
         })->values()->all();
+    }
+
+    public function dashboardVariant(User $actor): array
+    {
+        $actor->loadMissing('roles');
+        $roles = $actor->roles->pluck('slug');
+
+        return match (true) {
+            $roles->contains('supervisor') => [
+                'key' => 'supervisor',
+                'title' => 'Team operations dashboard',
+                'subtitle' => 'Current salesman assignments and field activity.',
+            ],
+            $roles->contains('accountant') => [
+                'key' => 'accountant',
+                'title' => 'Finance operations dashboard',
+                'subtitle' => 'Collections, expenses, and financial activity.',
+            ],
+            $roles->contains('auditor') => [
+                'key' => 'auditor',
+                'title' => 'Audit operations dashboard',
+                'subtitle' => 'Read-only operational visibility across the tenant.',
+            ],
+            $roles->contains('sales_manager') => [
+                'key' => 'sales_manager',
+                'title' => 'Sales operations dashboard',
+                'subtitle' => 'Team performance, approvals, and field execution.',
+            ],
+            default => [
+                'key' => 'company',
+                'title' => 'Company operations dashboard',
+                'subtitle' => 'Today’s field-sales execution at a glance.',
+            ],
+        };
     }
 
     private function visibleSalesmanIds(User $actor, string $localDate): SupportCollection
