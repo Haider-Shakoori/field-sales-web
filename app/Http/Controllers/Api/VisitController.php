@@ -171,6 +171,7 @@ class VisitController extends Controller
             return ApiResponse::error('Invalid check-out time.', 422, null, 'VALIDATION_ERROR');
         }
 
+        $visit->loadMissing('customer');
         $customer = $visit->customer;
         $geo = $geofence->evaluate(
             $customer,
