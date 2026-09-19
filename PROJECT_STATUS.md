@@ -12,7 +12,7 @@ _Last updated: 2026-09-19_
 
 ## Current Delivery Status
 
-Batches 1–12 are complete and merged. Batch 13 — Admin Dashboard & Live Map — was initially merged in PR #18, then repository review found missing roadmap scope and an untested activity timestamp rendering defect. The Batch 13 hardening work completes the missing roadmap scope and is CI-green.
+Batches 1–14 are complete. Batch 14 — Notifications, Alerts & Reporting — adds tenant-scoped notification delivery, evidence-based operational alerts, and exportable operational reports without weakening the existing RBAC, tenancy, or offline-first guarantees.
 
 ### Batch Status
 
@@ -31,6 +31,7 @@ Batches 1–12 are complete and merged. Batch 13 — Admin Dashboard & Live Map 
 | 11 | Expenses & Targets | Complete |
 | 12 | Offline Sync / Idempotency Hardening | Complete |
 | 13 | Admin Dashboard & Live Map | Complete |
+| 14 | Notifications, Alerts & Reporting | Complete |
 
 ## Batch 13 Verification
 
@@ -52,6 +53,30 @@ Latest verification gate:
 - Laravel tests: 84 passed, 421 assertions.
 - Changed-PHP Pint gate: PASS.
 
+## Batch 14 Verification
+
+Verified scope:
+- Tenant-owned operational notifications with per-user in-app and push preferences.
+- Order, collection, and expense review decisions notify the responsible salesman.
+- Suspicious visit evidence automatically notifies company managers and the currently assigned supervisor.
+- Provider-neutral queued push outbox with explicit disabled/missing-provider handling and environment configuration.
+- Authenticated web notification inbox plus device-bound mobile notification/preference APIs.
+- Alerts page surfaces existing suspicious-visit flags and mock-location GPS evidence only; no synthetic fraud score is generated.
+- Suspicious visit review is audited.
+- Sales, visits, GPS, and performance reports use authoritative source records.
+- Date, salesman, branch, and territory filters are tenant-safe and supervisor-scoped.
+- Sales and visit branch/territory filters use transaction/customer classification; GPS/performance assignment filters use the assignment effective on the report end date.
+- Monetary report values remain separated by currency.
+- CSV export is generated from the same filtered report dataset shown in the admin view.
+
+Latest verification gate:
+- GitHub Actions `web-ci`: PASS.
+- Laravel tests: 89 passed, 465 assertions.
+- Batch 14 focused regression suite: PASS.
+- Changed-PHP Pint gate: PASS.
+
+Batch 14 intentionally does not add a PDF library or commission engine. CSV is the required verified operational export for this release; PDF can be introduced when a concrete formatted-report requirement exists. Commission rules are deferred because introducing compensation/accounting semantics without a dedicated specification would destabilize otherwise authoritative reporting.
+
 ## Architecture Decisions in Force
 
 - Laravel 13 / PHP 8.5 / MySQL 8.
@@ -69,8 +94,10 @@ Latest verification gate:
 
 - No browser automation or screenshot-based visual QA evidence has been claimed for Batch 13.
 - Map and chart assets currently load from pinned public CDNs; asset bundling/self-hosting can be addressed in a later frontend hardening pass.
-- Historical route playback, territory overlays, fraud alerting and full reports belong to later roadmap work.
+- Historical route playback and territory overlays remain deferred.
+- Push delivery requires a configured provider endpoint/token; the server-side outbox and retry-safe queue foundation are present.
+- No browser automation or screenshot-based visual QA evidence is claimed for Batch 14.
 
 ## Next Batch
 
-Batch 14 — Notifications, Alerts & Reporting.
+Batch 15 — BusinessOS Integration is optional. Core Field Sales batches 1–14 are complete.
