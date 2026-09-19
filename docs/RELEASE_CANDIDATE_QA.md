@@ -62,8 +62,10 @@ The normal CI pipelines must remain green:
 - Mobile: lockfile enforcement, Dart format, Flutter analyze, Flutter tests, debug APK, ephemeral release keystore, signed release AAB, AAB signature verification.
 
 Merged-main evidence:
-- Web `main`: `157ec7b32e9f231302fce47f59bd6eb6ab126d71`, CI #833 PASS, 105 tests / 595 assertions.
-- Mobile `main`: `5447e409914befc87b9607293de9a8fdb7342b73`, CI #376 PASS, Flutter analyze clean, 26 tests, debug APK built, signed release AAB built and signature-verified.
+- Web `main`: `852274c1b91ea018a549e40b171e46c76623ffd9` after PR #26; post-merge CI #844 and #845 PASS. The Batch 19 functional baseline remains 105 tests / 595 assertions with operations-script and Pint gates green.
+- Mobile PR #11 merged to `main` at `18d63ac78b2843016101447d6c87c00a79d16732`; PR CI #383 PASS and the auditable `UAT_RESULTS_TEMPLATE.md` is present.
+- Mobile post-merge CI #384 at `18d63ac78b2843016101447d6c87c00a79d16732` is currently IN PROGRESS. Do not substitute its pending state for a passing merged-main gate.
+- The preceding mobile functional/release baseline at `5447e409914befc87b9607293de9a8fdb7342b73` remains CI #376 PASS with Flutter analyze clean, 26 tests, debug APK built, signed release AAB built and signature-verified.
 
 ## Manual UAT prerequisites
 
