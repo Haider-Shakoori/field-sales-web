@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\BranchController;
 use App\Http\Controllers\Web\CallActivityController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DeviceController;
+use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Web\PriceListController;
 use App\Http\Controllers\Web\PriceListItemController;
 use App\Http\Controllers\Web\ProductController;
@@ -118,6 +119,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/call-activities', [CallActivityController::class, 'index'])
             ->middleware('permission:customers:view')
             ->name('call-activities.index');
+
+        Route::resource('orders', OrderController::class)
+            ->only(['index', 'show'])
+            ->middleware('permission:orders:view');
+        Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])
+            ->middleware('permission:orders:manage')
+            ->name('orders.status');
 
         Route::resource('visits', VisitController::class)
             ->only(['index', 'show'])
