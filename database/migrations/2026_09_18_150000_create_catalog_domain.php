@@ -40,7 +40,10 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'code']);
-            $table->index(['tenant_id', 'is_active', 'effective_from', 'effective_to']);
+            $table->index(
+                ['tenant_id', 'is_active', 'effective_from', 'effective_to'],
+                'price_lists_active_window_idx'
+            );
         });
 
         Schema::create('price_list_items', function (Blueprint $table) {
