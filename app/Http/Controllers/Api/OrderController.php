@@ -109,6 +109,7 @@ class OrderController extends Controller
         }
 
         $device = $request->attributes->get('device');
+        $pricingAt = $orderedAt->setTimezone($user->tenant->timezone);
 
         $order = DB::transaction(function () use (
             $validated,
@@ -119,6 +120,7 @@ class OrderController extends Controller
             $products,
             $device,
             $pricing,
+            $pricingAt,
         ): Order {
             $subtotal = 0.0;
             $discountTotal = 0.0;
@@ -130,7 +132,7 @@ class OrderController extends Controller
                 $product = $products->get($line['product_id']);
                 $quantity = round((float) $line['quantity'], 4);
                 $discountPercent = round((float) ($line['discount_percent'] ?? 0), 4);
-                $resolved = $pricing->price($customer, $product, $quantity, $orderedAt);
+                $resolved = $pricing->price($customer, $product, $quantity, $pricingAt);
 
                 if ($currency !== null && $currency !== $resolved['currency']) {
                     throw ValidationException::withMessages([
