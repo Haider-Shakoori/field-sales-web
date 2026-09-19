@@ -4,6 +4,7 @@ use App\Http\Middleware\BootstrapTenantForApiAuth;
 use App\Http\Middleware\BootstrapTenantForWebAuth;
 use App\Http\Middleware\DeviceRequired;
 use App\Http\Middleware\PermissionRequired;
+use App\Http\Middleware\SecurityHeaders;
 use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
@@ -22,6 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(SecurityHeaders::class);
+
         // Web identity resolution requires StartSession to have already run.
         // Appending keeps the guest/public path fail-closed while ensuring the
         // authenticated user can be resolved before route auth/controllers.
