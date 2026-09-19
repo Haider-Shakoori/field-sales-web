@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\Branch;
-use App\Models\Collection;
+use App\Models\Collection as CustomerCollection;
 use App\Models\CustomerVisit;
 use App\Models\Expense;
 use App\Models\LocationHistory;
@@ -314,7 +314,7 @@ class ReportService
             ->where('ordered_at', '<', $end)
             ->get(['salesman_id', 'currency', 'grand_total']);
 
-        $collections = Collection::query()
+        $collections = CustomerCollection::query()
             ->whereIn('salesman_id', $salesmanIds)
             ->where('status', 'verified')
             ->where('collected_at', '>=', $start)
