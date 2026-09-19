@@ -1,0 +1,40 @@
+name: batch11-pint-format
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: batch11-expenses-targets
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - name: Format changed PHP
+        shell: bash
+        run: |
+          PHP_FILES="$(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.php')"
+          if [ -n "$PHP_FILES" ]; then
+            printf '%s\n' "$PHP_FILES" | xargs vendor/bin/pint
+          fi
+      - name: Commit formatting
+        shell: bash
+        run: |
+          if git diff --quiet -- '*.php'; then
+            echo "No Pint changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add '*.php'
+          git commit -m "Batch 11: apply Pint formatting"
+          git push origin HEAD:batch11-expenses-targets
