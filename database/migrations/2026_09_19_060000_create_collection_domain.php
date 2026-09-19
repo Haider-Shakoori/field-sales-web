@@ -27,6 +27,8 @@ return new class extends Migration
             $table->decimal('latitude', 10, 7);
             $table->decimal('longitude', 10, 7);
             $table->decimal('accuracy', 8, 2);
+            $table->decimal('distance_meters', 10, 2)->nullable();
+            $table->boolean('within_geofence')->nullable();
             $table->decimal('balance_before', 18, 4)->default(0);
             $table->boolean('overpayment_flag')->default(false);
             $table->text('notes')->nullable();
