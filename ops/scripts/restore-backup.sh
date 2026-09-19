@@ -20,6 +20,19 @@ if [[ -z "${MYSQL_DEFAULTS_FILE}" || ! -f "${MYSQL_DEFAULTS_FILE}" ]]; then
     exit 2
 fi
 
+defaults_mode="$(stat -c '%a' "${MYSQL_DEFAULTS_FILE}")"
+if [[ "${defaults_mode}" != "600" && "${defaults_mode}" != "400" ]]; then
+    echo "MySQL restore defaults file must be mode 600 or 400." >&2
+    exit 2
+fi
+
+for command in "${PHP_BIN}" mysql gzip tar; do
+    if ! command -v "${command}" >/dev/null 2>&1; then
+        echo "Required restore command not found: ${command}" >&2
+        exit 1
+    fi
+done
+
 database_archive="${BACKUP_DIR}/database.sql.gz"
 media_archive="${BACKUP_DIR}/public-storage.tar.gz"
 manifest="${BACKUP_DIR}/manifest.json"
@@ -47,9 +60,9 @@ foreach (["database", "public_storage"] as $key) {
 }
 ' "${manifest}"
 
-# Preserve the live state before any destructive restore begins.
-"${PHP_BIN}" "${CURRENT}/artisan" field-sales:backup --label=pre-restore --no-interaction
+# Preserve a stable live-state snapshot before any destructive restore begins.
 "${PHP_BIN}" "${CURRENT}/artisan" down --retry=120 --refresh=15
+"${PHP_BIN}" "${CURRENT}/artisan" field-sales:backup --label=pre-restore --no-interaction
 
 echo "Restoring database. The application will remain in maintenance mode if any restore step fails."
 gzip -dc "${database_archive}" | mysql --defaults-extra-file="${MYSQL_DEFAULTS_FILE}"
