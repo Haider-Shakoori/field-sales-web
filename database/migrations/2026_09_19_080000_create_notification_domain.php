@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('priority', 20)->default('normal');
             $table->string('title', 180);
             $table->text('message');
+            $table->boolean('database_visible')->default(true);
             $table->json('data')->nullable();
             $table->dateTime('read_at')->nullable();
             $table->timestamps();
