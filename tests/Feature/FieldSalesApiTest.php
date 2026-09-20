@@ -122,13 +122,13 @@ class FieldSalesApiTest extends TestCase
     {
         $this->actor();
 
-        $this->postJson('/api/v1/attendance/start', [
+        $created = $this->postJson('/api/v1/attendance/start', [
             'latitude' => 34.5,
             'longitude' => 69.1,
             'accuracy' => 5,
             'offline_uuid' => (string) Str::uuid(),
             'started_at' => '2026-09-18T05:00:00Z',
-        ], $this->headers())->assertCreated();
+        ], $this->headers())->assertCreated()->json('data');
 
         $this->postJson('/api/v1/attendance/start', [
             'latitude' => 34.5,
@@ -138,7 +138,9 @@ class FieldSalesApiTest extends TestCase
             'started_at' => '2026-09-18T06:00:00Z',
         ], $this->headers())
             ->assertStatus(409)
-            ->assertJsonPath('error.code', 'SESSION_ALREADY_EXISTS');
+            ->assertJsonPath('error.code', 'SESSION_ALREADY_EXISTS')
+            ->assertJsonPath('error.details.session.id', $created['id'])
+            ->assertJsonPath('error.details.session.status', 'active');
     }
 
     public function test_revoked_device_has_machine_code(): void

@@ -170,7 +170,7 @@ class MasterDataController extends Controller
         $this->ensureRouteVisibleToSalesman($request, $route);
 
         $query = Customer::query()
-            ->select('customers.*')
+            ->select('customers.*', 'route_customers.sequence_number as route_sequence')
             ->join('route_customers', 'route_customers.customer_id', '=', 'customers.id')
             ->where('route_customers.route_id', $route->id)
             ->with(['branch', 'territory', 'priceList', 'routeMemberships.route'])
@@ -180,7 +180,12 @@ class MasterDataController extends Controller
 
         return $this->paginated(
             $query->paginate($this->perPage($request)),
-            fn (Customer $customer) => $this->customerPayload($customer)
+            fn (Customer $customer) => [
+                ...$this->customerPayload($customer),
+                'route_sequence' => $customer->route_sequence !== null
+                    ? (int) $customer->route_sequence
+                    : null,
+            ]
         );
     }
 

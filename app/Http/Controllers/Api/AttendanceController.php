@@ -62,14 +62,20 @@ class AttendanceController extends Controller
 
         $localDate = $clock->localDate($user->tenant, $startedAt);
 
-        if (WorkSession::where('tenant_id', $user->tenant_id)
+        $conflicting = WorkSession::where('tenant_id', $user->tenant_id)
             ->where('user_id', $user->id)
             ->whereDate('date', $localDate)
-            ->exists()) {
+            ->first();
+
+        if ($conflicting) {
             return ApiResponse::error(
                 'A work session already exists for this local date.',
                 409,
-                null,
+                [
+                    'session' => (new WorkSessionResource(
+                        $conflicting->load(['user', 'device'])
+                    ))->resolve(),
+                ],
                 'SESSION_ALREADY_EXISTS',
             );
         }
