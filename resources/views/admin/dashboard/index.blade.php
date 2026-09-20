@@ -3,20 +3,27 @@
 
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold">{{ $variant['title'] }}</h1>
-            <p class="mt-1 text-sm text-slate-400">{{ $variant['subtitle'] }}</p>
+            <div class="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-300/15 bg-cyan-300/5 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-300">
+                <span class="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,.85)]"></span>
+                Live operations
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{{ $variant['title'] }}</h1>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{{ $variant['subtitle'] }}</p>
             <p class="mt-1 text-xs text-slate-500">
                 {{ $summary['local_date'] }} · {{ $summary['timezone'] }}
             </p>
         </div>
-        <div class="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-slate-300">
-            Pending approvals:
-            <span class="font-semibold">{{ $summary['orders']['pending_count'] + $summary['collections']['pending_count'] + $summary['expenses']['pending_count'] }}</span>
+        <div class="rounded-2xl border border-cyan-300/15 bg-slate-900/90 px-4 py-3 text-sm text-slate-300 shadow-xl shadow-black/10">
+            <div class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Review queue</div>
+            <div class="mt-1 flex items-baseline gap-2">
+                <span class="text-2xl font-bold text-cyan-300">{{ $summary['orders']['pending_count'] + $summary['collections']['pending_count'] + $summary['expenses']['pending_count'] }}</span>
+                <span class="text-xs text-slate-400">pending approvals</span>
+            </div>
         </div>
     </div>
 
     <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+        <div class="rounded-2xl border border-cyan-200/10 bg-slate-900/90 shadow-xl shadow-black/10 p-5">
             <div class="text-sm text-slate-400">Salesmen</div>
             <div class="mt-2 text-3xl font-bold">{{ $summary['salesmen']['total'] }}</div>
             <div class="mt-3 flex flex-wrap gap-2 text-xs">
@@ -26,13 +33,13 @@
             </div>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+        <div class="rounded-2xl border border-cyan-200/10 bg-slate-900/90 shadow-xl shadow-black/10 p-5">
             <div class="text-sm text-slate-400">Visits today</div>
             <div class="mt-2 text-3xl font-bold">{{ $summary['visits']['completed'] }}</div>
             <div class="mt-3 text-xs text-slate-400">Active now: {{ $summary['visits']['active'] }}</div>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+        <div class="rounded-2xl border border-cyan-200/10 bg-slate-900/90 shadow-xl shadow-black/10 p-5">
             <div class="text-sm text-slate-400">Approved orders today</div>
             <div class="mt-2 text-3xl font-bold">{{ $summary['orders']['approved_count'] }}</div>
             <div class="mt-3 space-y-1 text-xs text-slate-300">
@@ -44,7 +51,7 @@
             </div>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+        <div class="rounded-2xl border border-cyan-200/10 bg-slate-900/90 shadow-xl shadow-black/10 p-5">
             <div class="text-sm text-slate-400">Verified collections today</div>
             <div class="mt-2 text-3xl font-bold">{{ $summary['collections']['verified_count'] }}</div>
             <div class="mt-3 space-y-1 text-xs text-slate-300">
@@ -57,8 +64,8 @@
         </div>
     </section>
 
-    <section class="mt-6 grid gap-4 lg:grid-cols-3">
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+    <section class="fp-panel-performance mt-6 grid gap-4 lg:grid-cols-3">
+        <div class="rounded-2xl border border-cyan-200/10 bg-slate-900/90 shadow-xl shadow-black/10 p-5">
             <div class="text-sm text-slate-400">Approved expenses today</div>
             <div class="mt-2 text-2xl font-bold">{{ $summary['expenses']['approved_count'] }}</div>
             <div class="mt-3 space-y-1 text-sm text-slate-300">
@@ -70,13 +77,13 @@
             </div>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+        <div class="rounded-2xl border border-cyan-200/10 bg-slate-900/90 shadow-xl shadow-black/10 p-5">
             <div class="text-sm text-slate-400">On duty</div>
             <div class="mt-2 text-2xl font-bold">{{ $summary['salesmen']['on_duty'] }}</div>
             <p class="mt-3 text-sm text-slate-400">Salesmen with an active work session.</p>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+        <div class="rounded-2xl border border-cyan-200/10 bg-slate-900/90 shadow-xl shadow-black/10 p-5">
             <div class="text-sm text-slate-400">Review queue</div>
             <div class="mt-3 grid grid-cols-3 gap-3 text-center">
                 <div class="rounded-xl bg-white/5 p-3">
@@ -96,9 +103,9 @@
     </section>
 
     @if($visibility['orders'] || $visibility['visits'])
-        <section class="mt-6 grid gap-4 xl:grid-cols-2">
+        <section class="fp-panel-performance mt-6 grid gap-4 xl:grid-cols-2">
             @if($visibility['orders'])
-                <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+                <div class="rounded-2xl border border-cyan-200/10 bg-slate-900/90 shadow-xl shadow-black/10 p-5">
                     <div class="mb-4">
                         <h2 class="font-semibold">Sales trend</h2>
                         <p class="mt-1 text-xs text-slate-400">Approved order value for the last {{ $analytics['days'] }} days, separated by currency.</p>
@@ -110,7 +117,7 @@
             @endif
 
             @if($visibility['visits'])
-                <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+                <div class="rounded-2xl border border-cyan-200/10 bg-slate-900/90 shadow-xl shadow-black/10 p-5">
                     <div class="mb-4">
                         <h2 class="font-semibold">Visit completion</h2>
                         <p class="mt-1 text-xs text-slate-400">Started versus completed visits for the last {{ $analytics['days'] }} days.</p>
@@ -124,7 +131,7 @@
     @endif
 
     @if($visibility['tracking'])
-        <section class="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+        <section class="fp-panel-performance mt-6 overflow-hidden rounded-2xl border border-cyan-200/10 bg-slate-900/90 shadow-xl shadow-black/10">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
                 <div>
                     <h2 class="font-semibold">Live salesman map</h2>
@@ -140,7 +147,7 @@
             </div>
         </section>
 
-        <section class="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+        <section class="fp-panel-performance mt-6 overflow-hidden rounded-2xl border border-cyan-200/10 bg-slate-900/90 shadow-xl shadow-black/10">
             <div class="border-b border-white/10 px-5 py-4">
                 <h2 class="font-semibold">Salesman status</h2>
                 <p class="mt-1 text-xs text-slate-400">Current field availability and latest reported device position.</p>
@@ -187,7 +194,7 @@
         </section>
     @endif
 
-    <section class="mt-6 rounded-2xl border border-white/10 bg-slate-900">
+    <section class="fp-panel-performance mt-6 rounded-2xl border border-cyan-200/10 bg-slate-900/90 shadow-xl shadow-black/10">
         <div class="border-b border-white/10 px-5 py-4">
             <h2 class="font-semibold">Recent activity</h2>
         </div>
@@ -217,25 +224,54 @@
         <script>
             (() => {
                 const labels = @json($analytics['labels']);
-                const commonOptions = {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {mode: 'index', intersect: false},
-                    plugins: {
-                        legend: {labels: {color: '#cbd5e1'}},
-                    },
-                    scales: {
-                        x: {ticks: {color: '#94a3b8'}, grid: {color: 'rgba(148,163,184,.08)'}},
-                        y: {beginAtZero: true, ticks: {color: '#94a3b8'}, grid: {color: 'rgba(148,163,184,.08)'}},
-                    },
+                const chartTheme = () => {
+                    const light = document.documentElement.dataset.theme === 'light';
+
+                    return {
+                        label: light ? '#475569' : '#cbd5e1',
+                        tick: light ? '#64748b' : '#94a3b8',
+                        grid: light ? 'rgba(15,23,42,.08)' : 'rgba(148,163,184,.08)',
+                    };
                 };
 
-                const palette = ['#38bdf8', '#a78bfa', '#34d399', '#f59e0b', '#fb7185', '#22d3ee'];
+                const commonOptions = () => {
+                    const theme = chartTheme();
+
+                    return {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {mode: 'index', intersect: false},
+                        animation: {duration: 260},
+                        plugins: {
+                            legend: {labels: {color: theme.label}},
+                        },
+                        scales: {
+                            x: {ticks: {color: theme.tick}, grid: {color: theme.grid}},
+                            y: {beginAtZero: true, ticks: {color: theme.tick}, grid: {color: theme.grid}},
+                        },
+                    };
+                };
+
+                const palette = ['#20c9ff', '#3188ff', '#8b5cf6', '#22c55e', '#f59e0b', '#f43f5e'];
+                const charts = [];
+
+                const refreshChartTheme = () => {
+                    const theme = chartTheme();
+
+                    for (const chart of charts) {
+                        chart.options.plugins.legend.labels.color = theme.label;
+                        chart.options.scales.x.ticks.color = theme.tick;
+                        chart.options.scales.x.grid.color = theme.grid;
+                        chart.options.scales.y.ticks.color = theme.tick;
+                        chart.options.scales.y.grid.color = theme.grid;
+                        chart.update('none');
+                    }
+                };
 
                 const salesCanvas = document.getElementById('sales-trend-chart');
                 if (salesCanvas) {
                     const sales = @json($analytics['sales']['datasets']);
-                    new Chart(salesCanvas, {
+                    charts.push(new Chart(salesCanvas, {
                         type: 'line',
                         data: {
                             labels,
@@ -248,13 +284,13 @@
                                 pointRadius: 3,
                             })),
                         },
-                        options: commonOptions,
-                    });
+                        options: commonOptions(),
+                    }));
                 }
 
                 const visitsCanvas = document.getElementById('visit-completion-chart');
                 if (visitsCanvas) {
-                    new Chart(visitsCanvas, {
+                    charts.push(new Chart(visitsCanvas, {
                         type: 'bar',
                         data: {
                             labels,
@@ -271,9 +307,11 @@
                                 },
                             ],
                         },
-                        options: commonOptions,
-                    });
+                        options: commonOptions(),
+                    }));
                 }
+
+                window.addEventListener('fieldpulse:theme-changed', refreshChartTheme);
             })();
         </script>
     @endif
@@ -297,6 +335,8 @@
 
                 const markers = new Map();
                 let hasFitted = false;
+                let refreshInFlight = false;
+                let lastTableSignature = null;
 
                 const markerClass = (freshness) => {
                     if (freshness === 'live') return 'background:#10b981;';
@@ -389,6 +429,12 @@
                 };
 
                 const refresh = async () => {
+                    if (refreshInFlight || document.hidden) {
+                        return;
+                    }
+
+                    refreshInFlight = true;
+
                     try {
                         const response = await fetch(endpoint, {
                             headers: {'Accept': 'application/json'},
@@ -445,7 +491,20 @@
                             hasFitted = true;
                         }
 
-                        renderStatusTable(payload.data);
+                        const tableSignature = JSON.stringify(payload.data.map((item) => [
+                            item.salesman_id,
+                            item.status,
+                            item.on_duty,
+                            item.location?.recorded_at ?? null,
+                            item.location?.latitude ?? null,
+                            item.location?.longitude ?? null,
+                            item.location?.battery_level ?? null,
+                        ]));
+
+                        if (tableSignature !== lastTableSignature) {
+                            renderStatusTable(payload.data);
+                            lastTableSignature = tableSignature;
+                        }
 
                         const online = payload.data.filter((item) => item.status === 'online').length;
                         const idle = payload.data.filter((item) => item.status === 'idle').length;
@@ -454,11 +513,26 @@
                             + ' · refreshed ' + new Date(payload.generated_at).toLocaleTimeString();
                     } catch (error) {
                         status.textContent = 'Live map refresh failed. Retrying automatically.';
+                    } finally {
+                        refreshInFlight = false;
                     }
                 };
 
                 refresh();
-                window.setInterval(refresh, 30000);
+
+                const refreshTimer = window.setInterval(() => {
+                    if (!document.hidden) {
+                        refresh();
+                    }
+                }, 30000);
+
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        refresh();
+                    }
+                });
+
+                window.addEventListener('beforeunload', () => window.clearInterval(refreshTimer), {once: true});
             })();
         </script>
     @endif
