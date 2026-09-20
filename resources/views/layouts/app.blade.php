@@ -200,6 +200,14 @@
     $webGuardName = auth()->guard()->getName();
     $tenantReady = app(\App\Tenancy\TenantContext::class)->hasTenant();
     $currentUser = $tenantReady ? auth()->user() : null;
+    $permissionSlugs = $currentUser
+        ? $currentUser->roles()
+            ->with('permissions:id,slug')
+            ->get()
+            ->flatMap(fn ($role) => $role->permissions->pluck('slug'))
+            ->unique()
+            ->flip()
+        : collect();
 
     $navigationGroups = [
         [
@@ -303,7 +311,7 @@
                 @foreach($navigationGroups as $group)
                     @php
                         $visibleItems = collect($group['items'])->filter(
-                            fn (array $item) => ! $item['permission'] || $currentUser->hasPermission($item['permission'])
+                            fn (array $item) => ! $item['permission'] || $permissionSlugs->has($item['permission'])
                         );
                     @endphp
 
@@ -317,7 +325,7 @@
                                     @php($active = request()->routeIs($item['match']))
                                     <a
                                         href="{{ route($item['route']) }}"
-                                        class="fp-nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition {{ $active ? 'bg-cyan-300/10 text-cyan-100 ring-1 ring-inset ring-cyan-200/15 shadow-sm shadow-cyan-950/20' : 'text-slate-300 hover:bg-white/7 hover:text-white' }}"
+                                        class="fp-nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition {{ $active ? 'bg-cyan-300/10 text-cyan-100 ring-1 ring-inset ring-cyan-200/15 shadow-sm shadow-cyan-950/20' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}"
                                         @if($active) aria-current="page" @endif
                                         title="{{ $item['label'] }}"
                                     >
