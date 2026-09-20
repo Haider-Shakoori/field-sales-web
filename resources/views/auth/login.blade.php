@@ -4,7 +4,7 @@
         <div class="pointer-events-none absolute -bottom-48 -right-32 h-[36rem] w-[36rem] rounded-full bg-cyan-300/10 blur-3xl"></div>
         <div class="pointer-events-none absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 1px 1px, rgba(125,211,252,.28) 1px, transparent 0); background-size: 28px 28px;"></div>
 
-        <div class="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/55 shadow-2xl shadow-black/40 backdrop-blur-xl lg:grid-cols-[1.05fr_.95fr]">
+        <div class="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/60 shadow-2xl shadow-black/40 backdrop-blur-xl lg:grid-cols-[1.05fr_.95fr]">
             <section class="relative hidden overflow-hidden border-r border-white/10 p-10 lg:flex lg:flex-col lg:justify-between">
                 <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-300/10"></div>
 
