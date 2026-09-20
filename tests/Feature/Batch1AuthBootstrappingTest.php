@@ -40,7 +40,9 @@ class Batch1AuthBootstrappingTest extends TestCase
     {
         $this->get('/login')
             ->assertOk()
-            ->assertSee('Welcome back');
+            ->assertSee('Welcome back')
+            ->assertSee('FieldPulse')
+            ->assertSee('BusinessOS');
 
         $this->assertSame(TenantContextState::Uninitialized, $this->context->state());
     }
