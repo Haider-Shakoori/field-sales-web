@@ -40,7 +40,11 @@ class DashboardController extends Controller
 
         return response()
             ->json([
-                'data' => $dashboard->liveLocations($user),
+                'data' => $dashboard->liveLocations(
+                    $user,
+                    null,
+                    $request->boolean('include_tracks'),
+                ),
                 'generated_at' => now()->toISOString(),
                 'refresh_after_seconds' => 30,
                 'freshness' => [

@@ -3,6 +3,7 @@
 use App\Http\Middleware\BootstrapTenantForApiAuth;
 use App\Http\Middleware\BootstrapTenantForWebAuth;
 use App\Http\Middleware\DeviceRequired;
+use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\PermissionRequired;
 use App\Http\Middleware\SecurityHeaders;
 use App\Support\ApiResponse;
@@ -46,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'device.required' => DeviceRequired::class,
             'permission' => PermissionRequired::class,
+            'platform' => EnsurePlatformAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

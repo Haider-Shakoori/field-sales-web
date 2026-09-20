@@ -4,6 +4,10 @@ Laravel 13 web/backend for FieldPulse by BusinessOS. It provides multi-tenant ad
 
 ## Highlights
 
+- SaaS multi-tenant admin console with per-organization isolation
+- Platform organizations console: provision, edit, suspend/activate companies with default roles, tracking policy and first administrator
+- Organization settings page for company admins (profile and timezone)
+- Dedicated live map with all salesmen, status filters, search and today's routes
 - Tenant-scoped users, salesmen, devices and company policy
 - Sanctum mobile authentication with one-active-device enforcement
 - Offline-safe attendance idempotency using `offline_uuid`
@@ -18,17 +22,28 @@ Laravel 13 web/backend for FieldPulse by BusinessOS. It provides multi-tenant ad
 
 ```bash
 composer install
+npm install
 cp .env.example .env
 php artisan key:generate
 # create a MySQL database called field_sales and update .env if needed
 php artisan migrate --seed
+npm run build:css
 php artisan serve --host=0.0.0.0 --port=8001
 ```
 
+The admin UI uses a locally built Tailwind stylesheet (`public/css/app.css`). Run `npm run build:css` after changing views, or `npm run watch:css` while developing. Leaflet and Chart.js are served from `public/vendor` instead of public CDNs.
+
 Demo accounts after seeding:
 
-- Admin: `admin@example.com` / `password`
+- Admin: `admin@example.com` / `password` (also a platform administrator, so `/admin/organizations` is available)
 - Salesman: `salesman@example.com` / `password`
+
+Grant or revoke platform administrator access for any account:
+
+```bash
+php artisan field-sales:make-platform-admin admin@example.com
+php artisan field-sales:make-platform-admin admin@example.com --revoke
+```
 
 Admin UI: `http://127.0.0.1:8001/admin/tracking-settings`
 

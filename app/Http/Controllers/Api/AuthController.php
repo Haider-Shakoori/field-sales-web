@@ -76,6 +76,15 @@ class AuthController extends Controller
             );
         }
 
+        if ($user->tenant?->subscription_status !== 'active') {
+            return ApiResponse::error(
+                'This company account is suspended.',
+                403,
+                null,
+                'TENANT_SUSPENDED'
+            );
+        }
+
         $installationUuid = $request->header('X-Installation-UUID');
         $deviceUuid = $request->header('X-Device-UUID') ?: ($validated['device_uuid'] ?? null);
         $appVersion = $request->header('X-App-Version') ?: ($validated['app_version'] ?? null);

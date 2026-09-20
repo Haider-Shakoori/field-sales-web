@@ -11,8 +11,11 @@ use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\ExpenseController;
+use App\Http\Controllers\Web\LiveMapController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\OrderController;
+use App\Http\Controllers\Web\OrganizationController;
+use App\Http\Controllers\Web\Platform\OrganizationController as PlatformOrganizationController;
 use App\Http\Controllers\Web\PriceListController;
 use App\Http\Controllers\Web\PriceListItemController;
 use App\Http\Controllers\Web\ProductController;
@@ -47,6 +50,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard/live-locations', [DashboardController::class, 'liveLocations'])
             ->middleware('permission:tracking:view')
             ->name('dashboard.live-locations');
+
+        Route::get('/live-map', [LiveMapController::class, 'index'])
+            ->middleware('permission:tracking:view')
+            ->name('live-map');
 
         Route::get('/notifications', [NotificationController::class, 'index'])
             ->name('notifications.index');
@@ -204,4 +211,24 @@ Route::middleware('auth')->group(function () {
     Route::put('/admin/tracking-settings', [TrackingSettingsController::class, 'update'])
         ->middleware('permission:settings:manage')
         ->name('tracking.update');
+
+    Route::get('/admin/organization', [OrganizationController::class, 'edit'])
+        ->middleware('permission:settings:view')
+        ->name('organization.edit');
+
+    Route::put('/admin/organization', [OrganizationController::class, 'update'])
+        ->middleware('permission:settings:manage')
+        ->name('organization.update');
+
+    Route::middleware('platform')
+        ->prefix('admin/organizations')
+        ->name('admin.organizations.')
+        ->group(function (): void {
+            Route::get('/', [PlatformOrganizationController::class, 'index'])->name('index');
+            Route::get('/create', [PlatformOrganizationController::class, 'create'])->name('create');
+            Route::post('/', [PlatformOrganizationController::class, 'store'])->name('store');
+            Route::get('/{organization}/edit', [PlatformOrganizationController::class, 'edit'])->name('edit');
+            Route::put('/{organization}', [PlatformOrganizationController::class, 'update'])->name('update');
+            Route::patch('/{organization}/status', [PlatformOrganizationController::class, 'updateStatus'])->name('status');
+        });
 });

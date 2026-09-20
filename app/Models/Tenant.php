@@ -28,6 +28,16 @@ class Tenant extends Model
         return $this->hasMany(Role::class);
     }
 
+    public function salesmen(): HasMany
+    {
+        return $this->hasMany(Salesman::class);
+    }
+
+    public function customers(): HasMany
+    {
+        return $this->hasMany(Customer::class);
+    }
+
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class);

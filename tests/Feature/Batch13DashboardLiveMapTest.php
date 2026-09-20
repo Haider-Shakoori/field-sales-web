@@ -6,6 +6,7 @@ use App\Models\CurrentLocation;
 use App\Models\Customer;
 use App\Models\CustomerVisit;
 use App\Models\Device;
+use App\Models\LocationHistory;
 use App\Models\Order;
 use App\Models\Permission;
 use App\Models\Role;
@@ -14,6 +15,7 @@ use App\Models\SalesmanAssignment;
 use App\Models\Supervisor;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\WorkSession;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -246,6 +248,82 @@ class Batch13DashboardLiveMapTest extends TestCase
             ->assertSee('ORD-DASH-1')
             ->assertSee('125')
             ->assertDontSee('CarbonCarbonImmutable');
+    }
+
+    public function test_live_map_route_tracks_from_work_session_start_when_requested(): void
+    {
+        [$tenant, $admin] = $this->tenantUser(
+            'track-admin@example.test',
+            ['reports:view', 'tracking:view'],
+            'company-admin',
+            'Track Tenant',
+            'track-tenant',
+        );
+        [$salesman, $device] = $this->salesman($tenant, 'TRACK-1', 'Tracked');
+
+        app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($tenant, $salesman, $device): void {
+                WorkSession::create([
+                    'tenant_id' => $tenant->id,
+                    'uuid' => (string) Str::uuid(),
+                    'user_id' => $salesman->user_id,
+                    'salesman_id' => $salesman->id,
+                    'device_id' => $device->id,
+                    'date' => today()->toDateString(),
+                    'start_time' => now()->subMinutes(2),
+                    'start_latitude' => 34.5000,
+                    'start_longitude' => 69.1000,
+                    'start_accuracy' => 5,
+                    'status' => 'active',
+                ]);
+
+                LocationHistory::create([
+                    'tenant_id' => $tenant->id,
+                    'user_id' => $salesman->user_id,
+                    'salesman_id' => $salesman->id,
+                    'device_id' => $device->id,
+                    'client_uuid' => (string) Str::uuid(),
+                    'latitude' => 34.5100,
+                    'longitude' => 69.1100,
+                    'horizontal_accuracy' => 8,
+                    'recorded_at' => now(),
+                    'received_at' => now(),
+                ]);
+
+                CurrentLocation::create([
+                    'tenant_id' => $tenant->id,
+                    'user_id' => $salesman->user_id,
+                    'salesman_id' => $salesman->id,
+                    'device_id' => $device->id,
+                    'latitude' => 34.5100,
+                    'longitude' => 69.1100,
+                    'horizontal_accuracy' => 8,
+                    'recorded_at' => now(),
+                    'received_at' => now(),
+                ]);
+            }
+        );
+
+        $poll = $this->actingAs($admin)
+            ->getJson(route('admin.dashboard.live-locations'))
+            ->assertOk();
+
+        $polled = collect($poll->json('data'))->firstWhere('salesman_id', $salesman->uuid);
+        $this->assertArrayNotHasKey('track', $polled);
+
+        $response = $this->actingAs($admin)
+            ->getJson(route('admin.dashboard.live-locations', ['include_tracks' => 1]))
+            ->assertOk();
+
+        $tracked = collect($response->json('data'))->firstWhere('salesman_id', $salesman->uuid);
+
+        $this->assertArrayHasKey('track', $tracked);
+        $this->assertGreaterThanOrEqual(2, count($tracked['track']['points']));
+        $this->assertSame(34.5, $tracked['track']['points'][0][0]);
+        $this->assertSame(69.1, $tracked['track']['points'][0][1]);
+        $this->assertSame(34.51, $tracked['track']['points'][count($tracked['track']['points']) - 1][0]);
+        $this->assertGreaterThan(0, $tracked['track']['distance_km']);
     }
 
     private function tenantUser(

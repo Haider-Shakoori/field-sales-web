@@ -55,6 +55,12 @@ class AuthController extends Controller
                 ->onlyInput('email', 'tenant');
         }
 
+        if ($user->tenant?->subscription_status !== 'active') {
+            return back()
+                ->withErrors(['email' => 'This company account is suspended. Contact the platform administrator.'])
+                ->onlyInput('email', 'tenant');
+        }
+
         $context->initializeTenant((int) $user->tenant_id);
 
         $webPermissions = [

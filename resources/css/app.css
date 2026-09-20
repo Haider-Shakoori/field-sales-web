@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply font-sans antialiased;
+        background-image:
+            radial-gradient(60rem 60rem at 120% -10%, rgb(99 102 241 / 0.08), transparent 60%),
+            radial-gradient(50rem 50rem at -10% 0%, rgb(14 165 233 / 0.06), transparent 55%);
+        background-attachment: fixed;
+    }
+
+    ::selection {
+        @apply bg-indigo-500/40 text-white;
+    }
+
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: theme('colors.slate.700') transparent;
+    }
+
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea {
+        @apply transition duration-150 placeholder:text-slate-500 focus:border-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/25;
+    }
+
+    select option {
+        @apply bg-slate-900 text-slate-100;
+    }
+
+    button,
+    [type='submit'] {
+        @apply cursor-pointer transition duration-150;
+    }
+
+    button:not(:disabled):hover {
+        filter: brightness(1.08);
+    }
+
+    button:disabled {
+        @apply cursor-not-allowed opacity-60;
+    }
+
+    th {
+        @apply text-xs font-semibold uppercase tracking-wider text-slate-400;
+    }
+
+    td {
+        @apply align-middle;
+    }
+
+    tbody tr {
+        @apply transition-colors;
+    }
+
+    tbody tr:hover {
+        background-color: rgb(255 255 255 / 0.03);
+    }
+}
+
+@layer components {
+    .fp-card {
+        @apply rounded-2xl border border-white/10 bg-slate-900/70 shadow-lg shadow-slate-950/40;
+    }
+
+    .fp-btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60;
+    }
+
+    .fp-btn-primary {
+        @apply fp-btn bg-indigo-500 text-white hover:bg-indigo-400;
+    }
+
+    .fp-btn-secondary {
+        @apply fp-btn bg-white/10 text-slate-100 hover:bg-white/20;
+    }
+
+    .fp-btn-danger {
+        @apply fp-btn bg-rose-500/15 text-rose-300 hover:bg-rose-500/25;
+    }
+
+    .fp-badge {
+        @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium;
+    }
+
+    .fp-input {
+        @apply w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-slate-100;
+    }
+
+    .fp-table {
+        @apply min-w-full text-left text-sm;
+    }
+
+    .fp-table tbody tr {
+        @apply transition-colors hover:bg-white/[0.03];
+    }
+}

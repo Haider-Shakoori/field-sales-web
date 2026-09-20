@@ -27,7 +27,13 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'is_platform_admin' => 'boolean',
         ];
+    }
+
+    public function isPlatformAdmin(): bool
+    {
+        return $this->is_platform_admin === true && $this->is_active;
     }
 
     public function branch(): BelongsTo

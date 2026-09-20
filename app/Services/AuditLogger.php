@@ -17,8 +17,10 @@ class AuditLogger
         Model $subject,
         array $oldValues = [],
         array $newValues = [],
+        ?int $tenantId = null,
     ): AuditLog {
         return AuditLog::create([
+            'tenant_id' => $tenantId,
             'user_id' => $this->request->user()?->id,
             'event' => $event,
             'subject_type' => $subject::class,

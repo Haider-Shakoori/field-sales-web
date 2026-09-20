@@ -10,6 +10,14 @@ use Symfony\Component\HttpFoundation\Response;
 
 class BootstrapTenantForWebAuth
 {
+    /**
+     * Platform console routes run without tenant scoping so platform
+     * administrators can operate across organizations.
+     */
+    private const PLATFORM_ROUTES = [
+        'admin.organizations.*',
+    ];
+
     public function __construct(
         private readonly TenantContext $context,
         private readonly AuthFactory $auth,
@@ -25,7 +33,11 @@ class BootstrapTenantForWebAuth
             );
 
             if ($user) {
-                $this->context->initializeTenant((int) $user->tenant_id);
+                if ($user->isPlatformAdmin() && $request->routeIs(...self::PLATFORM_ROUTES)) {
+                    $this->context->initializePlatform();
+                } else {
+                    $this->context->initializeTenant((int) $user->tenant_id);
+                }
             } elseif ($request->hasSession()) {
                 $request->session()->forget($guard->getName());
                 $guard->forgetUser();

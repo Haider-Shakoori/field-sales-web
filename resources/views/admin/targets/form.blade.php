@@ -24,7 +24,7 @@
             <div>
                 <label class="mb-2 block text-sm text-slate-300">Target type</label>
                 <select name="target_type" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3" required>
-                    @foreach(AppModelsSalesTarget::TYPES as $value)
+                    @foreach(\App\Models\SalesTarget::TYPES as $value)
                         <option value="{{ $value }}" @selected(old('target_type', $target->target_type) === $value)>{{ str($value)->replace('_', ' ')->title() }}</option>
                     @endforeach
                 </select>

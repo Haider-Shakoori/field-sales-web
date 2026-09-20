@@ -3,6 +3,7 @@
 return [
     'tracking' => [
         'max_batch_points' => (int) env('FIELD_SALES_MAX_BATCH_POINTS', 100),
+        'map_track_bucket_seconds' => (int) env('FIELD_SALES_MAP_TRACK_BUCKET_SECONDS', 300),
     ],
 
     'mobile' => [

@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\WorkSession;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
@@ -270,8 +271,11 @@ class DashboardService
         ];
     }
 
-    public function liveLocations(User $actor, ?SupportCollection $salesmanIds = null): array
-    {
+    public function liveLocations(
+        User $actor,
+        ?SupportCollection $salesmanIds = null,
+        bool $withTracks = false,
+    ): array {
         $actor->loadMissing(['tenant', 'supervisor']);
         [, , $localDate] = $this->window($actor);
         $salesmanIds ??= $this->visibleSalesmanIds($actor, $localDate);
@@ -294,49 +298,48 @@ class DashboardService
             ->pluck('salesman_id')
             ->flip();
 
+        $tracks = $withTracks
+            ? $this->dailyTracks($actor, $salesmanIds, $localDate)
+            : [];
+
         return $salesmen->map(function (Salesman $salesman) use (
             $currentBySalesman,
             $onDutyIds,
             $now,
+            $tracks,
         ): array {
             $location = $currentBySalesman->get($salesman->id);
 
-            if (! $location) {
-                return [
-                    'salesman_id' => $salesman->uuid,
-                    'employee_code' => $salesman->employee_code,
-                    'salesman_name' => $salesman->full_name,
-                    'freshness' => 'offline',
-                    'status' => 'offline',
-                    'age_seconds' => null,
-                    'on_duty' => $onDutyIds->has($salesman->id),
-                    'location' => null,
-                ];
-            }
-
-            $recordedAt = $location->recorded_at;
-            $ageSeconds = $recordedAt
-                ? max(0, $recordedAt->diffInSeconds($now))
-                : null;
-            $freshness = match (true) {
-                $ageSeconds !== null && $ageSeconds <= 300 => 'live',
-                $ageSeconds !== null && $ageSeconds <= 1800 => 'stale',
-                default => 'offline',
-            };
-
-            return [
+            $payload = [
                 'salesman_id' => $salesman->uuid,
                 'employee_code' => $salesman->employee_code,
                 'salesman_name' => $salesman->full_name,
-                'freshness' => $freshness,
-                'status' => match ($freshness) {
+                'freshness' => 'offline',
+                'status' => 'offline',
+                'age_seconds' => null,
+                'on_duty' => $onDutyIds->has($salesman->id),
+                'location' => null,
+            ];
+
+            if ($location) {
+                $recordedAt = $location->recorded_at;
+                $ageSeconds = $recordedAt
+                    ? max(0, $recordedAt->diffInSeconds($now))
+                    : null;
+                $freshness = match (true) {
+                    $ageSeconds !== null && $ageSeconds <= 300 => 'live',
+                    $ageSeconds !== null && $ageSeconds <= 1800 => 'stale',
+                    default => 'offline',
+                };
+
+                $payload['freshness'] = $freshness;
+                $payload['status'] = match ($freshness) {
                     'live' => 'online',
                     'stale' => 'idle',
                     default => 'offline',
-                },
-                'age_seconds' => $ageSeconds,
-                'on_duty' => $onDutyIds->has($salesman->id),
-                'location' => [
+                };
+                $payload['age_seconds'] = $ageSeconds;
+                $payload['location'] = [
                     'latitude' => (float) $location->latitude,
                     'longitude' => (float) $location->longitude,
                     'accuracy' => (float) $location->horizontal_accuracy,
@@ -351,9 +354,132 @@ class DashboardService
                     'provider' => $location->provider,
                     'recorded_at' => $location->recorded_at?->toISOString(),
                     'received_at' => $location->received_at?->toISOString(),
-                ],
-            ];
+                ];
+            }
+
+            if (array_key_exists($salesman->id, $tracks)) {
+                $payload['track'] = $tracks[$salesman->id];
+            }
+
+            return $payload;
         })->values()->all();
+    }
+
+    private function dailyTracks(
+        User $actor,
+        SupportCollection $salesmanIds,
+        string $localDate,
+    ): array {
+        if ($salesmanIds->isEmpty()) {
+            return [];
+        }
+
+        [$start, $end] = $this->window($actor);
+        $bucketSeconds = max(60, (int) config('tenancy.tracking.map_track_bucket_seconds', 300));
+        $bucketExpression = DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(strftime('%s', recorded_at) AS INTEGER) / {$bucketSeconds}"
+            : "FLOOR(UNIX_TIMESTAMP(recorded_at) / {$bucketSeconds})";
+
+        $sampled = DB::query()
+            ->fromSub(
+                DB::table('location_history')
+                    ->selectRaw('salesman_id, latitude, longitude, horizontal_accuracy, recorded_at')
+                    ->selectRaw("ROW_NUMBER() OVER (PARTITION BY salesman_id, {$bucketExpression} ORDER BY recorded_at) AS bucket_rank")
+                    ->where('tenant_id', $actor->tenant_id)
+                    ->whereIn('salesman_id', $salesmanIds)
+                    ->where('recorded_at', '>=', $start)
+                    ->where('recorded_at', '<', $end),
+                'track_points',
+            )
+            ->where('bucket_rank', 1)
+            ->orderBy('salesman_id')
+            ->orderBy('recorded_at')
+            ->get()
+            ->groupBy('salesman_id');
+
+        if ($sampled->isEmpty()) {
+            return [];
+        }
+
+        $sessions = WorkSession::query()
+            ->where('tenant_id', $actor->tenant_id)
+            ->whereIn('salesman_id', $salesmanIds)
+            ->where(function ($query) use ($localDate): void {
+                $query->whereDate('date', $localDate)
+                    ->orWhere('status', 'active');
+            })
+            ->orderBy('start_time')
+            ->get()
+            ->keyBy('salesman_id');
+
+        $tracks = [];
+
+        foreach ($sampled as $salesmanId => $rows) {
+            $session = $sessions->get($salesmanId);
+            $points = [];
+            $distanceKm = 0.0;
+            $previous = null;
+
+            if ($session
+                && $session->start_latitude !== null
+                && $session->start_longitude !== null
+                && $session->start_time !== null
+                && $session->start_time->lte(CarbonImmutable::parse($rows->first()->recorded_at))) {
+                $points[] = [
+                    round((float) $session->start_latitude, 5),
+                    round((float) $session->start_longitude, 5),
+                    $session->start_time->toISOString(),
+                ];
+                $previous = [round((float) $session->start_latitude, 5), round((float) $session->start_longitude, 5), 0.0];
+            }
+
+            foreach ($rows as $row) {
+                $point = [
+                    round((float) $row->latitude, 5),
+                    round((float) $row->longitude, 5),
+                    CarbonImmutable::parse($row->recorded_at)->toISOString(),
+                ];
+
+                $accuracy = (float) $row->horizontal_accuracy;
+
+                if ($previous !== null && $previous[2] <= 50 && $accuracy <= 50) {
+                    $distanceKm += $this->distanceKm(
+                        $previous[0],
+                        $previous[1],
+                        $point[0],
+                        $point[1],
+                    );
+                }
+
+                $points[] = $point;
+                $previous = [$point[0], $point[1], $accuracy];
+            }
+
+            if (count($points) < 2) {
+                continue;
+            }
+
+            $tracks[$salesmanId] = [
+                'points' => $points,
+                'distance_km' => round($distanceKm, 2),
+            ];
+        }
+
+        return $tracks;
+    }
+
+    private function distanceKm(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $earthRadius = 6371;
+        $deltaLatitude = deg2rad($lat2 - $lat1);
+        $deltaLongitude = deg2rad($lon2 - $lon1);
+
+        $a = sin($deltaLatitude / 2) ** 2
+            + cos(deg2rad($lat1))
+            * cos(deg2rad($lat2))
+            * sin($deltaLongitude / 2) ** 2;
+
+        return $earthRadius * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
     public function dashboardVariant(User $actor): array

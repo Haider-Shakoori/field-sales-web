@@ -7,13 +7,13 @@
     <form class="mb-5 flex flex-wrap gap-3">
         <select name="status" class="rounded-xl border border-white/10 bg-slate-900 px-4 py-3">
             <option value="">All statuses</option>
-            @foreach(AppModelsExpense::STATUSES as $value)
+            @foreach(\App\Models\Expense::STATUSES as $value)
                 <option value="{{ $value }}" @selected($status === $value)>{{ str($value)->title() }}</option>
             @endforeach
         </select>
         <select name="category" class="rounded-xl border border-white/10 bg-slate-900 px-4 py-3">
             <option value="">All categories</option>
-            @foreach(AppModelsExpense::CATEGORIES as $value)
+            @foreach(\App\Models\Expense::CATEGORIES as $value)
                 <option value="{{ $value }}" @selected($category === $value)>{{ str($value)->replace('_', ' ')->title() }}</option>
             @endforeach
         </select>

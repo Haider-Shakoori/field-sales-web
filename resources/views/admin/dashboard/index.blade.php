@@ -1,5 +1,5 @@
 <x-layouts.app>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="{{ asset('vendor/leaflet/leaflet.css') }}">
 
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -128,15 +128,20 @@
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
                 <div>
                     <h2 class="font-semibold">Live salesman map</h2>
-                    <p class="mt-1 text-xs text-slate-400">Latest current position only. No GPS history is loaded on this dashboard.</p>
+                    <p class="mt-1 text-xs text-slate-400">Live positions with today's traveled route from the work-session start point.</p>
                 </div>
-                <div id="map-status" class="text-xs text-slate-400">Loading locations…</div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <a href="{{ route('admin.live-map') }}" class="rounded-lg bg-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/20">Open live map</a>
+                    <button id="route-toggle" type="button" class="rounded-lg bg-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/20">Hide routes</button>
+                    <div id="map-status" class="text-xs text-slate-400">Loading locations…</div>
+                </div>
             </div>
             <div id="live-map" class="h-[520px] bg-slate-950"></div>
-            <div class="grid gap-2 border-t border-white/10 px-5 py-3 text-xs text-slate-400 sm:grid-cols-3">
+            <div class="grid gap-2 border-t border-white/10 px-5 py-3 text-xs text-slate-400 sm:grid-cols-4">
                 <div><span class="font-semibold text-emerald-300">Online:</span> updated within 5 minutes</div>
                 <div><span class="font-semibold text-amber-300">Idle:</span> 5–30 minutes old</div>
                 <div><span class="font-semibold text-slate-300">Offline:</span> older than 30 minutes or no position</div>
+                <div><span class="font-semibold text-indigo-300">Route:</span> start → latest position</div>
             </div>
         </section>
 
@@ -155,6 +160,8 @@
                             <th class="px-5 py-3">Last update</th>
                             <th class="px-5 py-3">Location</th>
                             <th class="px-5 py-3">Battery</th>
+                            <th class="px-5 py-3">Distance</th>
+                            <th class="px-5 py-3"></th>
                         </tr>
                     </thead>
                     <tbody id="salesman-status-body" class="divide-y divide-white/10">
@@ -177,9 +184,11 @@
                                 <td class="px-5 py-4 text-slate-400">
                                     {{ isset($item['location']['battery_level']) && $item['location']['battery_level'] !== null ? $item['location']['battery_level'].'%' : '—' }}
                                 </td>
+                                <td class="px-5 py-4 text-slate-400">—</td>
+                                <td class="px-5 py-4 text-right text-slate-500">—</td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="px-5 py-8 text-center text-slate-400">No salesmen are currently visible.</td></tr>
+                            <tr><td colspan="8" class="px-5 py-8 text-center text-slate-400">No salesmen are currently visible.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -213,7 +222,7 @@
     </section>
 
     @if($visibility['orders'] || $visibility['visits'])
-        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+        <script src="{{ asset('vendor/chartjs/chart.umd.min.js') }}"></script>
         <script>
             (() => {
                 const labels = @json($analytics['labels']);
@@ -279,12 +288,14 @@
     @endif
 
     @if($visibility['tracking'])
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="{{ asset('vendor/leaflet/leaflet.js') }}"></script>
         <script>
             (() => {
                 const endpoint = @json(route('admin.dashboard.live-locations'));
+                const endpointWithTracks = endpoint + (endpoint.includes('?') ? '&' : '?') + 'include_tracks=1';
                 const status = document.getElementById('map-status');
                 const tableBody = document.getElementById('salesman-status-body');
+                const routeToggle = document.getElementById('route-toggle');
                 const map = L.map('live-map', {
                     zoomControl: true,
                     attributionControl: true,
@@ -295,13 +306,109 @@
                     attribution: '&copy; OpenStreetMap contributors',
                 }).addTo(map);
 
+                const palette = ['#6366f1', '#0ea5e9', '#14b8a6', '#f59e0b', '#ec4899', '#8b5cf6', '#22c55e', '#f97316'];
                 const markers = new Map();
+                const routes = new Map();
+                const routeLayer = L.layerGroup().addTo(map);
+                let routesVisible = true;
                 let hasFitted = false;
+                let includeTracks = true;
+                let routeColorIndex = 0;
 
                 const markerClass = (freshness) => {
                     if (freshness === 'live') return 'background:#10b981;';
                     if (freshness === 'stale') return 'background:#f59e0b;';
                     return 'background:#64748b;';
+                };
+
+                const routeFor = (salesmanId) => {
+                    if (!routes.has(salesmanId)) {
+                        routes.set(salesmanId, {
+                            color: palette[routeColorIndex++ % palette.length],
+                            line: null,
+                            start: null,
+                            lastRecordedAt: null,
+                            distanceKm: null,
+                        });
+                    }
+
+                    return routes.get(salesmanId);
+                };
+
+                const setTrack = (item, bounds) => {
+                    const track = item.track;
+
+                    if (!track || !Array.isArray(track.points) || track.points.length < 2) {
+                        return;
+                    }
+
+                    const latlngs = track.points.map((point) => [point[0], point[1]]);
+                    const entry = routeFor(item.salesman_id);
+
+                    if (!entry.line) {
+                        entry.line = L.polyline(latlngs, {
+                            color: entry.color,
+                            weight: 4,
+                            opacity: .85,
+                            lineJoin: 'round',
+                        }).addTo(routeLayer);
+                        entry.start = L.circleMarker(latlngs[0], {
+                            radius: 6,
+                            color: '#ffffff',
+                            weight: 2,
+                            fillColor: entry.color,
+                            fillOpacity: 1,
+                        }).addTo(routeLayer);
+                        entry.start.bindTooltip(item.salesman_name + ' · start');
+                    } else {
+                        entry.line.setLatLngs(latlngs);
+                        entry.start.setLatLng(latlngs[0]);
+                    }
+
+                    entry.lastRecordedAt = track.points[track.points.length - 1][2];
+                    entry.distanceKm = track.distance_km;
+                    entry.line.bindTooltip(item.salesman_name + ' · ' + Number(track.distance_km).toFixed(1) + ' km today');
+                    entry.line.bindPopup(popupFor(item, track));
+
+                    for (const latlng of latlngs) {
+                        bounds.push(latlng);
+                    }
+                };
+
+                const appendPoint = (item) => {
+                    const entry = routes.get(item.salesman_id);
+
+                    if (!entry || !entry.line || !item.location) {
+                        return;
+                    }
+
+                    if (entry.lastRecordedAt === item.location.recorded_at) {
+                        return;
+                    }
+
+                    entry.line.addLatLng([item.location.latitude, item.location.longitude]);
+                    entry.lastRecordedAt = item.location.recorded_at;
+                };
+
+                const routeButton = (item) => {
+                    const entry = routes.get(item.salesman_id);
+
+                    if (!entry || !entry.line) {
+                        const empty = document.createElement('span');
+                        empty.className = 'text-xs text-slate-500';
+                        empty.textContent = '—';
+                        return empty;
+                    }
+
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'rounded-lg bg-white/10 px-3 py-1.5 text-xs text-slate-200 hover:bg-white/20';
+                    button.textContent = 'View route';
+                    button.addEventListener('click', () => {
+                        map.fitBounds(entry.line.getBounds(), {padding: [40, 40], maxZoom: 16});
+                    });
+
+                    return button;
                 };
 
                 const renderStatusTable = (items) => {
@@ -310,7 +417,7 @@
                     if (items.length === 0) {
                         const row = document.createElement('tr');
                         const cell = document.createElement('td');
-                        cell.colSpan = 6;
+                        cell.colSpan = 8;
                         cell.className = 'px-5 py-8 text-center text-slate-400';
                         cell.textContent = 'No salesmen are currently visible.';
                         row.appendChild(cell);
@@ -320,6 +427,7 @@
 
                     for (const item of items) {
                         const row = document.createElement('tr');
+                        const route = routes.get(item.salesman_id);
                         const values = [
                             item.salesman_name + ' · ' + item.employee_code,
                             item.status.charAt(0).toUpperCase() + item.status.slice(1),
@@ -327,6 +435,7 @@
                             item.location?.recorded_at ?? '—',
                             item.location ? item.location.latitude.toFixed(5) + ', ' + item.location.longitude.toFixed(5) : '—',
                             item.location?.battery_level == null ? '—' : item.location.battery_level + '%',
+                            route && route.distanceKm != null ? Number(route.distanceKm).toFixed(1) + ' km' : '—',
                         ];
 
                         for (const value of values) {
@@ -335,6 +444,11 @@
                             cell.textContent = value;
                             row.appendChild(cell);
                         }
+
+                        const routeCell = document.createElement('td');
+                        routeCell.className = 'px-5 py-4 text-right';
+                        routeCell.appendChild(routeButton(item));
+                        row.appendChild(routeCell);
 
                         tableBody.appendChild(row);
                     }
@@ -356,7 +470,7 @@
                     return row;
                 };
 
-                const popupFor = (item) => {
+                const popupFor = (item, track = null) => {
                     const box = document.createElement('div');
                     box.style.minWidth = '220px';
 
@@ -368,6 +482,13 @@
 
                     box.appendChild(textLine('Status', item.status));
                     box.appendChild(textLine('On duty', item.on_duty ? 'Yes' : 'No'));
+
+                    if (track) {
+                        box.appendChild(textLine('Route distance', Number(track.distance_km).toFixed(1) + ' km'));
+                        if (track.points.length > 0) {
+                            box.appendChild(textLine('Started', track.points[0][2]));
+                        }
+                    }
 
                     if (item.location) {
                         box.appendChild(textLine('Recorded', item.location.recorded_at));
@@ -388,9 +509,26 @@
                     return box;
                 };
 
+                const applyRouteVisibility = () => {
+                    if (routesVisible) {
+                        if (!map.hasLayer(routeLayer)) {
+                            map.addLayer(routeLayer);
+                        }
+                    } else if (map.hasLayer(routeLayer)) {
+                        map.removeLayer(routeLayer);
+                    }
+
+                    routeToggle.textContent = routesVisible ? 'Hide routes' : 'Show routes';
+                };
+
+                routeToggle.addEventListener('click', () => {
+                    routesVisible = !routesVisible;
+                    applyRouteVisibility();
+                });
+
                 const refresh = async () => {
                     try {
-                        const response = await fetch(endpoint, {
+                        const response = await fetch(includeTracks ? endpointWithTracks : endpoint, {
                             headers: {'Accept': 'application/json'},
                             credentials: 'same-origin',
                             cache: 'no-store',
@@ -401,11 +539,15 @@
                         }
 
                         const payload = await response.json();
+                        includeTracks = false;
                         const seen = new Set();
                         const bounds = [];
 
                         for (const item of payload.data) {
                             seen.add(item.salesman_id);
+                            setTrack(item, bounds);
+                            appendPoint(item);
+
                             const location = item.location;
 
                             if (!location) {
@@ -429,7 +571,7 @@
                                 marker.setIcon(iconFor(item.freshness));
                             }
 
-                            marker.bindPopup(popupFor(item));
+                            marker.bindPopup(popupFor(item, item.track ?? routes.get(item.salesman_id) ?? null));
                             marker.bindTooltip(item.salesman_name);
                         }
 
@@ -437,6 +579,17 @@
                             if (!seen.has(salesmanId)) {
                                 map.removeLayer(marker);
                                 markers.delete(salesmanId);
+
+                                const route = routes.get(salesmanId);
+                                if (route) {
+                                    if (route.line) {
+                                        routeLayer.removeLayer(route.line);
+                                    }
+                                    if (route.start) {
+                                        routeLayer.removeLayer(route.start);
+                                    }
+                                    routes.delete(salesmanId);
+                                }
                             }
                         }
 
@@ -457,6 +610,7 @@
                     }
                 };
 
+                applyRouteVisibility();
                 refresh();
                 window.setInterval(refresh, 30000);
             })();

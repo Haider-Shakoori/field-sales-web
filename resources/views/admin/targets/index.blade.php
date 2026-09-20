@@ -18,7 +18,7 @@
         </select>
         <select name="type" class="rounded-xl border border-white/10 bg-slate-900 px-4 py-3">
             <option value="">All target types</option>
-            @foreach(AppModelsSalesTarget::TYPES as $value)
+            @foreach(\App\Models\SalesTarget::TYPES as $value)
                 <option value="{{ $value }}" @selected($type === $value)>{{ str($value)->replace('_', ' ')->title() }}</option>
             @endforeach
         </select>
@@ -41,9 +41,9 @@
                     </div>
                     <div class="text-right">
                         <div class="text-lg font-semibold">
-                            {{ number_format($progress['achieved_value'], in_array($target->target_type, AppModelsSalesTarget::AMOUNT_TYPES, true) ? 2 : 0) }}
+                            {{ number_format($progress['achieved_value'], in_array($target->target_type, \App\Models\SalesTarget::AMOUNT_TYPES, true) ? 2 : 0) }}
                             /
-                            {{ number_format($progress['target_value'], in_array($target->target_type, AppModelsSalesTarget::AMOUNT_TYPES, true) ? 2 : 0) }}
+                            {{ number_format($progress['target_value'], in_array($target->target_type, \App\Models\SalesTarget::AMOUNT_TYPES, true) ? 2 : 0) }}
                             {{ $target->currency }}
                         </div>
                         <div class="text-sm text-slate-400">{{ number_format($progress['progress_percent'], 1) }}%</div>
@@ -55,7 +55,7 @@
                 </div>
 
                 <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
-                    <span class="text-slate-400">Remaining: {{ number_format($progress['remaining_value'], in_array($target->target_type, AppModelsSalesTarget::AMOUNT_TYPES, true) ? 2 : 0) }} {{ $target->currency }}</span>
+                    <span class="text-slate-400">Remaining: {{ number_format($progress['remaining_value'], in_array($target->target_type, \App\Models\SalesTarget::AMOUNT_TYPES, true) ? 2 : 0) }} {{ $target->currency }}</span>
                     @if(auth()->user()->hasPermission('targets:manage') && $isFuture)
                         <div class="flex gap-2">
                             <a href="{{ route('admin.targets.edit', $target) }}" class="rounded-lg bg-white/10 px-3 py-2">Edit</a>
