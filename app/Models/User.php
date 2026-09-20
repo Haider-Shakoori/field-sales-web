@@ -21,6 +21,20 @@ class User extends Authenticatable
 
     protected $hidden = ['password', 'remember_token'];
 
+    /**
+     * Request-lifetime RBAC caches.
+     *
+     * Navigation and policy checks can ask for many permissions during a single
+     * render. Loading roles + permissions once prevents one EXISTS query per
+     * permission check while keeping the database as the source of truth.
+     *
+     * @var array<int, string>|null
+     */
+    private ?array $permissionSlugCache = null;
+
+    /** @var array<int, string>|null */
+    private ?array $roleSlugCache = null;
+
     protected function casts(): array
     {
         return [
@@ -64,9 +78,7 @@ class User extends Authenticatable
 
     public function hasPermission(string $permission): bool
     {
-        return $this->roles()
-            ->whereHas('permissions', fn ($query) => $query->where('slug', $permission))
-            ->exists();
+        return in_array($permission, $this->permissionSlugs(), true);
     }
 
     public function hasAnyPermission(array $permissions): bool
@@ -75,9 +87,7 @@ class User extends Authenticatable
             return false;
         }
 
-        return $this->roles()
-            ->whereHas('permissions', fn ($query) => $query->whereIn('slug', $permissions))
-            ->exists();
+        return array_intersect($permissions, $this->permissionSlugs()) !== [];
     }
 
     public function hasAnyRole(array $roles): bool
@@ -86,9 +96,7 @@ class User extends Authenticatable
             return false;
         }
 
-        return $this->roles()
-            ->whereIn('slug', $roles)
-            ->exists();
+        return array_intersect($roles, $this->roleSlugs()) !== [];
     }
 
     public function syncPrimaryRole(Role $role): void
@@ -107,5 +115,41 @@ class User extends Authenticatable
         // model_has_roles + role_permissions.
         $this->forceFill(['role' => $role->slug])->save();
         $this->unsetRelation('roles');
+        $this->permissionSlugCache = null;
+        $this->roleSlugCache = null;
+    }
+
+    /** @return array<int, string> */
+    private function permissionSlugs(): array
+    {
+        if ($this->permissionSlugCache !== null) {
+            return $this->permissionSlugCache;
+        }
+
+        $this->loadMissing('roles.permissions');
+
+        return $this->permissionSlugCache = $this->roles
+            ->flatMap(fn (Role $role) => $role->permissions->pluck('slug'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /** @return array<int, string> */
+    private function roleSlugs(): array
+    {
+        if ($this->roleSlugCache !== null) {
+            return $this->roleSlugCache;
+        }
+
+        $this->loadMissing('roles');
+
+        return $this->roleSlugCache = $this->roles
+            ->pluck('slug')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 }
