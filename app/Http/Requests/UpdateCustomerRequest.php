@@ -56,6 +56,9 @@ class UpdateCustomerRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:2000'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'credit_limit' => ['nullable', 'numeric', 'min:0', 'max:9999999999999.9999'],
+            'credit_currency' => ['required', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
+            'credit_terms_days' => ['required', 'integer', 'between:0,365'],
             'geofence_radius_meters' => ['required', 'integer', 'between:25,1000'],
             'offline_uuid' => [
                 'nullable',

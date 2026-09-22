@@ -268,6 +268,9 @@ class MasterDataController extends Controller
             'branch_id' => $customer->branch?->uuid,
             'territory_id' => $customer->territory?->uuid,
             'price_list_id' => $customer->priceList?->uuid,
+            'credit_limit' => $customer->credit_limit === null ? null : (float) $customer->credit_limit,
+            'credit_currency' => $customer->credit_currency,
+            'credit_terms_days' => (int) $customer->credit_terms_days,
             'route_ids' => $customer->relationLoaded('routeMemberships')
                 ? $customer->routeMemberships
                     ->map(fn ($membership) => $membership->route?->uuid)
