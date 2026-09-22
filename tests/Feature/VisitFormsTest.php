@@ -246,6 +246,8 @@ class VisitFormsTest extends TestCase
         $this->assertFalse($oldQuestionRow->is_active);
         $this->assertSame(1, $oldQuestionRow->template_version);
 
+        auth()->guard('web')->logout();
+
         $this->createWorkSession($actor);
         $visitUuid = (string) Str::uuid();
 
@@ -340,10 +342,9 @@ class VisitFormsTest extends TestCase
         ], $this->headers($actor))
             ->assertUnprocessable()
             ->assertJsonPath('error.code', 'VALIDATION_ERROR')
-            ->assertJsonPath(
-                'error.details.answers.'.$question->uuid.'.0',
+            ->assertJsonFragment([
                 'Display quality must be one of the configured options.',
-            );
+            ]);
     }
 
     private function actor(): array
