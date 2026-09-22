@@ -36,6 +36,7 @@ class VisitController extends Controller
                 'workSession',
                 'photos',
                 'suspiciousFlags.reviewer',
+                'formSubmissions.answers',
             ]),
         ]);
     }

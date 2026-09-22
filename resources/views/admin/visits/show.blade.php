@@ -38,6 +38,45 @@
         </section>
 
         <section class="rounded-2xl border border-white/10 bg-slate-900 p-5 lg:col-span-2">
+            <h2 class="font-semibold">{{ __('Visit form submissions') }}</h2>
+            <div class="mt-4 space-y-4">
+                @forelse($visit->formSubmissions as $submission)
+                    <div class="rounded-xl border border-white/10 bg-slate-950 p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <div class="font-medium">{{ $submission->template_name }}</div>
+                                <div class="mt-1 text-xs text-slate-400">
+                                    v{{ $submission->template_version }} · {{ $submission->submitted_at?->format('Y-m-d H:i:s') }}
+                                </div>
+                            </div>
+                        </div>
+                        <dl class="mt-4 grid gap-3 md:grid-cols-2">
+                            @foreach($submission->answers as $answer)
+                                <div class="rounded-lg bg-white/5 p-3">
+                                    <dt class="text-xs text-slate-400">{{ $answer->question_label }}</dt>
+                                    <dd class="mt-1 text-sm">
+                                        @php($answerValue = $answer->value)
+                                        @if($answer->question_type === 'photo' && isset($answerValue['photo_id']))
+                                            {{ __('Photo') }}: {{ $answerValue['photo_id'] }}
+                                        @elseif(is_array($answerValue['value'] ?? null))
+                                            {{ implode(', ', $answerValue['value']) }}
+                                        @elseif(is_bool($answerValue['value'] ?? null))
+                                            {{ $answerValue['value'] ? __('Yes') : __('No') }}
+                                        @else
+                                            {{ $answerValue['value'] ?? '—' }}
+                                        @endif
+                                    </dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    </div>
+                @empty
+                    <p class="text-sm text-slate-400">{{ __('No visit forms submitted.') }}</p>
+                @endforelse
+            </div>
+        </section>
+
+        <section class="rounded-2xl border border-white/10 bg-slate-900 p-5 lg:col-span-2">
             <h2 class="font-semibold">Photos</h2>
             <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 @forelse($visit->photos as $photo)

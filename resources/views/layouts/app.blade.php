@@ -103,6 +103,7 @@
                 'label' => 'Field operations',
                 'links' => [
                     ['route' => 'admin.visits.index', 'match' => 'admin.visits.*', 'label' => 'Visits', 'icon' => 'calendar-check', 'can' => 'visits:view'],
+                    ['route' => 'admin.visit-forms.index', 'match' => 'admin.visit-forms.*', 'label' => 'Visit forms', 'icon' => 'clipboard', 'can' => 'visits:view'],
                     ['route' => 'admin.orders.index', 'match' => 'admin.orders.*', 'label' => 'Orders', 'icon' => 'cart', 'can' => 'orders:view'],
                     ['route' => 'admin.collections.index', 'match' => 'admin.collections.*', 'label' => 'Collections', 'icon' => 'banknotes', 'can' => 'collections:view'],
                     ['route' => 'admin.expenses.index', 'match' => 'admin.expenses.*', 'label' => 'Expenses', 'icon' => 'receipt', 'can' => 'expenses:view'],

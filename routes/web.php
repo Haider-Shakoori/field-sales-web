@@ -36,6 +36,7 @@ use App\Http\Controllers\Web\TerritoryController;
 use App\Http\Controllers\Web\TrackingSettingsController;
 use App\Http\Controllers\Web\UserController;
 use App\Http\Controllers\Web\VisitController;
+use App\Http\Controllers\Web\VisitFormTemplateController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin/users');
@@ -217,6 +218,12 @@ Route::middleware('auth')->group(function () {
         Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])
             ->middleware('permission:orders:manage')
             ->name('orders.status');
+
+        Route::resource('visit-forms', VisitFormTemplateController::class)
+            ->parameters(['visit-forms' => 'visitForm'])
+            ->only(['index', 'create', 'store', 'edit', 'update'])
+            ->middlewareFor('index', 'permission:visits:view')
+            ->middlewareFor(['create', 'store', 'edit', 'update'], 'permission:visits:manage');
 
         Route::resource('visits', VisitController::class)
             ->only(['index', 'show'])

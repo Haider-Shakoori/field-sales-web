@@ -83,4 +83,10 @@ class CustomerVisit extends Model
     {
         return $this->hasMany(VisitSuspiciousFlag::class, 'visit_id');
     }
+
+    public function formSubmissions(): HasMany
+    {
+        return $this->hasMany(VisitFormSubmission::class, 'visit_id')
+            ->orderBy('submitted_at');
+    }
 }

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\TargetController;
 use App\Http\Controllers\Api\VisitController;
+use App\Http\Controllers\Api\VisitFormController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -45,11 +46,14 @@ Route::prefix('v1')->group(function () {
             Route::post('/gps/locations', [GpsController::class, 'ingest']);
             Route::post('/gps/privacy-acknowledgement', [GpsController::class, 'acknowledge']);
 
+            Route::get('/visit-forms', [VisitFormController::class, 'index']);
+
             Route::get('/visits/today', [VisitController::class, 'today']);
             Route::get('/visits/history', [VisitController::class, 'history']);
             Route::post('/visits/check-in', [VisitController::class, 'checkIn']);
             Route::post('/visits/{visit:uuid}/check-out', [VisitController::class, 'checkOut']);
             Route::post('/visits/{visit:uuid}/photos', [VisitController::class, 'uploadPhoto']);
+            Route::post('/visits/{visit:uuid}/form-submissions', [VisitFormController::class, 'store']);
 
             Route::get('/call-activities/history', [CallActivityController::class, 'history']);
             Route::post('/call-activities', [CallActivityController::class, 'store']);

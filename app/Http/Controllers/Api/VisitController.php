@@ -11,6 +11,7 @@ use App\Models\WorkSession;
 use App\Services\DailyRoutePlannerService;
 use App\Services\GeofenceService;
 use App\Services\NotificationService;
+use App\Services\VisitFormService;
 use App\Support\ApiResponse;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -152,6 +153,7 @@ class VisitController extends Controller
         Request $request,
         CustomerVisit $visit,
         GeofenceService $geofence,
+        VisitFormService $forms,
     ): JsonResponse {
         abort_unless((int) $visit->user_id === (int) $request->user()->id, 404);
 
@@ -171,6 +173,23 @@ class VisitController extends Controller
         $checkedOutAt = isset($validated['checked_out_at'])
             ? CarbonImmutable::parse($validated['checked_out_at'])->utc()
             : now()->toImmutable();
+
+        $missingForms = $forms->missingRequiredForVisit($visit);
+
+        if ($missingForms->isNotEmpty()) {
+            return ApiResponse::error(
+                'Required visit forms must be submitted before checkout.',
+                409,
+                [
+                    'forms' => $missingForms->map(fn ($template) => [
+                        'id' => $template->uuid,
+                        'code' => $template->code,
+                        'name' => $template->name,
+                    ])->values()->all(),
+                ],
+                'REQUIRED_VISIT_FORM_MISSING',
+            );
+        }
 
         if ($checkedOutAt->gt(now()->addMinutes(5)) || $checkedOutAt->lt($visit->checked_in_at)) {
             return ApiResponse::error('Invalid check-out time.', 422, null, 'VALIDATION_ERROR');
