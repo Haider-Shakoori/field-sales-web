@@ -6,7 +6,11 @@
     <meta name="color-scheme" content="dark">
     <title>{{ $title ?? 'Field Sales' }}</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'>F</text></svg>">
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    @php
+        $cssPath = public_path('css/app.css');
+        $cssVersion = is_file($cssPath) ? filemtime($cssPath) : '1';
+    @endphp
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ $cssVersion }}">
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100">
 @php
