@@ -84,6 +84,8 @@ class VisitFormsTest extends TestCase
         $this->assertSame(2, $template->questions->count());
         $this->assertSame(1, $template->version);
 
+        auth()->guard('web')->logout();
+
         $this->createWorkSession($actor);
 
         $visitUuid = (string) Str::uuid();
@@ -209,7 +211,7 @@ class VisitFormsTest extends TestCase
         $oldQuestion = $template->questions->first();
 
         $this->actingAs($actor['admin'])
-            ->put('/admin/visit-forms/'.$template->uuid, [
+            ->put('/admin/visit-forms/'.$template->id, [
                 'code' => 'OFFLINE-AUDIT',
                 'name' => 'Offline Audit Updated',
                 'scope_type' => 'route',
@@ -337,7 +339,11 @@ class VisitFormsTest extends TestCase
             ],
         ], $this->headers($actor))
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['answers.'.$question->uuid]);
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+            ->assertJsonPath(
+                'error.details.answers.'.$question->uuid.'.0',
+                'Display quality must be one of the configured options.',
+            );
     }
 
     private function actor(): array
