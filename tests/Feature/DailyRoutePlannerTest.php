@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\CustomerFollowUp;
+use App\Models\Device;
 use App\Models\Order;
 use App\Models\Permission;
 use App\Models\Role;
@@ -121,6 +122,16 @@ class DailyRoutePlannerTest extends TestCase
                 'is_active' => true,
             ]);
 
+            $device = Device::create([
+                'uuid' => (string) Str::uuid(),
+                'tenant_id' => $tenant->id,
+                'user_id' => $salesUser->id,
+                'salesman_id' => $salesman->id,
+                'device_uuid' => 'planner-device',
+                'installation_uuid' => 'planner-installation',
+                'is_active' => true,
+            ]);
+
             $branch = Branch::create([
                 'tenant_id' => $tenant->id,
                 'name' => 'Kabul Main',
@@ -203,6 +214,7 @@ class DailyRoutePlannerTest extends TestCase
                 'tenant_id' => $tenant->id,
                 'user_id' => $salesUser->id,
                 'salesman_id' => $salesman->id,
+                'device_id' => $device->id,
                 'customer_id' => $urgent->id,
                 'order_number' => 'PLAN-ORDER-1',
                 'ordered_at' => '2026-08-01 04:00:00',
