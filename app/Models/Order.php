@@ -22,6 +22,7 @@ class Order extends Model
     {
         return [
             'ordered_at' => 'datetime',
+            'due_date' => 'date',
             'subtotal' => 'decimal:4',
             'discount_total' => 'decimal:4',
             'grand_total' => 'decimal:4',

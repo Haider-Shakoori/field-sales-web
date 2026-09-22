@@ -21,6 +21,8 @@ class Customer extends Model
         return [
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'credit_limit' => 'decimal:4',
+            'credit_terms_days' => 'integer',
             'is_active' => 'boolean',
         ];
     }
@@ -47,8 +49,19 @@ class Customer extends Model
 
     public function routes(): BelongsToMany
     {
-        return $this->belongsToMany(SalesRoute::class, 'route_customers', 'customer_id', 'route_id')
-            ->withPivot(['uuid', 'tenant_id', 'sequence_number', 'planned_visit_minutes', 'notes'])
+        return $this->belongsToMany(
+            SalesRoute::class,
+            'route_customers',
+            'customer_id',
+            'route_id'
+        )
+            ->withPivot([
+                'uuid',
+                'tenant_id',
+                'sequence_number',
+                'planned_visit_minutes',
+                'notes',
+            ])
             ->withTimestamps();
     }
 
@@ -75,6 +88,11 @@ class Customer extends Model
     public function callActivities(): HasMany
     {
         return $this->hasMany(CustomerCallActivity::class)->latest('called_at');
+    }
+
+    public function followUps(): HasMany
+    {
+        return $this->hasMany(CustomerFollowUp::class)->latest('due_at');
     }
 
     public function scopeActive(Builder $query): Builder

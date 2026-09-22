@@ -266,6 +266,7 @@ class OrderController extends Controller
             'visit_id' => $order->visit?->uuid,
             'price_list_id' => $order->priceList?->uuid,
             'ordered_at' => $order->ordered_at?->toISOString(),
+            'due_date' => $order->due_date?->toDateString(),
             'payment_type' => $order->payment_type,
             'status' => $order->status,
             'currency' => $order->currency,

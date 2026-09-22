@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\AuditLogger;
+use App\Services\CustomerBalanceService;
 use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,11 +31,7 @@ class OrderController extends Controller
             ->paginate(30)
             ->withQueryString();
 
-        return view('admin.orders.index', compact(
-            'orders',
-            'status',
-            'paymentType',
-        ));
+        return view('admin.orders.index', compact('orders', 'status', 'paymentType'));
     }
 
     public function show(Order $order): View
@@ -57,6 +54,7 @@ class OrderController extends Controller
         Order $order,
         AuditLogger $audit,
         NotificationService $notifications,
+        CustomerBalanceService $balances,
     ): RedirectResponse {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['approved', 'rejected', 'cancelled'])],
@@ -69,7 +67,7 @@ class OrderController extends Controller
             default => [],
         };
 
-        if (! in_array($validated['status'], $allowed, true)) {
+        if (in_array($validated['status'], $allowed, true) === false) {
             throw ValidationException::withMessages([
                 'status' => 'This order cannot transition from '.$order->status.' to '.$validated['status'].'.',
             ]);
@@ -84,13 +82,58 @@ class OrderController extends Controller
             ]);
         }
 
+        $order->loadMissing('customer');
+        $dueDate = $order->due_date;
+
+        if ($validated['status'] === 'approved' && $order->payment_type === 'credit') {
+            $customer = $order->customer;
+
+            if ($customer) {
+                if (
+                    strtoupper((string) $customer->credit_currency) === strtoupper($order->currency)
+                    && $customer->credit_limit !== null
+                ) {
+                    $projected = round(
+                        $balances->outstanding($customer, $order->currency)
+                            + (float) $order->grand_total,
+                        4,
+                    );
+
+                    if (
+                        $projected > (float) $customer->credit_limit
+                        && trim((string) ($validated['status_note'] ?? '')) === ''
+                    ) {
+                        throw ValidationException::withMessages([
+                            'status_note' => sprintf(
+                                'Credit limit exceeded. Projected balance is %s %.2f against a limit of %.2f. Add an override reason to approve.',
+                                $order->currency,
+                                $projected,
+                                (float) $customer->credit_limit,
+                            ),
+                        ]);
+                    }
+                }
+
+                $timezone = $request->user()->loadMissing('tenant')->tenant?->timezone
+                    ?: config('app.timezone', 'UTC');
+
+                $dueDate = $order->ordered_at
+                    ->copy()
+                    ->setTimezone($timezone)
+                    ->addDays((int) $customer->credit_terms_days)
+                    ->toDateString();
+            }
+        }
+
         $before = [
             'status' => $order->status,
             'status_note' => $order->status_note,
+            'due_date' => $order->due_date?->toDateString(),
         ];
 
         $order->update([
             'status' => $validated['status'],
+            'due_date' => $dueDate,
             'status_note' => $validated['status_note'] ?? null,
             'status_changed_by' => $request->user()->id,
             'status_changed_at' => now(),
@@ -99,9 +142,11 @@ class OrderController extends Controller
         $audit->record('order.status_changed', $order, $before, [
             'status' => $order->status,
             'status_note' => $order->status_note,
+            'due_date' => $order->due_date?->toDateString(),
         ]);
 
         $order->loadMissing('salesman.user');
+
         if ($order->salesman?->user) {
             $notifications->notify(
                 $order->salesman->user,
