@@ -83,7 +83,7 @@ class AttendanceWebTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Attendance &amp; work hours', false)
+            ->assertSeeText('Attendance & work hours')
             ->assertSee($salesman->full_name)
             ->assertSee($withoutAttendance->full_name)
             ->assertSee('15h 30m')
