@@ -21,7 +21,9 @@ use Illuminate\Validation\Rule;
 
 class VisitController extends Controller
 {
-    public function __construct(private readonly NotificationService $notifications) {}
+    public function __construct(private readonly NotificationService $notifications)
+    {
+    }
 
     public function checkIn(
         Request $request,
@@ -68,7 +70,7 @@ class VisitController extends Controller
             ->latest('start_time')
             ->first();
 
-        if (!$session) {
+        if (! $session) {
             return ApiResponse::error(
                 'A visit must occur inside a work session.',
                 409,
