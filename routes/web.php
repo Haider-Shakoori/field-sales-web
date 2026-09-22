@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ReadinessController;
 use App\Http\Controllers\Web\AlertController;
+use App\Http\Controllers\Web\AttendanceController;
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\BranchController;
@@ -54,6 +55,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/live-map', [LiveMapController::class, 'index'])
             ->middleware('permission:tracking:view')
             ->name('live-map');
+
+        Route::get('/attendance', [AttendanceController::class, 'index'])
+            ->middleware('permission:sales-team:view')
+            ->name('attendance.index');
 
         Route::get('/notifications', [NotificationController::class, 'index'])
             ->name('notifications.index');

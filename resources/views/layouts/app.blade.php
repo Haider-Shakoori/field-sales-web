@@ -43,6 +43,7 @@
                     ['route' => 'admin.roles.index', 'match' => 'admin.roles.*', 'label' => 'Roles', 'icon' => 'shield', 'can' => 'roles:view'],
                     ['route' => 'admin.branches.index', 'match' => 'admin.branches.*', 'label' => 'Branches', 'icon' => 'building', 'can' => 'branches:view'],
                     ['route' => 'admin.salesmen.index', 'match' => 'admin.salesmen.*', 'label' => 'Salesmen', 'icon' => 'user', 'can' => 'sales-team:view'],
+                    ['route' => 'admin.attendance.index', 'match' => 'admin.attendance.*', 'label' => 'Attendance', 'icon' => 'calendar-check', 'can' => 'sales-team:view'],
                     ['route' => 'admin.supervisors.index', 'match' => 'admin.supervisors.*', 'label' => 'Supervisors', 'icon' => 'user-plus', 'can' => 'sales-team:view'],
                     ['route' => 'admin.devices.index', 'match' => 'admin.devices.*', 'label' => 'Devices', 'icon' => 'device', 'can' => 'sales-team:view'],
                     ['route' => 'admin.salesman-assignments.index', 'match' => 'admin.salesman-assignments.*', 'label' => 'Salesman assignments', 'icon' => 'clipboard', 'can' => 'sales-team:view'],
