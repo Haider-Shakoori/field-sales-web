@@ -52,7 +52,12 @@ class VisitFormService
             }
         }
 
-        return VisitFormTemplate::with('questions')
+        return VisitFormTemplate::with([
+            'questions',
+            'branch',
+            'territory',
+            'route',
+        ])
             ->where('is_active', true)
             ->where(function ($query) use ($branchId, $territoryId, $routeId): void {
                 $query->where('scope_type', 'all');
