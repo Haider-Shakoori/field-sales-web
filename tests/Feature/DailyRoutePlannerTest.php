@@ -59,6 +59,215 @@ class DailyRoutePlannerTest extends TestCase
             ->assertSee('AFN 80.00 overdue');
     }
 
+    public function test_planner_falls_back_to_territory_when_no_route_is_assigned(): void
+    {
+        [$tenant, $admin, $salesman, $branch, $territory] = $this->plannerFoundation(
+            'territory-fallback',
+        );
+
+        $customer = app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($admin, $branch, $territory): Customer {
+                return Customer::create([
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'code' => 'TERR-001',
+                    'name' => 'Territory Customer',
+                    'latitude' => 34.5200,
+                    'longitude' => 69.1800,
+                    'credit_currency' => 'AFN',
+                    'credit_terms_days' => 30,
+                    'created_by' => $admin->id,
+                    'is_active' => true,
+                ]);
+            }
+        );
+
+        app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => SalesmanAssignment::create([
+                'salesman_id' => $salesman->id,
+                'branch_id' => $branch->id,
+                'territory_id' => $territory->id,
+                'effective_from' => '2026-09-01',
+                'created_by' => $admin->id,
+            ])
+        );
+
+        $plan = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => app(DailyRoutePlannerService::class)->planFor(
+                $salesman,
+                CarbonImmutable::parse('2026-09-23', 'Asia/Kabul'),
+            )
+        );
+
+        $this->assertNull($plan['route']);
+        $this->assertSame('territory', $plan['source']['type']);
+        $this->assertSame($territory->uuid, $plan['source']['id']);
+        $this->assertSame($customer->uuid, $plan['stops'][0]['customer_id']);
+        $this->assertSame(1, $plan['summary']['total_stops']);
+        $this->assertContains(
+            'distance_estimate_is_straight_line',
+            $plan['warnings'],
+        );
+    }
+
+    public function test_planner_uses_distance_to_break_ties_within_same_priority_tier(): void
+    {
+        [$tenant, $admin, $salesman, $branch, $territory] = $this->plannerFoundation(
+            'distance-order',
+        );
+
+        [$first, $far, $near, $route] = app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($admin, $salesman, $branch, $territory): array {
+                $route = SalesRoute::create([
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'code' => 'DIST-ROUTE',
+                    'name' => 'Distance Route',
+                    'weekdays' => ['wed'],
+                    'is_active' => true,
+                ]);
+
+                $first = Customer::create([
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'code' => 'DIST-001',
+                    'name' => 'First Shop',
+                    'latitude' => 34.5000,
+                    'longitude' => 69.2000,
+                    'credit_currency' => 'AFN',
+                    'credit_terms_days' => 30,
+                    'created_by' => $admin->id,
+                    'is_active' => true,
+                ]);
+
+                $far = Customer::create([
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'code' => 'DIST-002',
+                    'name' => 'Far Shop',
+                    'latitude' => 35.0000,
+                    'longitude' => 70.0000,
+                    'credit_currency' => 'AFN',
+                    'credit_terms_days' => 30,
+                    'created_by' => $admin->id,
+                    'is_active' => true,
+                ]);
+
+                $near = Customer::create([
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'code' => 'DIST-003',
+                    'name' => 'Near Shop',
+                    'latitude' => 34.5005,
+                    'longitude' => 69.2005,
+                    'credit_currency' => 'AFN',
+                    'credit_terms_days' => 30,
+                    'created_by' => $admin->id,
+                    'is_active' => true,
+                ]);
+
+                foreach ([
+                    [$first, 1],
+                    [$far, 2],
+                    [$near, 3],
+                ] as [$customer, $sequence]) {
+                    RouteCustomer::create([
+                        'route_id' => $route->id,
+                        'customer_id' => $customer->id,
+                        'sequence_number' => $sequence,
+                        'planned_visit_minutes' => 10,
+                    ]);
+                }
+
+                SalesmanAssignment::create([
+                    'salesman_id' => $salesman->id,
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'route_id' => $route->id,
+                    'effective_from' => '2026-09-01',
+                    'created_by' => $admin->id,
+                ]);
+
+                return [$first, $far, $near, $route];
+            }
+        );
+
+        $plan = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => app(DailyRoutePlannerService::class)->planFor(
+                $salesman,
+                CarbonImmutable::parse('2026-09-23', 'Asia/Kabul'),
+            )
+        );
+
+        $this->assertSame($route->uuid, $plan['route']['id']);
+        $this->assertSame($first->uuid, $plan['stops'][0]['customer_id']);
+        $this->assertSame($near->uuid, $plan['stops'][1]['customer_id']);
+        $this->assertSame($far->uuid, $plan['stops'][2]['customer_id']);
+        $this->assertSame(3, $plan['stops'][1]['route_sequence']);
+        $this->assertGreaterThan(0, $plan['approximate_air_distance_km']);
+    }
+
+    private function plannerFoundation(string $slug): array
+    {
+        $context = app(TenantContext::class);
+
+        $tenant = $context->withPlatformScope(fn () => Tenant::create([
+            'uuid' => (string) Str::uuid(),
+            'name' => 'Planner Foundation',
+            'slug' => $slug.'-'.Str::lower(Str::random(6)),
+            'timezone' => 'Asia/Kabul',
+            'subscription_status' => 'active',
+        ]));
+
+        return $context->withTenant($tenant, function () use ($tenant, $slug): array {
+            $branch = Branch::create([
+                'name' => 'Kabul Main',
+                'code' => 'KBL',
+                'is_active' => true,
+            ]);
+
+            $territory = Territory::create([
+                'branch_id' => $branch->id,
+                'code' => 'KBL-C',
+                'name' => 'Kabul Central',
+                'is_active' => true,
+            ]);
+
+            $admin = User::create([
+                'uuid' => (string) Str::uuid(),
+                'name' => 'Planner Admin',
+                'email' => 'admin-'.$slug.'@example.test',
+                'password' => Hash::make('password'),
+                'role' => 'company_admin',
+                'is_active' => true,
+            ]);
+
+            $salesUser = User::create([
+                'uuid' => (string) Str::uuid(),
+                'name' => 'Planner Salesman',
+                'email' => 'sales-'.$slug.'@example.test',
+                'password' => Hash::make('password'),
+                'role' => 'salesman',
+                'is_active' => true,
+            ]);
+
+            $salesman = Salesman::create([
+                'user_id' => $salesUser->id,
+                'employee_code' => 'PLAN-'.strtoupper(substr($slug, 0, 6)),
+                'first_name' => 'Planner',
+                'last_name' => 'Salesman',
+                'is_active' => true,
+            ]);
+
+            return [$tenant, $admin, $salesman, $branch, $territory];
+        });
+    }
+
     private function fixture(): array
     {
         $context = app(TenantContext::class);

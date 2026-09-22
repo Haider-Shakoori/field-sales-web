@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\Device;
 use App\Models\Permission;
@@ -11,6 +12,7 @@ use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
 use App\Models\SalesRoute;
 use App\Models\Tenant;
+use App\Models\Territory;
 use App\Models\User;
 use App\Models\WorkSession;
 use App\Tenancy\TenantContext;
@@ -159,6 +161,65 @@ class Batch8CustomerVisitsTest extends TestCase
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.id', $uuid);
+    }
+
+    public function test_territory_assignment_customer_is_planned_without_route(): void
+    {
+        $actor = $this->actor();
+
+        $customer = app(TenantContext::class)->withTenant(
+            $actor['t'],
+            function () use ($actor): Customer {
+                $branch = Branch::create([
+                    'code' => 'KBL',
+                    'name' => 'Kabul Main',
+                    'is_active' => true,
+                ]);
+
+                $territory = Territory::create([
+                    'branch_id' => $branch->id,
+                    'code' => 'KBL-N',
+                    'name' => 'Kabul North',
+                    'is_active' => true,
+                ]);
+
+                $customer = Customer::create([
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'code' => 'CUS-TERRITORY',
+                    'name' => 'Territory Planned Shop',
+                    'latitude' => 34.5,
+                    'longitude' => 69.2,
+                    'geofence_radius_meters' => 100,
+                    'is_active' => true,
+                ]);
+
+                SalesmanAssignment::create([
+                    'salesman_id' => $actor['s']->id,
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'effective_from' => '2026-09-19',
+                    'created_by' => $actor['u']->id,
+                ]);
+
+                return $customer;
+            }
+        );
+
+        $this->createWorkSession($actor);
+        $uuid = (string) Str::uuid();
+
+        $this->postJson('/api/v1/visits/check-in', [
+            'offline_uuid' => $uuid,
+            'customer_id' => $customer->uuid,
+            'latitude' => 34.50001,
+            'longitude' => 69.20001,
+            'accuracy' => 8,
+            'checked_in_at' => '2026-09-19T05:00:00Z',
+        ], $this->headers())
+            ->assertCreated()
+            ->assertJsonPath('data.is_planned', true)
+            ->assertJsonPath('data.route_id', null);
     }
 
     private function actor(): array
