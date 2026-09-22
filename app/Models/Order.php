@@ -13,6 +13,7 @@ class Order extends Model
     use BelongsToTenant, HasUuid;
 
     public const PAYMENT_TYPES = ['cash', 'credit'];
+
     public const STATUSES = ['pending', 'approved', 'rejected', 'cancelled'];
 
     protected $guarded = [];
@@ -31,12 +32,43 @@ class Order extends Model
         ];
     }
 
-    public function customer(): BelongsTo { return $this->belongsTo(Customer::class); }
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function salesman(): BelongsTo { return $this->belongsTo(Salesman::class); }
-    public function device(): BelongsTo { return $this->belongsTo(Device::class); }
-    public function visit(): BelongsTo { return $this->belongsTo(CustomerVisit::class); }
-    public function priceList(): BelongsTo { return $this->belongsTo(PriceList::class); }
-    public function statusChanger(): BelongsTo { return $this->belongsTo(User::class, 'status_changed_by'); }
-    public function items(): HasMany { return $this->hasMany(OrderItem::class)->orderBy('id'); }
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function salesman(): BelongsTo
+    {
+        return $this->belongsTo(Salesman::class);
+    }
+
+    public function device(): BelongsTo
+    {
+        return $this->belongsTo(Device::class);
+    }
+
+    public function visit(): BelongsTo
+    {
+        return $this->belongsTo(CustomerVisit::class);
+    }
+
+    public function priceList(): BelongsTo
+    {
+        return $this->belongsTo(PriceList::class);
+    }
+
+    public function statusChanger(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'status_changed_by');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class)->orderBy('id');
+    }
 }

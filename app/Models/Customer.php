@@ -27,24 +27,73 @@ class Customer extends Model
         ];
     }
 
-    public function branch(): BelongsTo { return $this->belongsTo(Branch::class); }
-    public function territory(): BelongsTo { return $this->belongsTo(Territory::class); }
-    public function priceList(): BelongsTo { return $this->belongsTo(PriceList::class); }
-    public function creator(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function territory(): BelongsTo
+    {
+        return $this->belongsTo(Territory::class);
+    }
+
+    public function priceList(): BelongsTo
+    {
+        return $this->belongsTo(PriceList::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
     public function routes(): BelongsToMany
     {
-        return $this->belongsToMany(SalesRoute::class, 'route_customers', 'customer_id', 'route_id')
-            ->withPivot(['uuid', 'tenant_id', 'sequence_number', 'planned_visit_minutes', 'notes'])
+        return $this->belongsToMany(
+            SalesRoute::class,
+            'route_customers',
+            'customer_id',
+            'route_id'
+        )
+            ->withPivot([
+                'uuid',
+                'tenant_id',
+                'sequence_number',
+                'planned_visit_minutes',
+                'notes',
+            ])
             ->withTimestamps();
     }
 
-    public function routeMemberships(): HasMany { return $this->hasMany(RouteCustomer::class); }
-    public function visits(): HasMany { return $this->hasMany(CustomerVisit::class); }
-    public function collections(): HasMany { return $this->hasMany(Collection::class)->latest('collected_at'); }
-    public function orders(): HasMany { return $this->hasMany(Order::class)->latest('ordered_at'); }
-    public function callActivities(): HasMany { return $this->hasMany(CustomerCallActivity::class)->latest('called_at'); }
-    public function followUps(): HasMany { return $this->hasMany(CustomerFollowUp::class)->latest('due_at'); }
+    public function routeMemberships(): HasMany
+    {
+        return $this->hasMany(RouteCustomer::class);
+    }
+
+    public function visits(): HasMany
+    {
+        return $this->hasMany(CustomerVisit::class);
+    }
+
+    public function collections(): HasMany
+    {
+        return $this->hasMany(Collection::class)->latest('collected_at');
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class)->latest('ordered_at');
+    }
+
+    public function callActivities(): HasMany
+    {
+        return $this->hasMany(CustomerCallActivity::class)->latest('called_at');
+    }
+
+    public function followUps(): HasMany
+    {
+        return $this->hasMany(CustomerFollowUp::class)->latest('due_at');
+    }
 
     public function scopeActive(Builder $query): Builder
     {
