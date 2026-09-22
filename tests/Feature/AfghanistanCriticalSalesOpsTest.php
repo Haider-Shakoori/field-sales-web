@@ -46,6 +46,7 @@ class AfghanistanCriticalSalesOpsTest extends TestCase
             ->assertSee('fp-sidebar', false)
             ->assertSee('fp-shell-auth', false)
             ->assertSee('fp-nav-link', false)
+            ->assertSee('/css/app.css?v=', false)
             ->assertSee('مشتریان');
 
         $sidebarCss = file_get_contents(resource_path('css/app.css'));
