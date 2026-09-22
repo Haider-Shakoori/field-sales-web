@@ -11,6 +11,39 @@
         $cssVersion = is_file($cssPath) ? filemtime($cssPath) : '1';
     @endphp
     <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ $cssVersion }}">
+    <style>
+        .fp-sidebar {
+            left: 0;
+            right: auto;
+            transform: translateX(-100%);
+        }
+
+        html[dir="rtl"] .fp-sidebar {
+            left: auto;
+            right: 0;
+            transform: translateX(100%);
+        }
+
+        #sidebar-toggle:checked ~ .fp-sidebar {
+            transform: translateX(0);
+        }
+
+        @media (min-width: 1024px) {
+            .fp-sidebar {
+                transform: translateX(0) !important;
+            }
+
+            .fp-shell-auth {
+                padding-left: 18rem;
+                padding-right: 0;
+            }
+
+            html[dir="rtl"] .fp-shell-auth {
+                padding-left: 0;
+                padding-right: 18rem;
+            }
+        }
+    </style>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100">
 @php
