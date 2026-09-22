@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\Collection;
+use App\Models\Customer;
 use App\Models\CustomerFollowUp;
 use App\Models\CustomerVisit;
 use App\Models\Order;
+use App\Models\RouteCustomer;
 use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
 use Carbon\CarbonImmutable;
@@ -13,6 +15,8 @@ use Illuminate\Support\Collection as SupportCollection;
 
 class DailyRoutePlannerService
 {
+    public const DISTANCE_METHOD = 'straight_line';
+
     public function planFor(
         Salesman $salesman,
         CarbonImmutable $localDate,
@@ -26,43 +30,39 @@ class DailyRoutePlannerService
         $startUtc = $localDate->utc();
         $endUtc = $localDate->addDay()->utc();
 
-        $assignment = SalesmanAssignment::with(['branch', 'territory', 'route'])
-            ->where('salesman_id', $salesman->id)
-            ->current($localDate->toDateString())
-            ->latest('effective_from')
-            ->first();
+        $assignment = $this->assignmentFor($salesman, $localDate);
+        [$source, $route, $candidates] = $this->candidatesFor($assignment, $localDate);
 
-        if (! $assignment?->route) {
-            return $this->emptyPlan($salesman, $localDate, $assignment);
-        }
-
-        $route = $assignment->route;
-        $route->load([
-            'customerMemberships.customer' => fn ($query) => $query->where('is_active', true),
-        ]);
-
-        $memberships = $route->customerMemberships
-            ->filter(fn ($membership) => $membership->customer !== null)
-            ->values();
-
-        $customerIds = $memberships->pluck('customer_id')->all();
-
-        if ($customerIds === []) {
+        if ($candidates->isEmpty()) {
             return [
                 ...$this->basePlan($salesman, $localDate, $assignment),
-                'route' => $this->routePayload($route, $localDate),
+                'source' => $source,
+                'route' => $route,
                 'summary' => $this->summary([]),
                 'stops' => [],
                 'approximate_air_distance_km' => 0.0,
+                'distance_method' => self::DISTANCE_METHOD,
+                'warnings' => $this->warnings($route, $localDate, $candidates),
             ];
         }
+
+        $customerIds = $candidates
+            ->pluck('customer')
+            ->pluck('id')
+            ->all();
 
         $approvedOrders = Order::query()
             ->whereIn('customer_id', $customerIds)
             ->where('payment_type', 'credit')
             ->where('status', 'approved')
             ->orderBy('ordered_at')
-            ->get(['customer_id', 'currency', 'grand_total', 'ordered_at', 'due_date'])
+            ->get([
+                'customer_id',
+                'currency',
+                'grand_total',
+                'ordered_at',
+                'due_date',
+            ])
             ->groupBy('customer_id');
 
         $verifiedCollections = Collection::query()
@@ -103,7 +103,7 @@ class DailyRoutePlannerService
             ->groupBy('customer_id')
             ->pluck('last_visited_at', 'customer_id');
 
-        $stops = $memberships->map(function ($membership) use (
+        $stops = $candidates->map(function (array $candidate) use (
             $approvedOrders,
             $verifiedCollections,
             $followUps,
@@ -113,7 +113,9 @@ class DailyRoutePlannerService
             $startUtc,
             $timezone,
         ): array {
-            $customer = $membership->customer;
+            /** @var Customer $customer */
+            $customer = $candidate['customer'];
+
             $aging = $this->agingForCustomer(
                 $customer->credit_terms_days ?? 30,
                 $approvedOrders->get($customer->id, collect()),
@@ -143,91 +145,213 @@ class DailyRoutePlannerService
                 'customer_name' => $customer->name,
                 'address' => $customer->address,
                 'phone' => $customer->phone,
-                'latitude' => $customer->latitude === null ? null : (float) $customer->latitude,
-                'longitude' => $customer->longitude === null ? null : (float) $customer->longitude,
-                'route_sequence' => (int) $membership->sequence_number,
+                'latitude' => $customer->latitude === null
+                    ? null
+                    : (float) $customer->latitude,
+                'longitude' => $customer->longitude === null
+                    ? null
+                    : (float) $customer->longitude,
+                'route_sequence' => $candidate['route_sequence'],
+                'source_sequence' => $candidate['source_sequence'],
                 'recommended_order' => null,
-                'planned_visit_minutes' => (int) $membership->planned_visit_minutes,
+                'planned_visit_minutes' => $candidate['planned_visit_minutes'],
                 'visited_today' => $visited,
                 'last_visited_at' => $lastVisited?->toISOString(),
                 'priority_score' => $score,
                 'priority' => $this->priority($score, $visited),
                 'reasons' => $reasons,
                 'overdue' => $aging,
-                'due_follow_ups' => $customerFollowUps->map(fn (CustomerFollowUp $followUp) => [
-                    'id' => $followUp->uuid,
-                    'type' => $followUp->type,
-                    'priority' => $followUp->priority,
-                    'due_at' => $followUp->due_at?->setTimezone($timezone)->toISOString(),
-                    'overdue' => $followUp->due_at?->lt($startUtc) ?? false,
-                    'notes' => $followUp->notes,
-                ])->values()->all(),
+                'due_follow_ups' => $customerFollowUps->map(
+                    fn (CustomerFollowUp $followUp) => [
+                        'id' => $followUp->uuid,
+                        'type' => $followUp->type,
+                        'priority' => $followUp->priority,
+                        'due_at' => $followUp->due_at
+                            ?->setTimezone($timezone)
+                            ->toISOString(),
+                        'overdue' => $followUp->due_at?->lt($startUtc) ?? false,
+                        'notes' => $followUp->notes,
+                    ]
+                )->values()->all(),
                 'distance_from_previous_km' => null,
             ];
-        })->all();
-
-        usort($stops, function (array $left, array $right): int {
-            if ($left['visited_today'] !== $right['visited_today']) {
-                return $left['visited_today'] <=> $right['visited_today'];
-            }
-
-            if ($left['priority_score'] !== $right['priority_score']) {
-                return $right['priority_score'] <=> $left['priority_score'];
-            }
-
-            return $left['route_sequence'] <=> $right['route_sequence'];
         });
 
-        $previous = null;
-        $totalDistance = 0.0;
-
-        foreach ($stops as $index => &$stop) {
-            $stop['recommended_order'] = $index + 1;
-
-            if (
-                $previous !== null
-                && $previous['latitude'] !== null
-                && $previous['longitude'] !== null
-                && $stop['latitude'] !== null
-                && $stop['longitude'] !== null
-            ) {
-                $distance = $this->distanceKm(
-                    $previous['latitude'],
-                    $previous['longitude'],
-                    $stop['latitude'],
-                    $stop['longitude'],
-                );
-                $stop['distance_from_previous_km'] = round($distance, 2);
-                $totalDistance += $distance;
-            }
-
-            if ($stop['latitude'] !== null && $stop['longitude'] !== null) {
-                $previous = $stop;
-            }
-        }
-        unset($stop);
+        [$orderedStops, $totalDistance] = $this->sequenceStops($stops);
 
         return [
             ...$this->basePlan($salesman, $localDate, $assignment),
-            'route' => $this->routePayload($route, $localDate),
-            'summary' => $this->summary($stops),
-            'stops' => $stops,
+            'source' => $source,
+            'route' => $route,
+            'summary' => $this->summary($orderedStops),
+            'stops' => $orderedStops,
             'approximate_air_distance_km' => round($totalDistance, 2),
+            'distance_method' => self::DISTANCE_METHOD,
+            'warnings' => $this->warnings($route, $localDate, $candidates),
         ];
     }
 
-    private function emptyPlan(
+    public function planningContextForCustomer(
+        Salesman $salesman,
+        Customer $customer,
+        CarbonImmutable $localDate,
+    ): array {
+        $salesman->loadMissing('user.tenant');
+
+        $timezone = $salesman->user?->tenant?->timezone
+            ?: config('app.timezone', 'UTC');
+
+        $localDate = $localDate->setTimezone($timezone)->startOfDay();
+        $assignment = $this->assignmentFor($salesman, $localDate);
+
+        if (! $assignment) {
+            return [
+                'planned' => false,
+                'route_id' => null,
+                'source_type' => null,
+            ];
+        }
+
+        if ($assignment->route_id) {
+            $planned = RouteCustomer::query()
+                ->where('route_id', $assignment->route_id)
+                ->where('customer_id', $customer->id)
+                ->exists();
+
+            return [
+                'planned' => $planned,
+                'route_id' => $planned ? $assignment->route_id : null,
+                'source_type' => $planned ? 'route' : null,
+            ];
+        }
+
+        if (
+            $assignment->territory_id
+            && (int) $assignment->territory_id === (int) $customer->territory_id
+        ) {
+            return [
+                'planned' => true,
+                'route_id' => null,
+                'source_type' => 'territory',
+            ];
+        }
+
+        if (
+            $assignment->branch_id
+            && ! $assignment->territory_id
+            && (int) $assignment->branch_id === (int) $customer->branch_id
+        ) {
+            return [
+                'planned' => true,
+                'route_id' => null,
+                'source_type' => 'branch',
+            ];
+        }
+
+        return [
+            'planned' => false,
+            'route_id' => null,
+            'source_type' => null,
+        ];
+    }
+
+    private function assignmentFor(
         Salesman $salesman,
         CarbonImmutable $localDate,
+    ): ?SalesmanAssignment {
+        return SalesmanAssignment::with(['branch', 'territory', 'route'])
+            ->where('salesman_id', $salesman->id)
+            ->current($localDate->toDateString())
+            ->latest('effective_from')
+            ->first();
+    }
+
+    private function candidatesFor(
         ?SalesmanAssignment $assignment,
+        CarbonImmutable $localDate,
     ): array {
-        return [
-            ...$this->basePlan($salesman, $localDate, $assignment),
-            'route' => null,
-            'summary' => $this->summary([]),
-            'stops' => [],
-            'approximate_air_distance_km' => 0.0,
-        ];
+        if (! $assignment) {
+            return [null, null, collect()];
+        }
+
+        if ($assignment->route) {
+            $route = $assignment->route;
+            $route->load([
+                'customerMemberships.customer' => fn ($query) => $query
+                    ->where('is_active', true),
+            ]);
+
+            $candidates = $route->customerMemberships
+                ->filter(fn ($membership) => $membership->customer !== null)
+                ->values()
+                ->map(fn ($membership): array => [
+                    'customer' => $membership->customer,
+                    'route_sequence' => (int) $membership->sequence_number,
+                    'source_sequence' => (int) $membership->sequence_number,
+                    'planned_visit_minutes' => (int) $membership->planned_visit_minutes,
+                ]);
+
+            return [
+                [
+                    'type' => 'route',
+                    'id' => $route->uuid,
+                    'code' => $route->code,
+                    'name' => $route->name,
+                ],
+                $this->routePayload($route, $localDate),
+                $candidates,
+            ];
+        }
+
+        if ($assignment->territory) {
+            $customers = Customer::active()
+                ->where('territory_id', $assignment->territory_id)
+                ->orderBy('name')
+                ->get();
+
+            return [
+                [
+                    'type' => 'territory',
+                    'id' => $assignment->territory->uuid,
+                    'code' => $assignment->territory->code,
+                    'name' => $assignment->territory->name,
+                ],
+                null,
+                $this->customerCandidates($customers),
+            ];
+        }
+
+        if ($assignment->branch) {
+            $customers = Customer::active()
+                ->where('branch_id', $assignment->branch_id)
+                ->orderBy('name')
+                ->get();
+
+            return [
+                [
+                    'type' => 'branch',
+                    'id' => $assignment->branch->uuid,
+                    'code' => $assignment->branch->code,
+                    'name' => $assignment->branch->name,
+                ],
+                null,
+                $this->customerCandidates($customers),
+            ];
+        }
+
+        return [null, null, collect()];
+    }
+
+    private function customerCandidates(SupportCollection $customers): SupportCollection
+    {
+        return $customers
+            ->values()
+            ->map(fn (Customer $customer, int $index): array => [
+                'customer' => $customer,
+                'route_sequence' => null,
+                'source_sequence' => $index + 1,
+                'planned_visit_minutes' => 10,
+            ]);
     }
 
     private function basePlan(
@@ -259,7 +383,11 @@ class DailyRoutePlannerService
             'id' => $route->uuid,
             'code' => $route->code,
             'name' => $route->name,
-            'scheduled_today' => in_array($weekday, $route->weekdays ?? [], true),
+            'scheduled_today' => in_array(
+                $weekday,
+                array_map('strtolower', $route->weekdays ?? []),
+                true,
+            ),
             'weekdays' => $route->weekdays ?? [],
         ];
     }
@@ -271,7 +399,9 @@ class DailyRoutePlannerService
         CarbonImmutable $asOfDate,
     ): array {
         $verifiedByCurrency = $collectionRows
-            ->mapWithKeys(fn ($row) => [$row->currency => (float) $row->total])
+            ->mapWithKeys(fn ($row) => [
+                $row->currency => (float) $row->total,
+            ])
             ->all();
 
         $result = [];
@@ -294,7 +424,8 @@ class DailyRoutePlannerService
                 $outstanding += $remaining;
 
                 $dueDate = $order->due_date?->toImmutable()
-                    ?? $order->ordered_at?->toImmutable()->addDays($creditTermsDays);
+                    ?? $order->ordered_at?->toImmutable()
+                        ->addDays($creditTermsDays);
 
                 if ($dueDate && $dueDate->startOfDay()->lt($asOfDate)) {
                     $overdue += $remaining;
@@ -403,6 +534,157 @@ class DailyRoutePlannerService
         };
     }
 
+    private function sequenceStops(SupportCollection $stops): array
+    {
+        $ordered = collect();
+        $previous = null;
+        $totalDistance = 0.0;
+
+        foreach (['urgent', 'high', 'elevated', 'normal'] as $priority) {
+            $remaining = $stops
+                ->where('visited_today', false)
+                ->where('priority', $priority)
+                ->values();
+
+            while ($remaining->isNotEmpty()) {
+                $next = $this->nextStop($remaining, $previous);
+                $distance = $this->distanceBetweenStops($previous, $next);
+
+                if ($distance !== null) {
+                    $next['distance_from_previous_km'] = round($distance, 2);
+                    $totalDistance += $distance;
+                }
+
+                $ordered->push($next);
+                $previous = $next;
+
+                $remaining = $remaining
+                    ->reject(
+                        fn (array $candidate): bool => (
+                            $candidate['customer_id'] === $next['customer_id']
+                        )
+                    )
+                    ->values();
+            }
+        }
+
+        foreach (
+            $stops
+                ->where('visited_today', true)
+                ->sortBy('source_sequence')
+                ->values() as $completed
+        ) {
+            $distance = $this->distanceBetweenStops($previous, $completed);
+
+            if ($distance !== null) {
+                $completed['distance_from_previous_km'] = round($distance, 2);
+                $totalDistance += $distance;
+            }
+
+            $ordered->push($completed);
+            $previous = $completed;
+        }
+
+        $result = $ordered
+            ->values()
+            ->map(function (array $stop, int $index): array {
+                $stop['recommended_order'] = $index + 1;
+
+                return $stop;
+            })
+            ->all();
+
+        return [$result, $totalDistance];
+    }
+
+    private function nextStop(
+        SupportCollection $remaining,
+        ?array $previous,
+    ): array {
+        if (! $this->hasStopCoordinates($previous)) {
+            return $remaining
+                ->sortBy(fn (array $stop): array => [
+                    -$stop['priority_score'],
+                    $stop['source_sequence'],
+                    $stop['customer_name'],
+                ])
+                ->first();
+        }
+
+        return $remaining
+            ->sortBy(function (array $stop) use ($previous): array {
+                $distance = $this->distanceBetweenStops($previous, $stop);
+
+                return [
+                    $distance ?? PHP_INT_MAX,
+                    -$stop['priority_score'],
+                    $stop['source_sequence'],
+                    $stop['customer_name'],
+                ];
+            })
+            ->first();
+    }
+
+    private function distanceBetweenStops(
+        ?array $from,
+        array $to,
+    ): ?float {
+        if (! $this->hasStopCoordinates($from) || ! $this->hasStopCoordinates($to)) {
+            return null;
+        }
+
+        return $this->distanceKm(
+            $from['latitude'],
+            $from['longitude'],
+            $to['latitude'],
+            $to['longitude'],
+        );
+    }
+
+    private function hasStopCoordinates(?array $stop): bool
+    {
+        if (! $stop) {
+            return false;
+        }
+
+        return $stop['latitude'] !== null
+            && $stop['longitude'] !== null
+            && ! (
+                (float) $stop['latitude'] === 0.0
+                && (float) $stop['longitude'] === 0.0
+            );
+    }
+
+    private function warnings(
+        ?array $route,
+        CarbonImmutable $localDate,
+        SupportCollection $candidates,
+    ): array {
+        $warnings = ['distance_estimate_is_straight_line'];
+
+        $missingCoordinates = $candidates->filter(function (array $candidate): bool {
+            /** @var Customer $customer */
+            $customer = $candidate['customer'];
+
+            return $customer->latitude === null
+                || $customer->longitude === null
+                || (
+                    (float) $customer->latitude === 0.0
+                    && (float) $customer->longitude === 0.0
+                );
+        })->count();
+
+        if ($missingCoordinates > 0) {
+            $warnings[] = 'missing_customer_coordinates:'.$missingCoordinates;
+        }
+
+        if ($route && ! $route['scheduled_today']) {
+            $warnings[] = 'route_not_scheduled_today';
+        }
+
+        return $warnings;
+    }
+
     private function summary(array $stops): array
     {
         $collection = collect($stops);
@@ -414,7 +696,9 @@ class DailyRoutePlannerService
             'urgent' => $collection->where('priority', 'urgent')->count(),
             'high' => $collection->where('priority', 'high')->count(),
             'customers_with_overdue_balance' => $collection
-                ->filter(fn (array $stop) => collect($stop['overdue'])->sum('overdue') > 0)
+                ->filter(
+                    fn (array $stop) => collect($stop['overdue'])->sum('overdue') > 0
+                )
                 ->count(),
             'customers_with_due_follow_ups' => $collection
                 ->filter(fn (array $stop) => $stop['due_follow_ups'] !== [])
@@ -422,6 +706,9 @@ class DailyRoutePlannerService
             'planned_visit_minutes' => $collection
                 ->where('visited_today', false)
                 ->sum('planned_visit_minutes'),
+            'missing_coordinates' => $collection
+                ->filter(fn (array $stop) => ! $this->hasStopCoordinates($stop))
+                ->count(),
         ];
     }
 
@@ -432,7 +719,6 @@ class DailyRoutePlannerService
         float $lon2,
     ): float {
         $earthRadiusKm = 6371.0088;
-
         $latDelta = deg2rad($lat2 - $lat1);
         $lonDelta = deg2rad($lon2 - $lon1);
 

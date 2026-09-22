@@ -5,11 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerVisit;
-use App\Models\RouteCustomer;
-use App\Models\SalesmanAssignment;
 use App\Models\VisitPhoto;
 use App\Models\VisitSuspiciousFlag;
 use App\Models\WorkSession;
+use App\Services\DailyRoutePlannerService;
 use App\Services\GeofenceService;
 use App\Services\NotificationService;
 use App\Support\ApiResponse;
@@ -24,8 +23,11 @@ class VisitController extends Controller
 {
     public function __construct(private readonly NotificationService $notifications) {}
 
-    public function checkIn(Request $request, GeofenceService $geofence): JsonResponse
-    {
+    public function checkIn(
+        Request $request,
+        GeofenceService $geofence,
+        DailyRoutePlannerService $planner,
+    ): JsonResponse {
         $validated = $request->validate([
             'offline_uuid' => ['required', 'uuid'],
             'customer_id' => ['required', 'uuid'],
@@ -75,17 +77,17 @@ class VisitController extends Controller
             );
         }
 
-        $localDate = $checkedInAt->setTimezone($user->tenant->timezone)->toDateString();
-        $assignment = SalesmanAssignment::where('salesman_id', $user->salesman->id)
-            ->current($localDate)
-            ->latest('effective_from')
-            ->first();
+        $localDate = $checkedInAt
+            ->setTimezone($user->tenant->timezone)
+            ->startOfDay();
 
-        $planned = $assignment?->route_id
-            ? RouteCustomer::where('route_id', $assignment->route_id)
-                ->where('customer_id', $customer->id)
-                ->exists()
-            : false;
+        $planningContext = $planner->planningContextForCustomer(
+            $user->salesman,
+            $customer,
+            $localDate,
+        );
+        $planned = $planningContext['planned'];
+        $plannedRouteId = $planningContext['route_id'];
 
         $geo = $geofence->evaluate(
             $customer,
@@ -104,8 +106,8 @@ class VisitController extends Controller
             $customer,
             $device,
             $session,
-            $assignment,
             $planned,
+            $plannedRouteId,
             $geo,
             $checkedInAt,
             $otherActive
@@ -116,7 +118,7 @@ class VisitController extends Controller
                 'salesman_id' => $user->salesman->id,
                 'device_id' => $device->id,
                 'customer_id' => $customer->id,
-                'route_id' => $planned ? $assignment?->route_id : null,
+                'route_id' => $plannedRouteId,
                 'work_session_id' => $session->id,
                 'is_planned' => $planned,
                 'status' => 'active',
