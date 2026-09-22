@@ -1,7 +1,7 @@
 @props(['href', 'icon' => null, 'active' => false])
 
 @php
-    $base = 'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition';
+    $base = 'fp-nav-link group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition';
     $state = $active
         ? 'bg-indigo-500/15 text-indigo-100 ring-1 ring-inset ring-indigo-400/30'
         : 'text-slate-400 hover:bg-white/5 hover:text-slate-100';

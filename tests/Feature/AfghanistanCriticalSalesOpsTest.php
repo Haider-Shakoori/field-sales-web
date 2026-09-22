@@ -43,7 +43,16 @@ class AfghanistanCriticalSalesOpsTest extends TestCase
             ->assertOk()
             ->assertSee('lang="fa"', false)
             ->assertSee('dir="rtl"', false)
+            ->assertSee('fp-sidebar', false)
+            ->assertSee('fp-shell-auth', false)
+            ->assertSee('fp-nav-link', false)
             ->assertSee('مشتریان');
+
+        $sidebarCss = file_get_contents(resource_path('css/app.css'));
+
+        $this->assertStringContainsString('inset-inline-start: 0;', $sidebarCss);
+        $this->assertStringContainsString('padding-inline-start: 18rem;', $sidebarCss);
+        $this->assertStringContainsString("html[dir='rtl'] .fp-sidebar", $sidebarCss);
     }
 
     public function test_credit_limit_requires_manager_override_and_sets_due_date(): void

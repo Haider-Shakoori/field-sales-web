@@ -117,8 +117,8 @@
 
     <label for="sidebar-toggle" aria-hidden="true" class="fixed inset-0 z-30 hidden bg-slate-950/70 backdrop-blur-sm peer-checked:block lg:hidden"></label>
 
-    <aside class="fixed inset-y-0 z-40 flex w-72 flex-col border-white/10 bg-slate-900/70 backdrop-blur-xl transition-transform duration-200 peer-checked:translate-x-0 lg:translate-x-0 {{ $rtl ? 'right-0 translate-x-full border-l' : 'left-0 -translate-x-full border-r' }}">
-        <div class="flex items-center gap-3 border-b border-white/10 px-5 py-5">
+    <aside class="fp-sidebar fixed inset-y-0 z-40 flex w-72 flex-col border-white/10 bg-slate-900/70 backdrop-blur-xl transition-transform duration-200">
+        <div class="fp-sidebar-brand flex items-center gap-3 border-b border-white/10 px-5 py-5">
             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-sky-400 text-lg font-black text-white shadow-lg shadow-indigo-500/30">F</span>
             <div class="min-w-0">
                 <p class="text-base font-bold leading-tight">Field Sales</p>
@@ -126,7 +126,7 @@
             </div>
         </div>
 
-        <nav class="flex-1 space-y-5 overflow-y-auto px-3 py-4 text-sm">
+        <nav class="fp-sidebar-nav flex-1 space-y-5 overflow-y-auto px-3 py-4 text-sm">
             @foreach($navGroups as $group)
                 @php
                     $groupVisible = collect($group['links'])->contains(
@@ -136,7 +136,7 @@
 
                 @if($groupVisible)
                     <div>
-                        <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ __($group['label']) }}</p>
+                        <p class="fp-sidebar-group-label px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ __($group['label']) }}</p>
                         <div class="space-y-1">
                             @foreach($group['links'] as $link)
                                 @if($link['can'] === null || $currentUser->hasPermission($link['can']))
@@ -150,7 +150,7 @@
         </nav>
 
         @if(session()->has($webGuardName))
-            <div class="border-t border-white/10 p-3">
+            <div class="fp-sidebar-footer border-t border-white/10 p-3">
                 <div class="mb-2 flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2.5">
                     <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-semibold text-indigo-200">{{ $initials ?: '?' }}</span>
                     <div class="min-w-0 flex-1">
@@ -161,9 +161,9 @@
                         <span class="shrink-0 rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-200">Platform</span>
                     @endif
                 </div>
-                <form method="POST" action="{{ route('locale.update') }}" class="mb-2 flex gap-2">
+                <form method="POST" action="{{ route('locale.update') }}" class="fp-language-form mb-2">
                     @csrf
-                    <select name="locale" aria-label="{{ __('Language') }}" class="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                    <select name="locale" aria-label="{{ __('Language') }}" class="min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm">
                         <option value="en" @selected(app()->getLocale() === 'en')>{{ __('English') }}</option>
                         <option value="fa" @selected(app()->getLocale() === 'fa')>{{ __('Dari') }}</option>
                         <option value="ps" @selected(app()->getLocale() === 'ps')>{{ __('Pashto') }}</option>
@@ -173,7 +173,7 @@
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm font-medium hover:bg-white/20">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+                        <svg class="fp-directional-icon h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                             <path stroke-linecap="round" stroke-linejoin="round" d="m16 17 5-5-5-5"/>
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 12H9"/>
@@ -186,7 +186,7 @@
     </aside>
 @endif
 
-<div class="{{ $currentUser ? ($rtl ? 'lg:pr-72' : 'lg:pl-72') : '' }}">
+<div class="{{ $currentUser ? 'fp-shell-auth' : '' }}">
     @unless($currentUser)
         <nav class="border-b border-white/10 bg-slate-900/80 backdrop-blur">
             <div class="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
