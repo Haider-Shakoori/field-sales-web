@@ -83,7 +83,7 @@ class SmartDailyBeatPlanningTest extends TestCase
             )
         );
 
-        $this->getJson('/api/v1/beat-plans/today', $this->mobileHeaders())
+        $this->getJson('/api/v1/beat-plans/today', $this->mobileHeaders($actor))
             ->assertOk()
             ->assertJsonPath('data.plan.id', $plan->uuid)
             ->assertJsonPath('data.plan.date', '2026-09-24')
@@ -131,7 +131,7 @@ class SmartDailyBeatPlanningTest extends TestCase
             'longitude' => 69.20001,
             'accuracy' => 8,
             'checked_in_at' => '2026-09-24T05:00:00Z',
-        ], $this->mobileHeaders())
+        ], $this->mobileHeaders($actor))
             ->assertCreated()
             ->assertJsonPath('data.is_planned', true);
 
@@ -141,7 +141,7 @@ class SmartDailyBeatPlanningTest extends TestCase
             'accuracy' => 7,
             'checked_out_at' => '2026-09-24T05:10:00Z',
             'outcome' => 'order_placed',
-        ], $this->mobileHeaders())
+        ], $this->mobileHeaders($actor))
             ->assertOk();
 
         $stop = app(TenantContext::class)->withTenant(
@@ -436,12 +436,12 @@ class SmartDailyBeatPlanningTest extends TestCase
         return $user;
     }
 
-    private function mobileHeaders(): array
+    private function mobileHeaders(array $actor): array
     {
         return [
             'Authorization' => 'Bearer '.$this->salesmanToken,
-            'X-Device-UUID' => 'device-smart-route',
-            'X-Installation-UUID' => 'install-smart-route',
+            'X-Device-UUID' => $actor['device']->device_uuid,
+            'X-Installation-UUID' => $actor['device']->installation_uuid,
             'X-App-Version' => '1.0',
             'X-Platform' => 'android',
             'X-OS-Version' => '16',
