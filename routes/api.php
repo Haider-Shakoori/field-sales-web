@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CallActivityController;
 use App\Http\Controllers\Api\CollectionController;
+use App\Http\Controllers\Api\DailyRoutePlannerController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\MasterDataController;
@@ -34,6 +35,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/territories', [MasterDataController::class, 'territories']);
             Route::get('/routes', [MasterDataController::class, 'routes']);
             Route::get('/routes/{route:uuid}/customers', [MasterDataController::class, 'routeCustomers']);
+            Route::get('/route-plan/today', [DailyRoutePlannerController::class, 'today']);
             Route::get('/products', [MasterDataController::class, 'products']);
             Route::get('/price-lists', [MasterDataController::class, 'priceLists']);
             Route::get('/price-lists/{priceList:uuid}/items', [MasterDataController::class, 'priceListItems']);

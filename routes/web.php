@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\CallActivityController;
 use App\Http\Controllers\Web\CollectionController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\CustomerFollowUpController;
+use App\Http\Controllers\Web\DailyRoutePlannerController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\ExpenseController;
@@ -62,6 +63,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/attendance', [AttendanceController::class, 'index'])
             ->middleware('permission:sales-team:view')
             ->name('attendance.index');
+
+        Route::get('/daily-planner', [DailyRoutePlannerController::class, 'index'])
+            ->middleware('permission:sales-team:view')
+            ->name('daily-planner.index');
 
         Route::get('/notifications', [NotificationController::class, 'index'])
             ->name('notifications.index');
