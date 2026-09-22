@@ -45,13 +45,15 @@ return new class extends Migration
             $table->string('type', 30);
             $table->json('options')->nullable();
             $table->json('validation_rules')->nullable();
+            $table->unsignedSmallInteger('template_version')->default(1);
+            $table->boolean('is_active')->default(true);
             $table->boolean('is_required')->default(false);
             $table->unsignedSmallInteger('sort_order')->default(1);
             $table->timestamps();
 
             $table->index(
-                ['tenant_id', 'template_id', 'sort_order'],
-                'vfq_template_sort_idx',
+                ['tenant_id', 'template_id', 'template_version', 'sort_order'],
+                'vfq_template_ver_idx',
             );
         });
 

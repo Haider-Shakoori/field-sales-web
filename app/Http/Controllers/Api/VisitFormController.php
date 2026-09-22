@@ -85,6 +85,7 @@ class VisitFormController extends Controller
                 Rule::exists('visit_form_templates', 'uuid')
                     ->where('tenant_id', $request->user()->tenant_id),
             ],
+            'template_version' => ['required', 'integer', 'min:1'],
             'submitted_at' => ['nullable', 'date'],
             'answers' => ['required', 'array', 'max:50'],
             'answers.*.question_id' => ['required', 'uuid'],
@@ -109,6 +110,7 @@ class VisitFormController extends Controller
             $visit,
             $template,
             $validated['offline_uuid'],
+            (int) $validated['template_version'],
             $validated['answers'],
             isset($validated['submitted_at'])
                 ? CarbonImmutable::parse($validated['submitted_at'])->utc()

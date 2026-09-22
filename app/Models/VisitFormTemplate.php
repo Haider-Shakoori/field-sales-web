@@ -43,6 +43,7 @@ class VisitFormTemplate extends Model
     public function questions(): HasMany
     {
         return $this->hasMany(VisitFormQuestion::class, 'template_id')
+            ->where('is_active', true)
             ->orderBy('sort_order');
     }
 

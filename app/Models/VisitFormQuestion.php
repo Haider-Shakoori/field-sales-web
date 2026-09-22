@@ -30,6 +30,8 @@ class VisitFormQuestion extends Model
         return [
             'options' => 'array',
             'validation_rules' => 'array',
+            'template_version' => 'integer',
+            'is_active' => 'boolean',
             'is_required' => 'boolean',
             'sort_order' => 'integer',
         ];

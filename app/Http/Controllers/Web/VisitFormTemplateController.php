@@ -120,6 +120,8 @@ class VisitFormTemplateController extends Controller
             $questions,
             $visitForm,
         ): void {
+            $visitForm->questions()->update(['is_active' => false]);
+
             $visitForm->update([
                 'code' => strtoupper($validated['code']),
                 'name' => $validated['name'],
@@ -131,7 +133,6 @@ class VisitFormTemplateController extends Controller
                 'updated_by' => $request->user()->id,
             ]);
 
-            $visitForm->questions()->delete();
             $this->replaceQuestions($visitForm, $questions);
         });
 
@@ -292,7 +293,11 @@ class VisitFormTemplateController extends Controller
         array $questions,
     ): void {
         foreach ($questions as $question) {
-            $template->questions()->create($question);
+            $template->questions()->create([
+                ...$question,
+                'template_version' => $template->version,
+                'is_active' => true,
+            ]);
         }
     }
 

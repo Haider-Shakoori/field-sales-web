@@ -104,6 +104,7 @@ class VisitFormService
         CustomerVisit $visit,
         VisitFormTemplate $template,
         string $offlineUuid,
+        int $templateVersion,
         array $answers,
         CarbonImmutable $submittedAt,
     ): VisitFormSubmission {
@@ -148,8 +149,29 @@ class VisitFormService
             ]);
         }
 
-        $template->loadMissing('questions');
-        $normalizedAnswers = $this->validateAnswers($visit, $template, $answers);
+        if ($templateVersion < 1 || $templateVersion > $template->version) {
+            throw ValidationException::withMessages([
+                'template_version' => 'This visit form version is not available.',
+            ]);
+        }
+
+        $questions = VisitFormQuestion::query()
+            ->where('template_id', $template->id)
+            ->where('template_version', $templateVersion)
+            ->orderBy('sort_order')
+            ->get();
+
+        if ($questions->isEmpty()) {
+            throw ValidationException::withMessages([
+                'template_version' => 'This visit form version is not available.',
+            ]);
+        }
+
+        $normalizedAnswers = $this->validateAnswers(
+            $visit,
+            $questions,
+            $answers,
+        );
 
         if ($submittedAt->gt(now()->addMinutes(5))) {
             throw ValidationException::withMessages([
@@ -162,6 +184,7 @@ class VisitFormService
             $visit,
             $template,
             $offlineUuid,
+            $templateVersion,
             $submittedAt,
             $normalizedAnswers,
         ): VisitFormSubmission {
@@ -172,7 +195,7 @@ class VisitFormService
                 'customer_id' => $visit->customer_id,
                 'user_id' => $user->id,
                 'salesman_id' => $visit->salesman_id,
-                'template_version' => $template->version,
+                'template_version' => $templateVersion,
                 'template_name' => $template->name,
                 'submitted_at' => $submittedAt,
             ]);
@@ -187,7 +210,7 @@ class VisitFormService
 
     private function validateAnswers(
         CustomerVisit $visit,
-        VisitFormTemplate $template,
+        Collection $questions,
         array $answers,
     ): array {
         $provided = collect($answers);
@@ -202,7 +225,7 @@ class VisitFormService
             ->filter(fn ($answer) => is_array($answer) && isset($answer['question_id']))
             ->keyBy('question_id');
 
-        $knownQuestionIds = $template->questions->pluck('uuid');
+        $knownQuestionIds = $questions->pluck('uuid');
 
         $unknown = $answerMap->keys()->diff($knownQuestionIds);
 
@@ -214,7 +237,7 @@ class VisitFormService
 
         $normalized = [];
 
-        foreach ($template->questions as $question) {
+        foreach ($questions as $question) {
             $raw = $answerMap->get($question->uuid);
             $value = is_array($raw) ? ($raw['value'] ?? null) : null;
 
