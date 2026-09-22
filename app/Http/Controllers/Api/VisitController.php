@@ -27,8 +27,7 @@ class VisitController extends Controller
         Request $request,
         GeofenceService $geofence,
         DailyRoutePlannerService $planner,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         $validated = $request->validate([
             'offline_uuid' => ['required', 'uuid'],
             'customer_id' => ['required', 'uuid'],
