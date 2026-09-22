@@ -101,6 +101,7 @@
             [
                 'label' => 'Field operations',
                 'links' => [
+                    ['route' => 'admin.daily-plans.index', 'match' => 'admin.daily-plans.*', 'label' => 'Daily plans', 'icon' => 'map', 'can' => 'sales-team:view'],
                     ['route' => 'admin.visits.index', 'match' => 'admin.visits.*', 'label' => 'Visits', 'icon' => 'calendar-check', 'can' => 'visits:view'],
                     ['route' => 'admin.orders.index', 'match' => 'admin.orders.*', 'label' => 'Orders', 'icon' => 'cart', 'can' => 'orders:view'],
                     ['route' => 'admin.collections.index', 'match' => 'admin.collections.*', 'label' => 'Collections', 'icon' => 'banknotes', 'can' => 'collections:view'],

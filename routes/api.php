@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BeatPlanController;
 use App\Http\Controllers\Api\CallActivityController;
 use App\Http\Controllers\Api\CollectionController;
 use App\Http\Controllers\Api\ExpenseController;
@@ -42,6 +43,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/attendance/end', [AttendanceController::class, 'end']);
             Route::post('/gps/locations', [GpsController::class, 'ingest']);
             Route::post('/gps/privacy-acknowledgement', [GpsController::class, 'acknowledge']);
+
+            Route::get('/beat-plans/today', [BeatPlanController::class, 'today']);
 
             Route::get('/visits/today', [VisitController::class, 'today']);
             Route::get('/visits/history', [VisitController::class, 'history']);

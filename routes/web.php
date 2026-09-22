@@ -11,6 +11,7 @@ use App\Http\Controllers\Web\CollectionController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\CustomerFollowUpController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\DailyBeatPlanController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\ExpenseController;
 use App\Http\Controllers\Web\LiveMapController;
@@ -62,6 +63,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/attendance', [AttendanceController::class, 'index'])
             ->middleware('permission:sales-team:view')
             ->name('attendance.index');
+
+        Route::get('/daily-plans', [DailyBeatPlanController::class, 'index'])
+            ->middleware('permission:sales-team:view')
+            ->name('daily-plans.index');
+        Route::post('/daily-plans/generate', [DailyBeatPlanController::class, 'generate'])
+            ->middleware('permission:sales-team:manage')
+            ->name('daily-plans.generate');
 
         Route::get('/notifications', [NotificationController::class, 'index'])
             ->name('notifications.index');

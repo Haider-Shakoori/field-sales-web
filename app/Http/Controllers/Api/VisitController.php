@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerVisit;
+use App\Models\DailyBeatPlanStop;
 use App\Models\RouteCustomer;
 use App\Models\SalesmanAssignment;
 use App\Models\VisitPhoto;
@@ -81,11 +82,22 @@ class VisitController extends Controller
             ->latest('effective_from')
             ->first();
 
-        $planned = $assignment?->route_id
+        $dailyPlanStop = DailyBeatPlanStop::with('plan')
+            ->where('customer_id', $customer->id)
+            ->whereHas('plan', fn ($query) => $query
+                ->where('salesman_id', $user->salesman->id)
+                ->whereDate('plan_date', $localDate))
+            ->first();
+
+        $routePlanned = $assignment?->route_id
             ? RouteCustomer::where('route_id', $assignment->route_id)
                 ->where('customer_id', $customer->id)
                 ->exists()
             : false;
+
+        $planned = $dailyPlanStop !== null || $routePlanned;
+        $plannedRouteId = $dailyPlanStop?->plan?->route_id
+            ?? ($routePlanned ? $assignment?->route_id : null);
 
         $geo = $geofence->evaluate(
             $customer,
@@ -106,6 +118,7 @@ class VisitController extends Controller
             $session,
             $assignment,
             $planned,
+            $plannedRouteId,
             $geo,
             $checkedInAt,
             $otherActive
@@ -116,7 +129,7 @@ class VisitController extends Controller
                 'salesman_id' => $user->salesman->id,
                 'device_id' => $device->id,
                 'customer_id' => $customer->id,
-                'route_id' => $planned ? $assignment?->route_id : null,
+                'route_id' => $plannedRouteId,
                 'work_session_id' => $session->id,
                 'is_planned' => $planned,
                 'status' => 'active',
@@ -182,8 +195,27 @@ class VisitController extends Controller
             (float) $validated['longitude'],
         );
         $duration = (int) $visit->checked_in_at->diffInSeconds($checkedOutAt);
+        $user = $request->user()->loadMissing(['tenant', 'salesman']);
+        $localDate = $visit->checked_in_at
+            ->copy()
+            ->setTimezone($user->tenant->timezone)
+            ->toDateString();
 
-        DB::transaction(function () use ($visit, $validated, $checkedOutAt, $geo, $duration, $customer): void {
+        $dailyPlanStop = DailyBeatPlanStop::where('customer_id', $visit->customer_id)
+            ->whereHas('plan', fn ($query) => $query
+                ->where('salesman_id', $visit->salesman_id)
+                ->whereDate('plan_date', $localDate))
+            ->first();
+
+        DB::transaction(function () use (
+            $visit,
+            $validated,
+            $checkedOutAt,
+            $geo,
+            $duration,
+            $customer,
+            $dailyPlanStop,
+        ): void {
             $visit->update([
                 'status' => 'completed',
                 'outcome' => $validated['outcome'],
@@ -209,6 +241,13 @@ class VisitController extends Controller
                 $this->flag($visit, 'too_short_duration', 'medium', [
                     'duration_seconds' => $duration,
                     'threshold_seconds' => 60,
+                ]);
+            }
+
+            if ($dailyPlanStop && $dailyPlanStop->completed_visit_id === null) {
+                $dailyPlanStop->update([
+                    'completed_visit_id' => $visit->id,
+                    'completed_at' => $checkedOutAt,
                 ]);
             }
         });
