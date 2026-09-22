@@ -404,6 +404,7 @@ class SmartDailyBeatPlanningTest extends TestCase
         Branch $branch,
     ): User {
         $user = User::create([
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => $tenant->id,
             'branch_id' => $branch->id,
             'name' => str($roleSlug)->replace('_', ' ')->title(),
