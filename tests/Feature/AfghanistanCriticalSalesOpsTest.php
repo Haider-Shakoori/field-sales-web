@@ -137,7 +137,10 @@ class AfghanistanCriticalSalesOpsTest extends TestCase
             ])
             ->assertRedirect();
 
-        $followUp = $customer->followUps()->firstOrFail();
+        $followUp = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => $customer->followUps()->firstOrFail()
+        );
         $this->assertSame('pending', $followUp->status);
         $this->assertSame($salesman->id, $followUp->assigned_salesman_id);
 
@@ -145,7 +148,11 @@ class AfghanistanCriticalSalesOpsTest extends TestCase
             ->patch(route('admin.follow-ups.status', $followUp), ['status' => 'completed'])
             ->assertRedirect();
 
-        $this->assertSame('completed', $followUp->fresh()->status);
+        $completed = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => $followUp->fresh()
+        );
+        $this->assertSame('completed', $completed->status);
     }
 
     private function tenantUser(string $email, array $permissions): array

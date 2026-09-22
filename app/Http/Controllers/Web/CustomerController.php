@@ -53,7 +53,8 @@ class CustomerController extends Controller
         $customer = Customer::create([
             ...$validated,
             'code' => strtoupper($validated['code']),
-            'credit_currency' => strtoupper($validated['credit_currency']),
+            'credit_currency' => strtoupper($validated['credit_currency'] ?? 'AFN'),
+            'credit_terms_days' => $validated['credit_terms_days'] ?? 30,
             'created_by' => $request->user()->id,
         ]);
         $audit->record('customer.created', $customer, [], $this->auditValues($customer));
@@ -86,7 +87,16 @@ class CustomerController extends Controller
     {
         $before = $this->auditValues($customer);
         $validated = $request->validated();
-        $customer->update([...$validated, 'code' => strtoupper($validated['code']), 'credit_currency' => strtoupper($validated['credit_currency'])]);
+        $customer->update([
+            ...$validated,
+            'code' => strtoupper($validated['code']),
+            'credit_currency' => strtoupper(
+                $validated['credit_currency'] ?? $customer->credit_currency ?? 'AFN'
+            ),
+            'credit_terms_days' => $validated['credit_terms_days']
+                ?? $customer->credit_terms_days
+                ?? 30,
+        ]);
         $audit->record('customer.updated', $customer, $before, $this->auditValues($customer));
         return redirect()->route('admin.customers.show', $customer)->with('status', __('Customer updated.'));
     }
