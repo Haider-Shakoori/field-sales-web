@@ -84,9 +84,12 @@ class VisitController extends Controller
 
         $dailyPlanStop = DailyBeatPlanStop::with('plan')
             ->where('customer_id', $customer->id)
-            ->whereHas('plan', fn ($query) => $query
-                ->where('salesman_id', $user->salesman->id)
-                ->whereDate('plan_date', $localDate))
+            ->whereHas(
+                'plan',
+                fn ($query) => $query
+                    ->where('salesman_id', $user->salesman->id)
+                    ->whereDate('plan_date', $localDate)
+            )
             ->first();
 
         $routePlanned = $assignment?->route_id
@@ -116,7 +119,6 @@ class VisitController extends Controller
             $customer,
             $device,
             $session,
-            $assignment,
             $planned,
             $plannedRouteId,
             $geo,
@@ -202,9 +204,12 @@ class VisitController extends Controller
             ->toDateString();
 
         $dailyPlanStop = DailyBeatPlanStop::where('customer_id', $visit->customer_id)
-            ->whereHas('plan', fn ($query) => $query
-                ->where('salesman_id', $visit->salesman_id)
-                ->whereDate('plan_date', $localDate))
+            ->whereHas(
+                'plan',
+                fn ($query) => $query
+                    ->where('salesman_id', $visit->salesman_id)
+                    ->whereDate('plan_date', $localDate)
+            )
             ->first();
 
         DB::transaction(function () use (
