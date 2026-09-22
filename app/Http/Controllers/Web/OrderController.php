@@ -48,17 +48,38 @@ class OrderController extends Controller
 
         if ($validated['status'] === 'approved' && $order->payment_type === 'credit') {
             $customer = $order->customer;
-            if ($customer && strtoupper((string) $customer->credit_currency) === strtoupper($order->currency)) {
-                if ($customer->credit_limit !== null) {
-                    $projected = round($balances->outstanding($customer, $order->currency) + (float) $order->grand_total, 4);
-                    if ($projected > (float) $customer->credit_limit && trim((string) ($validated['status_note'] ?? '')) === '') {
+            if ($customer) {
+                if (
+                    strtoupper((string) $customer->credit_currency) === strtoupper($order->currency)
+                    && $customer->credit_limit !== null
+                ) {
+                    $projected = round(
+                        $balances->outstanding($customer, $order->currency) + (float) $order->grand_total,
+                        4,
+                    );
+
+                    if (
+                        $projected > (float) $customer->credit_limit
+                        && trim((string) ($validated['status_note'] ?? '')) === ''
+                    ) {
                         throw ValidationException::withMessages([
-                            'status_note' => sprintf('Credit limit exceeded. Projected balance is %s %.2f against a limit of %.2f. Add an override reason to approve.', $order->currency, $projected, (float) $customer->credit_limit),
+                            'status_note' => sprintf(
+                                'Credit limit exceeded. Projected balance is %s %.2f against a limit of %.2f. Add an override reason to approve.',
+                                $order->currency,
+                                $projected,
+                                (float) $customer->credit_limit,
+                            ),
                         ]);
                     }
                 }
-                $timezone = $request->user()->loadMissing('tenant')->tenant?->timezone ?: config('app.timezone', 'UTC');
-                $dueDate = $order->ordered_at->copy()->setTimezone($timezone)->addDays((int) $customer->credit_terms_days)->toDateString();
+
+                $timezone = $request->user()->loadMissing('tenant')->tenant?->timezone
+                    ?: config('app.timezone', 'UTC');
+                $dueDate = $order->ordered_at
+                    ->copy()
+                    ->setTimezone($timezone)
+                    ->addDays((int) $customer->credit_terms_days)
+                    ->toDateString();
             }
         }
 

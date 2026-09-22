@@ -9,10 +9,12 @@ use App\Http\Controllers\Web\BranchController;
 use App\Http\Controllers\Web\CallActivityController;
 use App\Http\Controllers\Web\CollectionController;
 use App\Http\Controllers\Web\CustomerController;
+use App\Http\Controllers\Web\CustomerFollowUpController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\ExpenseController;
 use App\Http\Controllers\Web\LiveMapController;
+use App\Http\Controllers\Web\LocaleController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Web\OrganizationController;
@@ -43,6 +45,7 @@ Route::post('/login', [AuthController::class, 'store'])->middleware('throttle:we
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
+    Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -170,6 +173,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/call-activities', [CallActivityController::class, 'index'])
             ->middleware('permission:customers:view')
             ->name('call-activities.index');
+
+        Route::get('/follow-ups', [CustomerFollowUpController::class, 'index'])
+            ->middleware('permission:customers:view')
+            ->name('follow-ups.index');
+        Route::post('/customers/{customer}/follow-ups', [CustomerFollowUpController::class, 'store'])
+            ->middleware('permission:customers:manage')
+            ->name('customers.follow-ups.store');
+        Route::patch('/follow-ups/{followUp}/status', [CustomerFollowUpController::class, 'updateStatus'])
+            ->middleware('permission:customers:manage')
+            ->name('follow-ups.status');
 
         Route::resource('collections', CollectionController::class)
             ->only(['index', 'show'])

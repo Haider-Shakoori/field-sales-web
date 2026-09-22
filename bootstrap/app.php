@@ -6,6 +6,7 @@ use App\Http\Middleware\DeviceRequired;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\PermissionRequired;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SetLocale;
 use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // authenticated user can be resolved before route auth/controllers.
         $middleware->web(append: [
             BootstrapTenantForWebAuth::class,
+            SetLocale::class,
         ]);
 
         $middleware->api(prepend: [

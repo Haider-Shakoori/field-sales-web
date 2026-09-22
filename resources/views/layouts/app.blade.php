@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ app()->getLocale() }}" dir="{{ in_array(app()->getLocale(), ['fa', 'ps'], true) ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -15,6 +15,7 @@
     $currentUser = auth()->user();
     $isPlatformContext = $context->isPlatform();
     $tenantName = $currentUser?->tenant?->name;
+    $rtl = in_array(app()->getLocale(), ['fa', 'ps'], true);
     $initials = $currentUser
         ? collect(explode(' ', trim($currentUser->name)))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')
         : '';
@@ -57,6 +58,7 @@
                     ['route' => 'admin.territories.index', 'match' => 'admin.territories.*', 'label' => 'Territories', 'icon' => 'map', 'can' => 'customers:view'],
                     ['route' => 'admin.routes.index', 'match' => 'admin.routes.*', 'label' => 'Routes', 'icon' => 'map-pin', 'can' => 'customers:view'],
                     ['route' => 'admin.call-activities.index', 'match' => 'admin.call-activities.*', 'label' => 'Calls', 'icon' => 'phone', 'can' => 'customers:view'],
+                    ['route' => 'admin.follow-ups.index', 'match' => 'admin.follow-ups.*', 'label' => 'Follow-ups', 'icon' => 'calendar-check', 'can' => 'customers:view'],
                 ],
             ],
             [
@@ -102,25 +104,25 @@
             <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-sky-400 text-base font-black text-white">F</span>
             <div>
                 <p class="text-base font-bold leading-tight">Field Sales</p>
-                <p class="truncate text-xs text-slate-400">{{ $isPlatformContext ? 'Platform console' : ($tenantName ?? 'Operations Console') }}</p>
+                <p class="truncate text-xs text-slate-400">{{ $isPlatformContext ? __('Platform console') : ($tenantName ?? __('Operations Console')) }}</p>
             </div>
         </div>
         <label for="sidebar-toggle" class="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm font-medium hover:bg-white/20">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
-            Menu
+            {{ __('Menu') }}
         </label>
     </header>
 
     <label for="sidebar-toggle" aria-hidden="true" class="fixed inset-0 z-30 hidden bg-slate-950/70 backdrop-blur-sm peer-checked:block lg:hidden"></label>
 
-    <aside class="fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r border-white/10 bg-slate-900/70 backdrop-blur-xl transition-transform duration-200 peer-checked:translate-x-0 lg:translate-x-0">
+    <aside class="fixed inset-y-0 z-40 flex w-72 flex-col border-white/10 bg-slate-900/70 backdrop-blur-xl transition-transform duration-200 peer-checked:translate-x-0 lg:translate-x-0 {{ $rtl ? 'right-0 translate-x-full border-l' : 'left-0 -translate-x-full border-r' }}">
         <div class="flex items-center gap-3 border-b border-white/10 px-5 py-5">
             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-sky-400 text-lg font-black text-white shadow-lg shadow-indigo-500/30">F</span>
             <div class="min-w-0">
                 <p class="text-base font-bold leading-tight">Field Sales</p>
-                <p class="truncate text-xs text-slate-400">{{ $isPlatformContext ? 'Platform console' : ($tenantName ?? 'Operations Console') }}</p>
+                <p class="truncate text-xs text-slate-400">{{ $isPlatformContext ? __('Platform console') : ($tenantName ?? __('Operations Console')) }}</p>
             </div>
         </div>
 
@@ -134,11 +136,11 @@
 
                 @if($groupVisible)
                     <div>
-                        <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ $group['label'] }}</p>
+                        <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ __($group['label']) }}</p>
                         <div class="space-y-1">
                             @foreach($group['links'] as $link)
                                 @if($link['can'] === null || $currentUser->hasPermission($link['can']))
-                                    <x-nav-link :href="route($link['route'])" :icon="$link['icon']" :active="request()->routeIs($link['match'])">{{ $link['label'] }}</x-nav-link>
+                                    <x-nav-link :href="route($link['route'])" :icon="$link['icon']" :active="request()->routeIs($link['match'])">{{ __($link['label']) }}</x-nav-link>
                                 @endif
                             @endforeach
                         </div>
@@ -159,6 +161,15 @@
                         <span class="shrink-0 rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-200">Platform</span>
                     @endif
                 </div>
+                <form method="POST" action="{{ route('locale.update') }}" class="mb-2 flex gap-2">
+                    @csrf
+                    <select name="locale" aria-label="{{ __('Language') }}" class="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                        <option value="en" @selected(app()->getLocale() === 'en')>{{ __('English') }}</option>
+                        <option value="fa" @selected(app()->getLocale() === 'fa')>{{ __('Dari') }}</option>
+                        <option value="ps" @selected(app()->getLocale() === 'ps')>{{ __('Pashto') }}</option>
+                    </select>
+                    <button class="rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/20">{{ __('Apply') }}</button>
+                </form>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm font-medium hover:bg-white/20">
@@ -167,7 +178,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="m16 17 5-5-5-5"/>
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 12H9"/>
                         </svg>
-                        Sign out
+                        {{ __('Sign out') }}
                     </button>
                 </form>
             </div>
@@ -175,7 +186,7 @@
     </aside>
 @endif
 
-<div class="{{ $currentUser ? 'lg:pl-72' : '' }}">
+<div class="{{ $currentUser ? ($rtl ? 'lg:pr-72' : 'lg:pl-72') : '' }}">
     @unless($currentUser)
         <nav class="border-b border-white/10 bg-slate-900/80 backdrop-blur">
             <div class="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
@@ -183,7 +194,7 @@
                     <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-sky-400 text-lg font-black text-white shadow-lg shadow-indigo-500/30">F</span>
                     <div>
                         <p class="text-lg font-bold leading-tight">Field Sales</p>
-                        <p class="text-xs text-slate-400">Operations Console</p>
+                        <p class="text-xs text-slate-400">{{ __('Operations Console') }}</p>
                     </div>
                 </div>
             </div>
