@@ -155,5 +155,13 @@
     "overdue": "overdue",
     "Never": "Never",
     "Urgent": "Urgent",
-    "Elevated": "Elevated"
+    "Elevated": "Elevated",
+    "Prioritized daily beat plan using sales urgency, follow-ups, visit history and offline distance estimates.": "Prioritized daily beat plan using sales urgency, follow-ups, visit history and offline distance estimates.",
+    "No assignment source": "No assignment source",
+    "This salesman has no effective route, territory or branch assignment for the selected date.": "This salesman has no effective route, territory or branch assignment for the selected date.",
+    "Some customers are missing coordinates": "Some customers are missing coordinates",
+    "Route is not normally scheduled today": "Route is not normally scheduled today",
+    "Straight-line distance estimate": "Straight-line distance estimate",
+    "No active customers are available for this assignment.": "No active customers are available for this assignment.",
+    "Route": "Route"
 }

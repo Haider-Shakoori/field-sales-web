@@ -155,5 +155,13 @@
     "overdue": "له موعد اوښتی",
     "Never": "هیڅکله",
     "Urgent": "بیړنی",
-    "Elevated": "لوړ شوی"
+    "Elevated": "لوړ شوی",
+    "Prioritized daily beat plan using sales urgency, follow-ups, visit history and offline distance estimates.": "ورځنی لومړیتوب لرونکی پلان چې د خرڅلاو بیړني حالت، تعقیبونو، د لیدنو تاریخ او آفلاین واټن اټکل کاروي.",
+    "No assignment source": "د دندې سرچینه نشته",
+    "This salesman has no effective route, territory or branch assignment for the selected date.": "د ټاکلې نېټې لپاره دې پلورونکي ته فعاله لاره، سیمه یا څانګه نه ده ټاکل شوې.",
+    "Some customers are missing coordinates": "د ځینو پېرودونکو مختصات نشته",
+    "Route is not normally scheduled today": "دا لاره عموماً د نن لپاره نه ده ټاکل شوې",
+    "Straight-line distance estimate": "د مستقیم واټن اټکل",
+    "No active customers are available for this assignment.": "د دې دندې لپاره فعال پېرودونکي نشته.",
+    "Route": "لاره"
 }

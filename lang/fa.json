@@ -155,5 +155,13 @@
     "overdue": "سررسیدگذشته",
     "Never": "هرگز",
     "Urgent": "فوری",
-    "Elevated": "افزایش‌یافته"
+    "Elevated": "افزایش‌یافته",
+    "Prioritized daily beat plan using sales urgency, follow-ups, visit history and offline distance estimates.": "برنامه روزانه اولویت‌بندی‌شده بر اساس فوریت فروش، پیگیری‌ها، سابقه بازدید و تخمین فاصله آفلاین.",
+    "No assignment source": "منبع تعیین وظیفه وجود ندارد",
+    "This salesman has no effective route, territory or branch assignment for the selected date.": "برای این فروشنده در تاریخ انتخاب‌شده مسیر، ساحه یا شعبه فعال تعیین نشده است.",
+    "Some customers are missing coordinates": "مختصات بعضی مشتریان موجود نیست",
+    "Route is not normally scheduled today": "این مسیر معمولاً برای امروز برنامه‌ریزی نشده است",
+    "Straight-line distance estimate": "تخمین فاصله مستقیم",
+    "No active customers are available for this assignment.": "برای این تعیین وظیفه مشتری فعال موجود نیست.",
+    "Route": "مسیر"
 }
