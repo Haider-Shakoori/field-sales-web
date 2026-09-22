@@ -363,14 +363,14 @@ class SmartDailyBeatPlanningTest extends TestCase
             fn () => $salesmanUser->createToken('mobile-'.$device->uuid)->plainTextToken
         );
 
-        return compact(
-            'tenant',
-            'admin',
-            'salesmanUser',
-            'salesman',
-            'branch',
-            'device',
-        );
+        return [
+            'tenant' => $tenant,
+            'admin' => $admin,
+            'salesman_user' => $salesmanUser,
+            'salesman' => $salesman,
+            'branch' => $branch,
+            'device' => $device,
+        ];
     }
 
     private function customer(
