@@ -122,7 +122,9 @@
                 </thead>
                 <tbody class="divide-y divide-white/10">
                 @forelse($attendanceRows as $row)
-                    @php([$statusLabel, $statusClass] = $todayStatus($row['today_session']))
+                    @php
+                        [$statusLabel, $statusClass] = $todayStatus($row['today_session']);
+                    @endphp
                     <tr>
                         <td class="px-5 py-4">
                             <a href="{{ route('admin.salesmen.show', $row['salesman']) }}" class="font-medium hover:text-indigo-300">
