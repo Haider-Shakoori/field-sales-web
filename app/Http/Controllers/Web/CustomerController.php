@@ -44,12 +44,14 @@ class CustomerController extends Controller
     public function create(): View
     {
         Gate::authorize('create', Customer::class);
+
         return view('admin.customers.create', $this->formData());
     }
 
     public function store(StoreCustomerRequest $request, AuditLogger $audit): RedirectResponse
     {
         $validated = $request->validated();
+
         $customer = Customer::create([
             ...$validated,
             'code' => strtoupper($validated['code']),
@@ -57,7 +59,9 @@ class CustomerController extends Controller
             'credit_terms_days' => $validated['credit_terms_days'] ?? 30,
             'created_by' => $request->user()->id,
         ]);
+
         $audit->record('customer.created', $customer, [], $this->auditValues($customer));
+
         return redirect()->route('admin.customers.show', $customer)->with('status', __('Customer created.'));
     }
 
@@ -80,6 +84,7 @@ class CustomerController extends Controller
     public function edit(Customer $customer): View
     {
         Gate::authorize('update', $customer);
+
         return view('admin.customers.edit', [...$this->formData(), 'customer' => $customer]);
     }
 
@@ -87,6 +92,7 @@ class CustomerController extends Controller
     {
         $before = $this->auditValues($customer);
         $validated = $request->validated();
+
         $customer->update([
             ...$validated,
             'code' => strtoupper($validated['code']),
@@ -97,19 +103,24 @@ class CustomerController extends Controller
                 ?? $customer->credit_terms_days
                 ?? 30,
         ]);
+
         $audit->record('customer.updated', $customer, $before, $this->auditValues($customer));
+
         return redirect()->route('admin.customers.show', $customer)->with('status', __('Customer updated.'));
     }
 
     public function destroy(Customer $customer, AuditLogger $audit): RedirectResponse
     {
         Gate::authorize('delete', $customer);
+
         if ($customer->routeMemberships()->exists()) {
             throw ValidationException::withMessages(['customer' => 'This customer is assigned to one or more routes. Remove route membership or deactivate the customer.']);
         }
+
         $before = $this->auditValues($customer);
         $audit->record('customer.deleted', $customer, $before);
         $customer->delete();
+
         return redirect()->route('admin.customers.index')->with('status', __('Customer deleted.'));
     }
 

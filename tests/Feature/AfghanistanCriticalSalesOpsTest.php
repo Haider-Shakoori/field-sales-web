@@ -174,18 +174,22 @@ class AfghanistanCriticalSalesOpsTest extends TestCase
                 'role' => 'company-admin',
                 'is_active' => true,
             ]);
+
             $role = Role::create([
                 'tenant_id' => $tenant->id,
                 'name' => 'Company Admin',
                 'slug' => 'company-admin-'.Str::lower(Str::random(6)),
                 'is_system' => false,
             ]);
+
             $ids = collect($permissions)->map(fn (string $slug) => Permission::firstOrCreate(
                 ['slug' => $slug],
                 ['name' => str($slug)->replace(':', ' ')->title(), 'group' => str($slug)->before(':')]
             )->id)->all();
+
             $role->permissions()->sync($ids);
             $user->syncPrimaryRole($role);
+
             return $user;
         });
 
@@ -204,6 +208,7 @@ class AfghanistanCriticalSalesOpsTest extends TestCase
                 'role' => 'salesman',
                 'is_active' => true,
             ]);
+
             $salesman = Salesman::create([
                 'tenant_id' => $tenant->id,
                 'user_id' => $user->id,
@@ -212,6 +217,7 @@ class AfghanistanCriticalSalesOpsTest extends TestCase
                 'last_name' => 'Salesman',
                 'is_active' => true,
             ]);
+
             $device = Device::create([
                 'tenant_id' => $tenant->id,
                 'user_id' => $user->id,
@@ -220,6 +226,7 @@ class AfghanistanCriticalSalesOpsTest extends TestCase
                 'installation_uuid' => (string) Str::uuid(),
                 'is_active' => true,
             ]);
+
             return [$salesman, $device];
         });
     }
