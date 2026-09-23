@@ -113,6 +113,18 @@ class SalesmanStockService
 
         DB::transaction(function () use ($order, $actor): void {
             foreach ($order->items as $item) {
+                $deducted = SalesmanStockMovement::query()
+                    ->where('movement_type', 'sale')
+                    ->where('reference_type', 'order')
+                    ->where('reference_id', $order->id)
+                    ->where('product_id', $item->product_id)
+                    ->where('bucket', 'sellable')
+                    ->exists();
+
+                if (! $deducted) {
+                    continue;
+                }
+
                 $this->change(
                     $order->salesman,
                     $item->product,
@@ -198,26 +210,22 @@ class SalesmanStockService
             return;
         }
 
+        SalesmanStockBalance::firstOrCreate(
+            [
+                'salesman_id' => $salesman->id,
+                'product_id' => $product->id,
+            ],
+            [
+                'sellable_qty' => 0,
+                'damaged_qty' => 0,
+            ],
+        );
+
         $balance = SalesmanStockBalance::query()
             ->where('salesman_id', $salesman->id)
             ->where('product_id', $product->id)
             ->lockForUpdate()
-            ->first();
-
-        if (! $balance) {
-            SalesmanStockBalance::create([
-                'salesman_id' => $salesman->id,
-                'product_id' => $product->id,
-                'sellable_qty' => 0,
-                'damaged_qty' => 0,
-            ]);
-
-            $balance = SalesmanStockBalance::query()
-                ->where('salesman_id', $salesman->id)
-                ->where('product_id', $product->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-        }
+            ->firstOrFail();
 
         $column = $bucket === 'damaged' ? 'damaged_qty' : 'sellable_qty';
         $next = round((float) $balance->{$column} + $quantityChange, 4);
