@@ -4,15 +4,15 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\SalesReturn;
 use App\Models\Salesman;
 use App\Models\SalesmanStockBalance;
 use App\Models\SalesmanStockMovement;
+use App\Models\SalesReturn;
 use App\Models\StockIssue;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SalesmanStockService
