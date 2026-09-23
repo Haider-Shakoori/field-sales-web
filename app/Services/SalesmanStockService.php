@@ -11,8 +11,8 @@ use App\Models\SalesmanStockMovement;
 use App\Models\StockIssue;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class SalesmanStockService
