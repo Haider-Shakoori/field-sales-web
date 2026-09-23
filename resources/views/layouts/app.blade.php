@@ -105,6 +105,8 @@
                     ['route' => 'admin.visits.index', 'match' => 'admin.visits.*', 'label' => 'Visits', 'icon' => 'calendar-check', 'can' => 'visits:view'],
                     ['route' => 'admin.visit-forms.index', 'match' => 'admin.visit-forms.*', 'label' => 'Visit forms', 'icon' => 'clipboard', 'can' => 'visits:view'],
                     ['route' => 'admin.orders.index', 'match' => 'admin.orders.*', 'label' => 'Orders', 'icon' => 'cart', 'can' => 'orders:view'],
+                    ['route' => 'admin.stock.index', 'match' => 'admin.stock.*', 'label' => 'Salesman stock', 'icon' => 'cube', 'can' => 'stock:view'],
+                    ['route' => 'admin.returns.index', 'match' => 'admin.returns.*', 'label' => 'Returns', 'icon' => 'rotate-ccw', 'can' => 'returns:view'],
                     ['route' => 'admin.collections.index', 'match' => 'admin.collections.*', 'label' => 'Collections', 'icon' => 'banknotes', 'can' => 'collections:view'],
                     ['route' => 'admin.expenses.index', 'match' => 'admin.expenses.*', 'label' => 'Expenses', 'icon' => 'receipt', 'can' => 'expenses:view'],
                     ['route' => 'admin.targets.index', 'match' => 'admin.targets.*', 'label' => 'Targets', 'icon' => 'flag', 'can' => 'targets:view'],
