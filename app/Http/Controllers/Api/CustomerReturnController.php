@@ -34,7 +34,7 @@ class CustomerReturnController extends Controller
             'reason' => ['required', 'string', 'max:120'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'items' => ['required', 'array', 'min:1', 'max:100'],
-            'items.*.product_id' => ['required', 'uuid', 'distinct'],
+            'items.*.product_id' => ['required', 'uuid'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
             'items.*.condition' => ['required', Rule::in(CustomerReturn::CONDITIONS)],
             'items.*.reason' => ['nullable', 'string', 'max:120'],
@@ -122,15 +122,32 @@ class CustomerReturnController extends Controller
             ]);
         }
 
+        $groupedItems = collect($validated['items'])
+            ->groupBy(fn (array $line) => $line['product_id'].'|'.$line['condition'])
+            ->map(function ($lines): array {
+                $first = $lines->first();
+
+                return [
+                    'product_id' => $first['product_id'],
+                    'condition' => $first['condition'],
+                    'quantity' => round((float) $lines->sum('quantity'), 4),
+                    'reason' => $lines->pluck('reason')
+                        ->filter()
+                        ->unique()
+                        ->implode('; ') ?: null,
+                ];
+            })
+            ->values();
+
         if ($order) {
-            foreach ($validated['items'] as $index => $line) {
-                $product = $products->get($line['product_id']);
+            foreach ($groupedItems->groupBy('product_id') as $productUuid => $lines) {
+                $product = $products->get($productUuid);
                 $remaining = $stock->remainingReturnable($order, $product);
-                $quantity = round((float) $line['quantity'], 4);
+                $quantity = round((float) $lines->sum('quantity'), 4);
 
                 if ($remaining + 0.0001 < $quantity) {
                     throw ValidationException::withMessages([
-                        'items.'.$index.'.quantity' => sprintf(
+                        'items' => sprintf(
                             'Only %.4f %s of %s remains returnable for this order.',
                             $remaining,
                             $product->unit,
@@ -152,6 +169,7 @@ class CustomerReturnController extends Controller
             $order,
             $returnedAt,
             $products,
+            $groupedItems,
         ): CustomerReturn {
             $compactUuid = strtoupper(substr(
                 str_replace('-', '', $validated['offline_uuid']),
@@ -175,7 +193,7 @@ class CustomerReturnController extends Controller
             ]);
 
             $customerReturn->items()->createMany(
-                collect($validated['items'])
+                $groupedItems
                     ->map(function (array $line) use ($products): array {
                         $product = $products->get($line['product_id']);
 
