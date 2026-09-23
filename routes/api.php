@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\SalesReturnController;
+use App\Http\Controllers\Api\StockController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\TargetController;
 use App\Http\Controllers\Api\VisitController;
@@ -57,6 +59,10 @@ Route::prefix('v1')->group(function () {
 
             Route::get('/call-activities/history', [CallActivityController::class, 'history']);
             Route::post('/call-activities', [CallActivityController::class, 'store']);
+
+            Route::get('/stock/me', [StockController::class, 'mine']);
+            Route::post('/returns', [SalesReturnController::class, 'store']);
+            Route::get('/returns/history', [SalesReturnController::class, 'history']);
 
             Route::get('/orders/history', [OrderController::class, 'history']);
             Route::get('/orders/{order:uuid}', [OrderController::class, 'show']);

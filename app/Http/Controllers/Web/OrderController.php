@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Services\AuditLogger;
 use App\Services\CustomerBalanceService;
 use App\Services\NotificationService;
+use App\Services\SalesmanStockService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -55,6 +56,7 @@ class OrderController extends Controller
         AuditLogger $audit,
         NotificationService $notifications,
         CustomerBalanceService $balances,
+        SalesmanStockService $stock,
     ): RedirectResponse {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['approved', 'rejected', 'cancelled'])],
@@ -130,6 +132,16 @@ class OrderController extends Controller
             'status_note' => $order->status_note,
             'due_date' => $order->due_date?->toDateString(),
         ];
+
+        $previousStatus = $order->status;
+
+        if ($validated['status'] === 'approved') {
+            $stock->applyApprovedOrder($order, $request->user());
+        }
+
+        if ($previousStatus === 'approved' && $validated['status'] === 'cancelled') {
+            $stock->restoreCancelledOrder($order, $request->user());
+        }
 
         $order->update([
             'status' => $validated['status'],

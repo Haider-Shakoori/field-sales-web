@@ -18,6 +18,8 @@ use App\Http\Controllers\Web\LiveMapController;
 use App\Http\Controllers\Web\LocaleController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\OrderController;
+use App\Http\Controllers\Web\SalesReturnController;
+use App\Http\Controllers\Web\StockController;
 use App\Http\Controllers\Web\OrganizationController;
 use App\Http\Controllers\Web\Platform\OrganizationController as PlatformOrganizationController;
 use App\Http\Controllers\Web\PriceListController;
@@ -211,6 +213,21 @@ Route::middleware('auth')->group(function () {
             ->except(['show'])
             ->middlewareFor('index', 'permission:targets:view')
             ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:targets:manage');
+
+        Route::get('/stock', [StockController::class, 'index'])
+            ->middleware('permission:stock:view')
+            ->name('stock.index');
+        Route::post('/stock/issues', [StockController::class, 'issue'])
+            ->middleware('permission:stock:manage')
+            ->name('stock.issue');
+
+        Route::resource('returns', SalesReturnController::class)
+            ->parameters(['returns' => 'salesReturn'])
+            ->only(['index', 'show'])
+            ->middleware('permission:returns:view');
+        Route::patch('/returns/{salesReturn}/status', [SalesReturnController::class, 'updateStatus'])
+            ->middleware('permission:returns:manage')
+            ->name('returns.status');
 
         Route::resource('orders', OrderController::class)
             ->only(['index', 'show'])
