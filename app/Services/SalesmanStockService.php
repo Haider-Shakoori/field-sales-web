@@ -12,6 +12,7 @@ use App\Models\StockIssue;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SalesmanStockService
@@ -78,7 +79,7 @@ class SalesmanStockService
     {
         $order->loadMissing(['salesman', 'items.product']);
 
-        if (! $order->salesman) {
+        if (!$order->salesman) {
             throw ValidationException::withMessages([
                 'status' => 'The order has no salesman stock account.',
             ]);
@@ -107,7 +108,7 @@ class SalesmanStockService
     {
         $order->loadMissing(['salesman', 'items.product']);
 
-        if (! $order->salesman) {
+        if (!$order->salesman) {
             return;
         }
 
@@ -121,7 +122,7 @@ class SalesmanStockService
                     ->where('bucket', 'sellable')
                     ->exists();
 
-                if (! $deducted) {
+                if (!$deducted) {
                     continue;
                 }
 
@@ -264,7 +265,7 @@ class SalesmanStockService
         return sprintf(
             'ISS-%s-%s',
             $issuedAt->format('YmdHis'),
-            strtoupper(substr(str_replace('-', '', (string) \Illuminate\Support\Str::uuid()), 0, 6)),
+            strtoupper(substr(str_replace('-', '', (string) Str::uuid()), 0, 6)),
         );
     }
 }
