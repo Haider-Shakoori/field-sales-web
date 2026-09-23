@@ -34,6 +34,7 @@ use App\Http\Controllers\Web\SalesTargetController;
 use App\Http\Controllers\Web\StockController;
 use App\Http\Controllers\Web\SupervisorAssignmentController;
 use App\Http\Controllers\Web\SupervisorController;
+use App\Http\Controllers\Web\SupervisorScorecardController;
 use App\Http\Controllers\Web\TerritoryController;
 use App\Http\Controllers\Web\TrackingSettingsController;
 use App\Http\Controllers\Web\UserController;
@@ -90,6 +91,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])
             ->middleware('permission:reports:view')
             ->name('reports.index');
+
+        Route::get('/scorecards', [SupervisorScorecardController::class, 'index'])
+            ->middleware('permission:reports:view')
+            ->name('scorecards.index');
         Route::get('/reports/export/csv', [ReportController::class, 'csv'])
             ->middleware('permission:reports:view')
             ->name('reports.csv');

@@ -122,6 +122,7 @@
                 'links' => [
                     ['route' => 'admin.alerts.index', 'match' => 'admin.alerts.*', 'label' => 'Alerts', 'icon' => 'alert', 'can' => 'reports:view'],
                     ['route' => 'admin.reports.index', 'match' => 'admin.reports.*', 'label' => 'Reports', 'icon' => 'chart', 'can' => 'reports:view'],
+                    ['route' => 'admin.scorecards.index', 'match' => 'admin.scorecards.*', 'label' => 'Scorecards', 'icon' => 'chart', 'can' => 'reports:view'],
                     ['route' => 'admin.notifications.index', 'match' => 'admin.notifications.*', 'label' => 'Notifications', 'icon' => 'bell', 'can' => null],
                     ['route' => 'admin.audit.index', 'match' => 'admin.audit.*', 'label' => 'Audit', 'icon' => 'document-search', 'can' => 'audit:view'],
                 ],
