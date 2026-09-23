@@ -194,7 +194,7 @@ class InvoiceAndCustomerStatementTest extends TestCase
         $token = app(TenantContext::class)->withTenant(
             $actor['tenant'],
             fn () => $actor['salesUser']
-                ->createToken('statement-mobile')
+                ->createToken('mobile-'.$actor['device']->uuid)
                 ->plainTextToken,
         );
 
