@@ -23,8 +23,7 @@ class OrderController extends Controller
         Request $request,
         OrderPricingService $pricing,
         VanStockService $stock,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         abort_unless($request->user()->hasPermission('orders:view'), 403);
 
         $validated = $request->validate([
@@ -72,10 +71,10 @@ class OrderController extends Controller
 
         $visit = null;
 
-        if (! empty($validated['visit_id'])) {
+        if (!empty($validated['visit_id'])) {
             $visit = CustomerVisit::where('uuid', $validated['visit_id'])->first();
 
-            if (! $visit) {
+            if (!$visit) {
                 return ApiResponse::error(
                     'The linked visit has not synchronized yet.',
                     409,
