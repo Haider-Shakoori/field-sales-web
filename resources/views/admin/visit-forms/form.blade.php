@@ -54,7 +54,7 @@
             <div>
                 <label class="mb-2 block text-sm text-slate-300">{{ __('Scope') }}</label>
                 <select name="scope_type" id="scope-type" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
-                    @foreach(AppModelsVisitFormTemplate::SCOPE_TYPES as $scope)
+                    @foreach(\App\Models\VisitFormTemplate::SCOPE_TYPES as $scope)
                         <option value="{{ $scope }}" @selected(old('scope_type', $template->scope_type ?: 'all') === $scope)>
                             {{ __(str($scope)->title()->toString()) }}
                         </option>

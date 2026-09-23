@@ -44,6 +44,18 @@ class VisitFormsTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_create_page_renders_and_stock_navigation_is_visible(): void
+    {
+        $actor = $this->actor();
+
+        $this->actingAs($actor['admin'])
+            ->get('/admin/visit-forms/create')
+            ->assertOk()
+            ->assertSee('New visit form')
+            ->assertSee(route('admin.stock.index'), false)
+            ->assertSee(route('admin.returns.index'), false);
+    }
+
     public function test_required_route_form_blocks_checkout_until_idempotent_submission(): void
     {
         $actor = $this->actor();
