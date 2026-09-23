@@ -8,6 +8,7 @@ use App\Models\CustomerVisit;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\OrderPricingService;
+use App\Services\VanStockService;
 use App\Support\ApiResponse;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +19,11 @@ use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
-    public function store(Request $request, OrderPricingService $pricing): JsonResponse
+    public function store(
+        Request $request,
+        OrderPricingService $pricing,
+        VanStockService $stock,
+    ): JsonResponse
     {
         abort_unless($request->user()->hasPermission('orders:view'), 403);
 
@@ -121,6 +126,7 @@ class OrderController extends Controller
             $device,
             $pricing,
             $pricingAt,
+            $stock,
         ): Order {
             $subtotal = 0.0;
             $discountTotal = 0.0;
@@ -198,6 +204,11 @@ class OrderController extends Controller
             ]);
 
             $order->items()->createMany($preparedItems);
+
+            $stock->reserveOrder(
+                $order->load(['salesman', 'items.product']),
+                $user,
+            );
 
             return $order;
         });

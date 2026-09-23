@@ -7,8 +7,10 @@ use App\Models\Order;
 use App\Services\AuditLogger;
 use App\Services\CustomerBalanceService;
 use App\Services\NotificationService;
+use App\Services\VanStockService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -55,6 +57,7 @@ class OrderController extends Controller
         AuditLogger $audit,
         NotificationService $notifications,
         CustomerBalanceService $balances,
+        VanStockService $stock,
     ): RedirectResponse {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['approved', 'rejected', 'cancelled'])],
@@ -131,13 +134,51 @@ class OrderController extends Controller
             'due_date' => $order->due_date?->toDateString(),
         ];
 
-        $order->update([
-            'status' => $validated['status'],
-            'due_date' => $dueDate,
-            'status_note' => $validated['status_note'] ?? null,
-            'status_changed_by' => $request->user()->id,
-            'status_changed_at' => now(),
-        ]);
+        DB::transaction(function () use (
+            $order,
+            $validated,
+            $dueDate,
+            $request,
+            $stock,
+            $before,
+        ): void {
+            $lockedOrder = Order::whereKey($order->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedOrder->status !== $before['status']) {
+                throw ValidationException::withMessages([
+                    'status' => 'This order status changed while you were reviewing it. Reload and try again.',
+                ]);
+            }
+
+            if (
+                $lockedOrder->status === 'pending'
+                && $validated['status'] === 'approved'
+            ) {
+                $stock->approveOrder($lockedOrder, $request->user());
+            } elseif (
+                $lockedOrder->status === 'pending'
+                && in_array($validated['status'], ['rejected', 'cancelled'], true)
+            ) {
+                $stock->releaseOrder($lockedOrder, $request->user());
+            } elseif (
+                $lockedOrder->status === 'approved'
+                && $validated['status'] === 'cancelled'
+            ) {
+                $stock->restockCancelledOrder($lockedOrder, $request->user());
+            }
+
+            $lockedOrder->update([
+                'status' => $validated['status'],
+                'due_date' => $dueDate,
+                'status_note' => $validated['status_note'] ?? null,
+                'status_changed_by' => $request->user()->id,
+                'status_changed_at' => now(),
+            ]);
+        });
+
+        $order->refresh();
 
         $audit->record('order.status_changed', $order, $before, [
             'status' => $order->status,
