@@ -4,7 +4,12 @@
             <h1 class="text-2xl font-bold">{{ $order->order_number }}</h1>
             <p class="mt-1 text-sm text-slate-400">{{ $order->customer?->name }} · {{ str($order->status)->title() }}</p>
         </div>
-        <a href="{{ route('admin.orders.index') }}" class="rounded-xl bg-white/10 px-4 py-2.5">Back to orders</a>
+        <div class="flex flex-wrap gap-2">
+            @if($order->status === 'approved')
+                <a href="{{ route('admin.orders.invoice', $order) }}" target="_blank" class="rounded-xl bg-indigo-500 px-4 py-2.5 font-semibold">{{ __('Print invoice') }}</a>
+            @endif
+            <a href="{{ route('admin.orders.index') }}" class="rounded-xl bg-white/10 px-4 py-2.5">{{ __('Back to orders') }}</a>
+        </div>
     </div>
 
     <div class="grid gap-5 lg:grid-cols-3">
