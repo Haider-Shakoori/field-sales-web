@@ -79,7 +79,7 @@ class SalesmanStockService
     {
         $order->loadMissing(['salesman', 'items.product']);
 
-        if (!$order->salesman) {
+        if (! $order->salesman) {
             throw ValidationException::withMessages([
                 'status' => 'The order has no salesman stock account.',
             ]);
@@ -108,7 +108,7 @@ class SalesmanStockService
     {
         $order->loadMissing(['salesman', 'items.product']);
 
-        if (!$order->salesman) {
+        if (! $order->salesman) {
             return;
         }
 
@@ -122,7 +122,7 @@ class SalesmanStockService
                     ->where('bucket', 'sellable')
                     ->exists();
 
-                if (!$deducted) {
+                if (! $deducted) {
                     continue;
                 }
 
