@@ -13,9 +13,9 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\TargetController;
+use App\Http\Controllers\Api\VanStockController;
 use App\Http\Controllers\Api\VisitController;
 use App\Http\Controllers\Api\VisitFormController;
-use App\Http\Controllers\Api\VanStockController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
