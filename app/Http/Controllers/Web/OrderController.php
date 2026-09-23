@@ -7,8 +7,11 @@ use App\Models\Order;
 use App\Services\AuditLogger;
 use App\Services\CustomerBalanceService;
 use App\Services\NotificationService;
+use App\Services\SalesmanStockService;
+use App\Services\StockSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -55,6 +58,8 @@ class OrderController extends Controller
         AuditLogger $audit,
         NotificationService $notifications,
         CustomerBalanceService $balances,
+        SalesmanStockService $stock,
+        StockSettingsService $stockSettings,
     ): RedirectResponse {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['approved', 'rejected', 'cancelled'])],
@@ -131,13 +136,41 @@ class OrderController extends Controller
             'due_date' => $order->due_date?->toDateString(),
         ];
 
-        $order->update([
-            'status' => $validated['status'],
-            'due_date' => $dueDate,
-            'status_note' => $validated['status_note'] ?? null,
-            'status_changed_by' => $request->user()->id,
-            'status_changed_at' => now(),
-        ]);
+        $previousStatus = $order->status;
+
+        $stockEnabled = $stockSettings->enabled(
+            $request->user()->loadMissing('tenant')->tenant,
+        );
+
+        DB::transaction(function () use (
+            $validated,
+            $order,
+            $request,
+            $stock,
+            $stockEnabled,
+            $previousStatus,
+            $dueDate,
+        ): void {
+            if ($stockEnabled && $validated['status'] === 'approved') {
+                $stock->applyApprovedOrder($order, $request->user());
+            }
+
+            if (
+                $stockEnabled
+                && $previousStatus === 'approved'
+                && $validated['status'] === 'cancelled'
+            ) {
+                $stock->restoreCancelledOrder($order, $request->user());
+            }
+
+            $order->update([
+                'status' => $validated['status'],
+                'due_date' => $dueDate,
+                'status_note' => $validated['status_note'] ?? null,
+                'status_changed_by' => $request->user()->id,
+                'status_changed_at' => now(),
+            ]);
+        });
 
         $audit->record('order.status_changed', $order, $before, [
             'status' => $order->status,

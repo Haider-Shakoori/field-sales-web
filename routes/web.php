@@ -28,8 +28,10 @@ use App\Http\Controllers\Web\RoleController;
 use App\Http\Controllers\Web\RouteCustomerController;
 use App\Http\Controllers\Web\SalesmanAssignmentController;
 use App\Http\Controllers\Web\SalesmanController;
+use App\Http\Controllers\Web\SalesReturnController;
 use App\Http\Controllers\Web\SalesRouteController;
 use App\Http\Controllers\Web\SalesTargetController;
+use App\Http\Controllers\Web\StockController;
 use App\Http\Controllers\Web\SupervisorAssignmentController;
 use App\Http\Controllers\Web\SupervisorController;
 use App\Http\Controllers\Web\TerritoryController;
@@ -211,6 +213,24 @@ Route::middleware('auth')->group(function () {
             ->except(['show'])
             ->middlewareFor('index', 'permission:targets:view')
             ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:targets:manage');
+
+        Route::get('/stock', [StockController::class, 'index'])
+            ->middleware('permission:stock:view')
+            ->name('stock.index');
+        Route::post('/stock/issues', [StockController::class, 'issue'])
+            ->middleware('permission:stock:manage')
+            ->name('stock.issue');
+        Route::patch('/stock/settings', [StockController::class, 'updateSettings'])
+            ->middleware('permission:stock:manage')
+            ->name('stock.settings');
+
+        Route::resource('returns', SalesReturnController::class)
+            ->parameters(['returns' => 'salesReturn'])
+            ->only(['index', 'show'])
+            ->middleware('permission:returns:view');
+        Route::patch('/returns/{salesReturn}/status', [SalesReturnController::class, 'updateStatus'])
+            ->middleware('permission:returns:manage')
+            ->name('returns.status');
 
         Route::resource('orders', OrderController::class)
             ->only(['index', 'show'])
