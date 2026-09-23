@@ -10,6 +10,7 @@ use App\Services\NotificationService;
 use App\Services\SalesmanStockService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -135,21 +136,33 @@ class OrderController extends Controller
 
         $previousStatus = $order->status;
 
-        if ($validated['status'] === 'approved') {
-            $stock->applyApprovedOrder($order, $request->user());
-        }
+        DB::transaction(function () use (
+            $validated,
+            $order,
+            $request,
+            $stock,
+            $previousStatus,
+            $dueDate,
+        ): void {
+            if ($validated['status'] === 'approved') {
+                $stock->applyApprovedOrder($order, $request->user());
+            }
 
-        if ($previousStatus === 'approved' && $validated['status'] === 'cancelled') {
-            $stock->restoreCancelledOrder($order, $request->user());
-        }
+            if (
+                $previousStatus === 'approved'
+                && $validated['status'] === 'cancelled'
+            ) {
+                $stock->restoreCancelledOrder($order, $request->user());
+            }
 
-        $order->update([
-            'status' => $validated['status'],
-            'due_date' => $dueDate,
-            'status_note' => $validated['status_note'] ?? null,
-            'status_changed_by' => $request->user()->id,
-            'status_changed_at' => now(),
-        ]);
+            $order->update([
+                'status' => $validated['status'],
+                'due_date' => $dueDate,
+                'status_note' => $validated['status_note'] ?? null,
+                'status_changed_by' => $request->user()->id,
+                'status_changed_at' => now(),
+            ]);
+        });
 
         $audit->record('order.status_changed', $order, $before, [
             'status' => $order->status,
