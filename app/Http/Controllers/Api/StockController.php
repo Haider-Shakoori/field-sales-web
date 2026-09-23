@@ -4,13 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SalesmanStockBalance;
+use App\Services\StockSettingsService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StockController extends Controller
 {
-    public function mine(Request $request): JsonResponse
+    public function mine(
+        Request $request,
+        StockSettingsService $settings,
+    ): JsonResponse
     {
         abort_unless($request->user()->hasPermission('stock:view'), 403);
 
@@ -33,6 +37,11 @@ class StockController extends Controller
             ->values()
             ->all();
 
-        return ApiResponse::success(['stock' => $rows]);
+        return ApiResponse::success([
+            'enabled' => $settings->enabled(
+                $request->user()->loadMissing('tenant')->tenant,
+            ),
+            'stock' => $rows,
+        ]);
     }
 }

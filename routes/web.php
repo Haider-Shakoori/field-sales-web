@@ -220,6 +220,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/stock/issues', [StockController::class, 'issue'])
             ->middleware('permission:stock:manage')
             ->name('stock.issue');
+        Route::patch('/stock/settings', [StockController::class, 'updateSettings'])
+            ->middleware('permission:stock:manage')
+            ->name('stock.settings');
 
         Route::resource('returns', SalesReturnController::class)
             ->parameters(['returns' => 'salesReturn'])

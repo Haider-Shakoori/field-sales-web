@@ -6,6 +6,25 @@
         </div>
     </div>
 
+    @if(auth()->user()->hasPermission('stock:manage'))
+        <form method="POST" action="{{ route('admin.stock.settings') }}" class="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-900 p-5">
+            @csrf
+            @method('PATCH')
+            <div>
+                <h2 class="font-semibold">{{ __('Salesman stock control') }}</h2>
+                <p class="mt-1 text-sm text-slate-400">{{ __('When enabled, approving an order requires and deducts salesman sellable stock. Existing tenants remain unaffected until this is enabled.') }}</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="hidden" name="salesman_stock_enabled" value="0">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" name="salesman_stock_enabled" value="1" @checked($stockControlEnabled)>
+                    <span>{{ $stockControlEnabled ? __('Enabled') : __('Disabled') }}</span>
+                </label>
+                <button class="rounded-xl bg-white/10 px-4 py-2.5 font-semibold">{{ __('Save') }}</button>
+            </div>
+        </form>
+    @endif
+
     <div class="mb-5 grid gap-4 xl:grid-cols-[1fr_1.4fr]">
         <form method="GET" class="rounded-2xl border border-white/10 bg-slate-900 p-5">
             <label class="mb-2 block text-sm text-slate-300">{{ __('Salesman') }}</label>

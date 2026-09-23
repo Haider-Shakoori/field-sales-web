@@ -9,6 +9,7 @@ use App\Models\SalesmanStockBalance;
 use App\Models\StockIssue;
 use App\Services\AuditLogger;
 use App\Services\SalesmanStockService;
+use App\Services\StockSettingsService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,10 @@ use Illuminate\View\View;
 
 class StockController extends Controller
 {
-    public function index(Request $request): View
+    public function index(
+        Request $request,
+        StockSettingsService $settings,
+    ): View
     {
         $salesmanUuid = trim((string) $request->string('salesman'));
         $salesman = $salesmanUuid !== ''
@@ -42,7 +46,32 @@ class StockController extends Controller
                 ->limit(20)
                 ->get(),
             'products' => Product::active()->orderBy('name')->get(),
+            'stockControlEnabled' => $settings->enabled(
+                $request->user()->loadMissing('tenant')->tenant,
+            ),
         ]);
+    }
+
+    public function updateSettings(
+        Request $request,
+        StockSettingsService $settings,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'salesman_stock_enabled' => ['nullable', 'boolean'],
+        ]);
+
+        $enabled = $request->boolean('salesman_stock_enabled');
+        $tenant = $request->user()->loadMissing('tenant')->tenant;
+        $before = ['salesman_stock_enabled' => $settings->enabled($tenant)];
+
+        $settings->setEnabled($tenant, $enabled);
+
+        $audit->record('stock.settings_updated', $tenant, $before, [
+            'salesman_stock_enabled' => $enabled,
+        ]);
+
+        return back()->with('status', __('Stock settings updated.'));
     }
 
     public function issue(

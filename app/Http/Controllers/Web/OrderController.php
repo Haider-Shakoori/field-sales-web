@@ -8,6 +8,7 @@ use App\Services\AuditLogger;
 use App\Services\CustomerBalanceService;
 use App\Services\NotificationService;
 use App\Services\SalesmanStockService;
+use App\Services\StockSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +59,7 @@ class OrderController extends Controller
         NotificationService $notifications,
         CustomerBalanceService $balances,
         SalesmanStockService $stock,
+        StockSettingsService $stockSettings,
     ): RedirectResponse {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['approved', 'rejected', 'cancelled'])],
@@ -136,20 +138,26 @@ class OrderController extends Controller
 
         $previousStatus = $order->status;
 
+        $stockEnabled = $stockSettings->enabled(
+            $request->user()->loadMissing('tenant')->tenant,
+        );
+
         DB::transaction(function () use (
             $validated,
             $order,
             $request,
             $stock,
+            $stockEnabled,
             $previousStatus,
             $dueDate,
         ): void {
-            if ($validated['status'] === 'approved') {
+            if ($stockEnabled && $validated['status'] === 'approved') {
                 $stock->applyApprovedOrder($order, $request->user());
             }
 
             if (
-                $previousStatus === 'approved'
+                $stockEnabled
+                && $previousStatus === 'approved'
                 && $validated['status'] === 'cancelled'
             ) {
                 $stock->restoreCancelledOrder($order, $request->user());
