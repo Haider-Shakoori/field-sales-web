@@ -52,6 +52,20 @@ class OrderController extends Controller
         ]);
     }
 
+    public function invoice(Request $request, Order $order): View
+    {
+        abort_unless($order->status === 'approved', 404);
+
+        return view('admin.orders.invoice', [
+            'order' => $order->load([
+                'customer',
+                'salesman.user',
+                'items.product',
+            ]),
+            'tenant' => $request->user()->loadMissing('tenant')->tenant,
+        ]);
+    }
+
     public function updateStatus(
         Request $request,
         Order $order,

@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\CallActivityController;
 use App\Http\Controllers\Web\CollectionController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\CustomerFollowUpController;
+use App\Http\Controllers\Web\CustomerStatementController;
 use App\Http\Controllers\Web\DailyRoutePlannerController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DeviceController;
@@ -149,6 +150,9 @@ Route::middleware('auth')->group(function () {
         Route::resource('customers', CustomerController::class)
             ->middlewareFor(['index', 'show'], 'permission:customers:view')
             ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:customers:manage');
+        Route::get('/customers/{customer}/statement', CustomerStatementController::class)
+            ->middleware('permission:customers:view')
+            ->name('customers.statement');
 
         Route::resource('routes', SalesRouteController::class)
             ->middlewareFor(['index', 'show'], 'permission:customers:view')
@@ -243,6 +247,9 @@ Route::middleware('auth')->group(function () {
         Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])
             ->middleware('permission:orders:manage')
             ->name('orders.status');
+        Route::get('/orders/{order}/invoice', [OrderController::class, 'invoice'])
+            ->middleware('permission:orders:view')
+            ->name('orders.invoice');
 
         Route::resource('visit-forms', VisitFormTemplateController::class)
             ->parameters(['visit-forms' => 'visitForm'])
