@@ -85,6 +85,11 @@ class Customer extends Model
         return $this->hasMany(Order::class)->latest('ordered_at');
     }
 
+    public function customerReturns(): HasMany
+    {
+        return $this->hasMany(CustomerReturn::class)->latest('returned_at');
+    }
+
     public function callActivities(): HasMany
     {
         return $this->hasMany(CustomerCallActivity::class)->latest('called_at');

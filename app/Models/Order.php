@@ -71,4 +71,14 @@ class Order extends Model
     {
         return $this->hasMany(OrderItem::class)->orderBy('id');
     }
+
+    public function customerReturns(): HasMany
+    {
+        return $this->hasMany(CustomerReturn::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(SalesmanStockMovement::class);
+    }
 }

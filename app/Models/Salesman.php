@@ -19,6 +19,7 @@ class Salesman extends Model
     {
         return [
             'is_active' => 'boolean',
+            'van_stock_enabled' => 'boolean',
         ];
     }
 
@@ -60,6 +61,21 @@ class Salesman extends Model
     public function visits(): HasMany
     {
         return $this->hasMany(CustomerVisit::class);
+    }
+
+    public function stockBalances(): HasMany
+    {
+        return $this->hasMany(SalesmanStockBalance::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(SalesmanStockMovement::class);
+    }
+
+    public function customerReturns(): HasMany
+    {
+        return $this->hasMany(CustomerReturn::class);
     }
 
     public function scopeActive(Builder $query): Builder

@@ -32,6 +32,21 @@ class Product extends Model
         return $this->hasMany(PriceListItem::class);
     }
 
+    public function stockBalances(): HasMany
+    {
+        return $this->hasMany(SalesmanStockBalance::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(SalesmanStockMovement::class);
+    }
+
+    public function customerReturnItems(): HasMany
+    {
+        return $this->hasMany(CustomerReturnItem::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
