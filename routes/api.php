@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CallActivityController;
 use App\Http\Controllers\Api\CollectionController;
+use App\Http\Controllers\Api\CustomerReturnController;
 use App\Http\Controllers\Api\DailyRoutePlannerController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GpsController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\TargetController;
 use App\Http\Controllers\Api\VisitController;
 use App\Http\Controllers\Api\VisitFormController;
+use App\Http\Controllers\Api\VanStockController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -61,6 +63,11 @@ Route::prefix('v1')->group(function () {
             Route::get('/orders/history', [OrderController::class, 'history']);
             Route::get('/orders/{order:uuid}', [OrderController::class, 'show']);
             Route::post('/orders', [OrderController::class, 'store']);
+
+            Route::get('/van-stock', [VanStockController::class, 'show']);
+            Route::get('/returns/history', [CustomerReturnController::class, 'history']);
+            Route::get('/returns/{customerReturn:uuid}', [CustomerReturnController::class, 'show']);
+            Route::post('/returns', [CustomerReturnController::class, 'store']);
 
             Route::get('/collections/balances', [CollectionController::class, 'balances']);
             Route::get('/collections/history', [CollectionController::class, 'history']);
