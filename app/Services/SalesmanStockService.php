@@ -92,7 +92,7 @@ class SalesmanStockService
                     $item->product,
                     'sellable',
                     'sale',
-                    -round((float) $item->quantity, 4),
+                    - round((float) $item->quantity, 4),
                     'order',
                     $order->id,
                     $order->order_number,
