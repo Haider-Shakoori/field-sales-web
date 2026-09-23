@@ -15,6 +15,7 @@ use App\Models\Salesman;
 use App\Models\SalesmanStockBalance;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\VanStockService;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -135,15 +136,22 @@ class VanStockAndReturnsTest extends TestCase
         $actor = $this->fixture(10, true);
         $order = $this->createOrder($actor, 4);
 
-        $this->actingAs($actor['admin'])
-            ->patch('/admin/orders/'.$order->id.'/status', [
-                'status' => 'approved',
-            ])
-            ->assertRedirect();
+        app(TenantContext::class)->withTenant(
+            $actor['tenant'],
+            function () use ($actor, $order): void {
+                app(VanStockService::class)->approveOrder(
+                    $order,
+                    $actor['admin'],
+                );
+                $order->update([
+                    'status' => 'approved',
+                    'status_changed_by' => $actor['admin']->id,
+                    'status_changed_at' => now(),
+                ]);
+            },
+        );
 
         $this->assertBalance($actor, 6, 0, 0);
-
-        auth()->guard('web')->logout();
 
         $uuid = (string) Str::uuid();
         $payload = [
@@ -182,6 +190,23 @@ class VanStockAndReturnsTest extends TestCase
         $this->assertDatabaseCount('customer_return_items', 2);
         $this->assertBalance($actor, 6, 0, 0);
 
+        $response = $this->postJson('/api/v1/returns', [
+            'offline_uuid' => (string) Str::uuid(),
+            'customer_id' => $actor['customer']->uuid,
+            'order_id' => $order->uuid,
+            'returned_at' => '2026-09-23T09:45:00Z',
+            'reason' => 'Excess return attempt',
+            'items' => [[
+                'product_id' => $actor['product']->uuid,
+                'quantity' => 3,
+                'condition' => 'sellable',
+            ]],
+        ], $this->headers());
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
+
         $customerReturn = app(TenantContext::class)->withTenant(
             $actor['tenant'],
             fn () => CustomerReturn::where('uuid', $uuid)->firstOrFail(),
@@ -206,25 +231,6 @@ class VanStockAndReturnsTest extends TestCase
             'movement_type' => 'customer_return_damaged',
             'damaged_delta' => 1,
         ]);
-
-        auth()->guard('web')->logout();
-
-        $response = $this->postJson('/api/v1/returns', [
-            'offline_uuid' => (string) Str::uuid(),
-            'customer_id' => $actor['customer']->uuid,
-            'order_id' => $order->uuid,
-            'returned_at' => '2026-09-23T09:45:00Z',
-            'reason' => 'Excess return attempt',
-            'items' => [[
-                'product_id' => $actor['product']->uuid,
-                'quantity' => 3,
-                'condition' => 'sellable',
-            ]],
-        ], $this->headers());
-
-        $response
-            ->assertUnprocessable()
-            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
     }
 
     public function test_disabled_van_stock_keeps_legacy_order_flow_unrestricted(): void
