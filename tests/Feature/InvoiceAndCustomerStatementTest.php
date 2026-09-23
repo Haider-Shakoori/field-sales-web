@@ -152,6 +152,76 @@ class InvoiceAndCustomerStatementTest extends TestCase
             ->assertDontSee('REC-PENDING-EXCLUDED');
     }
 
+    public function test_salesman_mobile_api_can_read_same_customer_statement(): void
+    {
+        $actor = $this->actor();
+
+        $this->order(
+            $actor,
+            'ORD-API-OPENING',
+            'approved',
+            'credit',
+            'AFN',
+            1000,
+            '2026-08-20 08:00:00',
+        );
+        $this->collection(
+            $actor,
+            'REC-API-OPENING',
+            'verified',
+            'AFN',
+            200,
+            '2026-08-25 08:00:00',
+        );
+        $this->order(
+            $actor,
+            'ORD-API-CURRENT',
+            'approved',
+            'credit',
+            'AFN',
+            500,
+            '2026-09-10 08:00:00',
+        );
+        $this->collection(
+            $actor,
+            'REC-API-CURRENT',
+            'verified',
+            'AFN',
+            300,
+            '2026-09-15 08:00:00',
+        );
+
+        $token = app(TenantContext::class)->withTenant(
+            $actor['tenant'],
+            fn () => $actor['salesUser']
+                ->createToken('statement-mobile')
+                ->plainTextToken,
+        );
+
+        $this->getJson(
+            '/api/v1/customers/'.$actor['customer']->uuid
+            .'/statement?from=2026-09-01&to=2026-09-30&currency=AFN',
+            [
+                'Authorization' => 'Bearer '.$token,
+                'X-Device-UUID' => $actor['device']->device_uuid,
+                'X-Installation-UUID' => $actor['device']->installation_uuid,
+                'X-App-Version' => '1.0',
+                'X-Platform' => 'android',
+                'X-OS-Version' => '16',
+            ],
+        )
+            ->assertOk()
+            ->assertJsonPath('data.customer.id', $actor['customer']->uuid)
+            ->assertJsonPath('data.customer.name', 'Statement Customer')
+            ->assertJsonPath('data.currency', 'AFN')
+            ->assertJsonPath('data.opening_balance', 800)
+            ->assertJsonPath('data.debits', 500)
+            ->assertJsonPath('data.credits', 300)
+            ->assertJsonPath('data.closing_balance', 1000)
+            ->assertJsonPath('data.entries.0.reference', 'ORD-API-CURRENT')
+            ->assertJsonPath('data.entries.1.reference', 'REC-API-CURRENT');
+    }
+
     private function actor(): array
     {
         $tenant = app(TenantContext::class)->withPlatformScope(
