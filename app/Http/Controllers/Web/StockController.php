@@ -21,8 +21,7 @@ class StockController extends Controller
     public function index(
         Request $request,
         StockSettingsService $settings,
-    ): View
-    {
+    ): View {
         $salesmanUuid = trim((string) $request->string('salesman'));
         $salesman = $salesmanUuid !== ''
             ? Salesman::with('user')->where('uuid', $salesmanUuid)->firstOrFail()

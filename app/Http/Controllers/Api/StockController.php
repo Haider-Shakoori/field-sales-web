@@ -14,8 +14,7 @@ class StockController extends Controller
     public function mine(
         Request $request,
         StockSettingsService $settings,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         abort_unless($request->user()->hasPermission('stock:view'), 403);
 
         $user = $request->user()->loadMissing('salesman');
