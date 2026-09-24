@@ -10,6 +10,7 @@ class AiInsightsAgentService
 {
     public function __construct(
         private readonly AiInsightToolService $tools,
+        private readonly AiPolicyService $policy,
     ) {}
 
     public function answer(
@@ -19,6 +20,15 @@ class AiInsightsAgentService
         array $history = [],
     ): array {
         $startedAt = hrtime(true);
+
+        if (! $this->policy->externalEnabled($user)) {
+            return $this->failure(
+                'tenant_ai_disabled',
+                'External AI is disabled for this organization.',
+                $startedAt,
+            );
+        }
+
         $baseUrl = $this->baseUrl();
         $apiKey = trim((string) config('ai.api_key'));
         $model = trim((string) config('ai.model'));
@@ -226,7 +236,7 @@ class AiInsightsAgentService
         );
     }
 
-    public function health(): array
+    public function health(User $user): array
     {
         $startedAt = hrtime(true);
         $provider = (string) config('ai.provider', 'generic');
@@ -234,7 +244,7 @@ class AiInsightsAgentService
         $baseUrl = $this->baseUrl();
         $apiKey = trim((string) config('ai.api_key'));
 
-        if (! config('ai.enabled', false)) {
+        if (! $this->policy->externalEnabled($user)) {
             return [
                 'ok' => false,
                 'status' => 'disabled',
@@ -298,7 +308,7 @@ class AiInsightsAgentService
     private function systemPrompt(User $user, array $snapshot): string
     {
         $tenant = $user->loadMissing('tenant')->tenant;
-        $customerData = config('ai.allow_customer_data', false)
+        $customerData = $this->policy->customerDataEnabled($user)
             && $user->hasPermission('customers:view');
 
         return implode("\n", [
