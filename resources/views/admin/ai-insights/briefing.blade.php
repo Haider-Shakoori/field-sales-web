@@ -27,7 +27,7 @@
         <div>
             <p class="text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">{{ __('Briefing date') }}</p>
             <p class="mt-1 text-xl font-bold">{{ $briefing['today'] }}</p>
-            <p class="mt-1 text-xs text-slate-500">{{ $briefing['timezone'] }} · {{ __('Generated') }} {{ CarbonCarbonImmutable::parse($briefing['generated_at'])->format('H:i') }}</p>
+            <p class="mt-1 text-xs text-slate-500">{{ $briefing['timezone'] }} · {{ __('Generated') }} {{ $briefing['generated_time'] }}</p>
         </div>
         <div class="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
             {{ __('Live FieldPulse data · read-only analysis') }}
