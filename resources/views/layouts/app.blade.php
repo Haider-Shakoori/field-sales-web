@@ -122,7 +122,7 @@
             [
                 'label' => 'Insights',
                 'links' => [
-                    ['route' => 'admin.ai-insights.index', 'match' => 'admin.ai-insights.*', 'label' => 'AI insights', 'icon' => 'sparkles', 'can' => 'reports:view'],
+                    ['route' => 'admin.ai-insights.index', 'match' => 'admin.ai-insights.*', 'label' => 'AI insights', 'icon' => 'chart', 'can' => 'reports:view'],
                     ['route' => 'admin.alerts.index', 'match' => 'admin.alerts.*', 'label' => 'Alerts', 'icon' => 'alert', 'can' => 'reports:view'],
                     ['route' => 'admin.reports.index', 'match' => 'admin.reports.*', 'label' => 'Reports', 'icon' => 'chart', 'can' => 'reports:view'],
                     ['route' => 'admin.scorecards.index', 'match' => 'admin.scorecards.*', 'label' => 'Scorecards', 'icon' => 'chart', 'can' => 'reports:view'],
