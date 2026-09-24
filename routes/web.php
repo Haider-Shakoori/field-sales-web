@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ReadinessController;
+use App\Http\Controllers\Web\AiInsightsController;
 use App\Http\Controllers\Web\AlertController;
 use App\Http\Controllers\Web\AttendanceController;
 use App\Http\Controllers\Web\AuditLogController;
@@ -88,6 +89,13 @@ Route::middleware('auth')->group(function () {
             ->name('notifications.read');
         Route::put('/notifications/preferences', [NotificationController::class, 'updatePreferences'])
             ->name('notifications.preferences');
+
+        Route::get('/ai-insights', [AiInsightsController::class, 'index'])
+            ->middleware('permission:reports:view')
+            ->name('ai-insights.index');
+        Route::post('/ai-insights/ask', [AiInsightsController::class, 'ask'])
+            ->middleware('permission:reports:view')
+            ->name('ai-insights.ask');
 
         Route::get('/alerts', [AlertController::class, 'index'])
             ->middleware('permission:reports:view')
