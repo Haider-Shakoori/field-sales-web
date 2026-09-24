@@ -81,6 +81,69 @@ class AiInsightsTest extends TestCase
         );
     }
 
+    public function test_follow_up_question_receives_prior_conversation_context(): void
+    {
+        [$tenant, $admin] = $this->fixture();
+
+        config()->set('ai.enabled', true);
+        config()->set('ai.provider', 'groq');
+        config()->set('ai.api_key', 'groq-test-key');
+        config()->set('ai.model', 'openai/gpt-oss-120b');
+        config()->set('ai.endpoint', null);
+
+        Http::fakeSequence()
+            ->push([
+                'choices' => [[
+                    'message' => [
+                        'role' => 'assistant',
+                        'content' => 'September sales are AFN 1,000.',
+                    ],
+                ]],
+            ], 200)
+            ->push([
+                'choices' => [[
+                    'message' => [
+                        'role' => 'assistant',
+                        'content' => 'August sales were AFN 900.',
+                    ],
+                ]],
+            ], 200);
+
+        $first = $this->actingAs($admin)
+            ->postJson(route('admin.ai-insights.ask'), [
+                'question' => 'What were September sales?',
+            ])
+            ->assertOk()
+            ->json();
+
+        $conversationUuid = $first['conversation']['uuid'];
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.ai-insights.ask'), [
+                'conversation_id' => $conversationUuid,
+                'question' => 'What about the previous month?',
+            ])
+            ->assertOk()
+            ->assertJsonPath('conversation.uuid', $conversationUuid)
+            ->assertJsonPath('message.content', 'August sales were AFN 900.');
+
+        $requests = Http::recorded();
+        $secondMessages = $requests[1][0]->data()['messages'];
+
+        $this->assertTrue(
+            collect($secondMessages)->contains(
+                fn (array $message) => $message['role'] === 'user'
+                    && $message['content'] === 'What were September sales?',
+            ),
+        );
+        $this->assertTrue(
+            collect($secondMessages)->contains(
+                fn (array $message) => $message['role'] === 'assistant'
+                    && $message['content'] === 'September sales are AFN 1,000.',
+            ),
+        );
+    }
+
     public function test_groq_agent_can_call_permission_aware_fieldpulse_tools(): void
     {
         [$tenant, $admin] = $this->fixture();
