@@ -7,6 +7,7 @@ use App\Models\CustomerFollowUp;
 use App\Models\Expense;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Salesman;
 use App\Models\SalesmanStockBalance;
 use App\Models\SalesReturn;
 use App\Models\User;
@@ -23,6 +24,7 @@ class AiInsightToolService
         private readonly SupervisorScorecardService $scorecards,
         private readonly AiRecommendationService $recommendations,
         private readonly ManagerBriefingService $briefing,
+        private readonly MileageService $mileage,
         private readonly TenantClock $clock,
         private readonly AiPolicyService $policy,
     ) {}
@@ -171,6 +173,23 @@ class AiInsightToolService
                     'additionalProperties' => false,
                 ],
             );
+            $tools[] = $this->tool(
+                'get_mileage_summary',
+                'Get team or salesman travel distance, GPS/odometer variance, approved fuel use, fuel cost, and km-per-liter for a date range.',
+                [
+                    'type' => 'object',
+                    'properties' => [
+                        'date_from' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                        'date_to' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                        'salesman_query' => [
+                            'type' => 'string',
+                            'description' => 'Optional salesman name or employee code.',
+                        ],
+                    ],
+                    'required' => ['date_from', 'date_to'],
+                    'additionalProperties' => false,
+                ],
+            );
         }
 
         if (
@@ -262,6 +281,7 @@ class AiInsightToolService
             'get_salesman_stock' => $this->salesmanStock($user, $arguments),
             'get_returns' => $this->returns($user, $arguments),
             'get_scorecards' => $this->scorecards($user, $arguments),
+            'get_mileage_summary' => $this->mileageSummary($user, $arguments),
             'get_order_details' => $this->orderDetails($user, $arguments),
             'search_customers' => $this->customerSearch($user, $arguments),
             'get_receivables' => $this->receivables($user, $arguments),
@@ -566,6 +586,119 @@ class AiInsightToolService
                 'unresolved_flags' => $row['unresolved_flags'],
                 'target_average_percent' => $row['target_average_percent'],
             ])->values()->all(),
+        ];
+    }
+
+    private function mileageSummary(User $user, array $arguments): array
+    {
+        abort_unless($user->hasPermission('reports:view'), 403);
+        [$from, $to] = $this->dateRange($user, $arguments);
+        $salesmanQuery = trim((string) ($arguments['salesman_query'] ?? ''));
+        $salesman = null;
+
+        if ($salesmanQuery !== '') {
+            $salesman = Salesman::query()
+                ->where(function ($query) use ($salesmanQuery): void {
+                    $query
+                        ->where('employee_code', 'like', "%{$salesmanQuery}%")
+                        ->orWhere('first_name', 'like', "%{$salesmanQuery}%")
+                        ->orWhere('last_name', 'like', "%{$salesmanQuery}%");
+                })
+                ->orderByRaw(
+                    'CASE WHEN employee_code = ? THEN 0 ELSE 1 END',
+                    [$salesmanQuery],
+                )
+                ->firstOrFail();
+        }
+
+        $rows = $this->mileage->rows(
+            $user->tenant,
+            $from->toDateString(),
+            $to->toDateString(),
+            $salesman?->id,
+        );
+
+        $bySalesman = $rows
+            ->groupBy(fn (array $row) => $row['session']->salesman_id)
+            ->map(function ($group): array {
+                $first = $group->first();
+                $salesman = $first['session']->salesman;
+                $distance = round(
+                    $group->sum('effective_distance_km'),
+                    3,
+                );
+                $fuelLiters = round($group->sum('fuel_liters'), 3);
+                $fuelCost = [];
+                $maxVariance = null;
+
+                foreach ($group as $row) {
+                    foreach (
+                        $row['fuel_cost_by_currency'] as $currency => $amount
+                    ) {
+                        $fuelCost[$currency] = round(
+                            ($fuelCost[$currency] ?? 0) + (float) $amount,
+                            4,
+                        );
+                    }
+
+                    if ($row['distance_variance_km'] !== null) {
+                        $variance = abs((float) $row['distance_variance_km']);
+                        $maxVariance = $maxVariance === null
+                            ? $variance
+                            : max($maxVariance, $variance);
+                    }
+                }
+
+                return [
+                    'salesman' => $salesman?->full_name,
+                    'employee_code' => $salesman?->employee_code,
+                    'sessions' => $group->count(),
+                    'distance_km' => $distance,
+                    'fuel_liters' => $fuelLiters,
+                    'km_per_liter' => $fuelLiters > 0
+                        ? round($distance / $fuelLiters, 2)
+                        : null,
+                    'fuel_cost_by_currency' => $fuelCost,
+                    'max_absolute_gps_odometer_variance_km' => $maxVariance === null
+                        ? null
+                        : round($maxVariance, 3),
+                ];
+            })
+            ->sortByDesc('distance_km')
+            ->values();
+
+        $totalDistance = round($bySalesman->sum('distance_km'), 3);
+        $totalFuelLiters = round($bySalesman->sum('fuel_liters'), 3);
+        $totalFuelCost = [];
+
+        foreach ($bySalesman as $row) {
+            foreach ($row['fuel_cost_by_currency'] as $currency => $amount) {
+                $totalFuelCost[$currency] = round(
+                    ($totalFuelCost[$currency] ?? 0) + (float) $amount,
+                    4,
+                );
+            }
+        }
+
+        return [
+            'period' => [
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+            ],
+            'salesman_filter' => $salesman === null ? null : [
+                'salesman' => $salesman->full_name,
+                'employee_code' => $salesman->employee_code,
+            ],
+            'summary' => [
+                'sessions' => $rows->count(),
+                'distance_km' => $totalDistance,
+                'fuel_liters' => $totalFuelLiters,
+                'km_per_liter' => $totalFuelLiters > 0
+                    ? round($totalDistance / $totalFuelLiters, 2)
+                    : null,
+                'fuel_cost_by_currency' => $totalFuelCost,
+            ],
+            'salesmen' => $bySalesman->take(50)->all(),
         ];
     }
 
