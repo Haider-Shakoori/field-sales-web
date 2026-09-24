@@ -11,6 +11,8 @@ use App\Http\Controllers\Web\CollectionController;
 use App\Http\Controllers\Web\CustomerCommunicationController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\CustomerFollowUpController;
+use App\Http\Controllers\Web\CustomerPortalAccessController;
+use App\Http\Controllers\Web\CustomerPortalController;
 use App\Http\Controllers\Web\CustomerStatementController;
 use App\Http\Controllers\Web\DailyRoutePlannerController;
 use App\Http\Controllers\Web\DashboardController;
@@ -49,6 +51,10 @@ Route::get('/ready', ReadinessController::class)->middleware('throttle:60,1')->n
 
 Route::get('/login', [AuthController::class, 'create'])->name('login');
 Route::post('/login', [AuthController::class, 'store'])->middleware('throttle:web-login');
+Route::get('/portal/{token}', CustomerPortalController::class)
+    ->where('token', '[A-Za-z0-9]{32,128}')
+    ->middleware('throttle:30,1')
+    ->name('customer-portal.show');
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
@@ -157,6 +163,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/customers/{customer}/communications', [CustomerCommunicationController::class, 'store'])
             ->middleware('permission:customers:manage')
             ->name('customers.communications.store');
+        Route::post('/customers/{customer}/portal-accesses', [CustomerPortalAccessController::class, 'store'])
+            ->middleware('permission:customers:manage')
+            ->name('customers.portal-accesses.store');
+        Route::delete('/customers/{customer}/portal-accesses/{access}', [CustomerPortalAccessController::class, 'destroy'])
+            ->middleware('permission:customers:manage')
+            ->name('customers.portal-accesses.destroy');
 
         Route::resource('routes', SalesRouteController::class)
             ->middlewareFor(['index', 'show'], 'permission:customers:view')
