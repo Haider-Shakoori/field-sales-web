@@ -22,6 +22,9 @@ class ExpenseController extends Controller
             'category' => ['required', Rule::in(Expense::CATEGORIES)],
             'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
             'amount' => ['required', 'numeric', 'gt:0', 'max:999999999999.9999'],
+            'fuel_liters' => ['nullable', 'numeric', 'gt:0', 'max:999999999.999'],
+            'fuel_unit_price' => ['nullable', 'numeric', 'gt:0', 'max:999999999999.9999'],
+            'odometer_km' => ['nullable', 'numeric', 'min:0', 'max:999999999.99'],
             'merchant' => ['nullable', 'string', 'max:160'],
             'reference_number' => ['nullable', 'string', 'max:160'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
@@ -39,6 +42,22 @@ class ExpenseController extends Controller
             abort_unless((int) $existing->user_id === (int) $user->id, 409);
 
             return ApiResponse::success($this->payload($existing));
+        }
+
+        if (
+            $validated['category'] !== 'fuel'
+            && (
+                isset($validated['fuel_liters'])
+                || isset($validated['fuel_unit_price'])
+                || isset($validated['odometer_km'])
+            )
+        ) {
+            return ApiResponse::error(
+                'Fuel details are only valid for fuel expenses.',
+                422,
+                null,
+                'VALIDATION_ERROR',
+            );
         }
 
         $spentAt = CarbonImmutable::parse($validated['spent_at'])->utc();
@@ -70,6 +89,22 @@ class ExpenseController extends Controller
             'category' => $validated['category'],
             'currency' => strtoupper($validated['currency']),
             'amount' => round((float) $validated['amount'], 4),
+            'fuel_liters' => $validated['category'] === 'fuel'
+                ? ($validated['fuel_liters'] ?? null)
+                : null,
+            'fuel_unit_price' => $validated['category'] === 'fuel'
+                ? ($validated['fuel_unit_price']
+                    ?? (isset($validated['fuel_liters'])
+                        ? round(
+                            (float) $validated['amount']
+                            / (float) $validated['fuel_liters'],
+                            4,
+                        )
+                        : null))
+                : null,
+            'odometer_km' => $validated['category'] === 'fuel'
+                ? ($validated['odometer_km'] ?? null)
+                : null,
             'merchant' => $validated['merchant'] ?? null,
             'reference_number' => $validated['reference_number'] ?? null,
             'latitude' => $validated['latitude'],
@@ -137,6 +172,15 @@ class ExpenseController extends Controller
             'category' => $expense->category,
             'currency' => $expense->currency,
             'amount' => (float) $expense->amount,
+            'fuel_liters' => $expense->fuel_liters === null
+                ? null
+                : (float) $expense->fuel_liters,
+            'fuel_unit_price' => $expense->fuel_unit_price === null
+                ? null
+                : (float) $expense->fuel_unit_price,
+            'odometer_km' => $expense->odometer_km === null
+                ? null
+                : (float) $expense->odometer_km,
             'merchant' => $expense->merchant,
             'reference_number' => $expense->reference_number,
             'latitude' => (float) $expense->latitude,

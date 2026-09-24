@@ -13,6 +13,11 @@
             <dl class="mt-4 grid gap-4 sm:grid-cols-2">
                 <div><dt class="text-sm text-slate-400">Amount</dt><dd class="text-lg font-semibold">{{ number_format((float) $expense->amount, 2) }} {{ $expense->currency }}</dd></div>
                 <div><dt class="text-sm text-slate-400">Category</dt><dd>{{ str($expense->category)->replace('_', ' ')->title() }}</dd></div>
+                @if($expense->category === 'fuel')
+                    <div><dt class="text-sm text-slate-400">{{ __('Fuel liters') }}</dt><dd>{{ $expense->fuel_liters === null ? '—' : number_format((float) $expense->fuel_liters, 3).' L' }}</dd></div>
+                    <div><dt class="text-sm text-slate-400">{{ __('Fuel unit price') }}</dt><dd>{{ $expense->fuel_unit_price === null ? '—' : number_format((float) $expense->fuel_unit_price, 4).' '.$expense->currency }}</dd></div>
+                    <div><dt class="text-sm text-slate-400">{{ __('Odometer km') }}</dt><dd>{{ $expense->odometer_km === null ? '—' : number_format((float) $expense->odometer_km, 2).' km' }}</dd></div>
+                @endif
                 <div><dt class="text-sm text-slate-400">Spent at</dt><dd>{{ $expense->spent_at?->format('Y-m-d H:i:s') }}</dd></div>
                 <div><dt class="text-sm text-slate-400">Merchant</dt><dd>{{ $expense->merchant ?? '—' }}</dd></div>
                 <div><dt class="text-sm text-slate-400">Reference</dt><dd>{{ $expense->reference_number ?? '—' }}</dd></div>

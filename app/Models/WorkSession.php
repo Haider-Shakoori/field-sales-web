@@ -19,6 +19,10 @@ class WorkSession extends Model
         'is_late_start' => 'boolean',
         'is_early_finish' => 'boolean',
         'corrections' => 'array',
+        'odometer_start_km' => 'decimal:2',
+        'odometer_end_km' => 'decimal:2',
+        'gps_distance_km' => 'decimal:3',
+        'distance_calculated_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

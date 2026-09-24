@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\DailyRoutePlannerController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\MasterDataController;
+use App\Http\Controllers\Api\MileageController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\SalesReturnController;
@@ -43,6 +44,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/routes/{route:uuid}/customers', [MasterDataController::class, 'routeCustomers']);
             Route::get('/route-plan/today', [DailyRoutePlannerController::class, 'today']);
             Route::get('/appointments', [AppointmentController::class, 'index']);
+            Route::get('/mileage/today', [MileageController::class, 'today']);
+            Route::get('/mileage/history', [MileageController::class, 'history']);
             Route::post('/appointments', [AppointmentController::class, 'store']);
             Route::patch('/appointments/{appointment:uuid}/status', [AppointmentController::class, 'updateStatus']);
             Route::get('/products', [MasterDataController::class, 'products']);
