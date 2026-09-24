@@ -135,7 +135,7 @@ class MileageFuelTest extends TestCase
 
         $admin = $this->admin($actor['tenant']);
 
-        $this->actingAs($admin)
+        $this->actingAs($admin, 'web')
             ->get(route('admin.mileage.index', [
                 'date_from' => '2026-09-25',
                 'date_to' => '2026-09-25',
