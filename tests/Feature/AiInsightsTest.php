@@ -12,6 +12,7 @@ use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\Territory;
 use App\Models\User;
+use App\Services\AiConversationService;
 use App\Services\AiInsightsService;
 use App\Services\AiInsightToolService;
 use App\Tenancy\TenantContext;
@@ -94,7 +95,7 @@ class AiInsightsTest extends TestCase
 
         $conversation = app(TenantContext::class)->withTenant(
             $tenant,
-            fn () => app(\App\Services\AiConversationService::class)->create(
+            fn () => app(AiConversationService::class)->create(
                 $admin,
                 'Remember this conversation',
             ),
