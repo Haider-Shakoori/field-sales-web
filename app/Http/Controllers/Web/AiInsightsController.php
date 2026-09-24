@@ -45,9 +45,9 @@ class AiInsightsController extends Controller
             ]);
         }
 
-        return redirect()
-            ->route('admin.ai-insights.index')
-            ->withFragment('ask-fieldpulse-answer')
+        return redirect(
+            route('admin.ai-insights.index').'#ask-fieldpulse-answer'
+        )
             ->with('ai_question', $validated['question'])
             ->with('ai_answer', $result['answer'])
             ->with('ai_answer_source', $result['source']);
