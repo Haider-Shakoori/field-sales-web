@@ -372,5 +372,8 @@
     "Visits today: :visits. Active customers without a visit in 30 days: :customers.": "Visits today: :visits. Active customers without a visit in 30 days: :customers.",
     "Overdue follow-ups: :overdue. Open high-priority follow-ups: :high.": "Overdue follow-ups: :overdue. Open high-priority follow-ups: :high.",
     ":started of :active active salesmen have started work today.": ":started of :active active salesmen have started work today.",
-    "none recorded": "none recorded"
+    "none recorded": "none recorded",
+    "Thinking from current FieldPulse data…": "Thinking from current FieldPulse data…",
+    "Ask FieldPulse could not answer right now.": "Ask FieldPulse could not answer right now.",
+    "No answer was returned.": "No answer was returned."
 }
