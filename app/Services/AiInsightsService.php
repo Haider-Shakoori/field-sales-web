@@ -19,6 +19,7 @@ class AiInsightsService
 {
     public function __construct(
         private readonly AiInsightsAgentService $agent,
+        private readonly AiRecommendationService $recommendationEngine,
     ) {}
 
     public function snapshot(User $user): array
@@ -86,7 +87,10 @@ class AiInsightsService
             'verified_collections_7d' => $collectionsByCurrency,
         ];
 
-        $snapshot['recommendations'] = $this->recommendations($snapshot);
+        $snapshot['recommendations'] = $this->recommendationEngine->build(
+            $user,
+            8,
+        );
 
         return $snapshot;
     }
