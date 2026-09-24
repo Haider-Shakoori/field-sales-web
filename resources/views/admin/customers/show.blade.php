@@ -72,5 +72,68 @@
         </table>
     </div>
 </section>
+
+<section class="rounded-2xl border border-white/10 bg-slate-900 p-5 lg:col-span-2">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <h2 class="font-semibold">{{ __('Customer portal') }}</h2>
+            <p class="mt-1 text-sm text-slate-400">{{ __('Create revocable, expiring read-only links for invoices, verified payments and statements.') }}</p>
+        </div>
+    </div>
+
+    @if(session('portal_url'))
+        <div class="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+            <p class="text-sm font-semibold text-emerald-200">{{ __('New portal link — copy it now') }}</p>
+            <input readonly value="{{ session('portal_url') }}" class="mt-2 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+        </div>
+    @endif
+
+    @if(auth()->user()->hasPermission('customers:manage'))
+        <form method="POST" action="{{ route('admin.customers.portal-accesses.store', $customer) }}" class="mt-5 grid gap-3 sm:grid-cols-[1fr_180px_auto]">
+            @csrf
+            <input name="label" maxlength="120" placeholder="{{ __('Label, e.g. Accounts Department') }}" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5">
+            <select name="expires_days" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5">
+                <option value="7">{{ __('7 days') }}</option>
+                <option value="30" selected>{{ __('30 days') }}</option>
+                <option value="90">{{ __('90 days') }}</option>
+                <option value="365">{{ __('1 year') }}</option>
+            </select>
+            <button class="rounded-xl bg-indigo-500 px-5 py-2.5 font-semibold">{{ __('Create portal link') }}</button>
+        </form>
+    @endif
+
+    <div class="mt-5 overflow-x-auto">
+        <table class="min-w-full text-left text-sm">
+            <thead class="text-slate-400"><tr><th class="pb-2 pr-4">{{ __('Label') }}</th><th class="pb-2 pr-4">{{ __('Expires') }}</th><th class="pb-2 pr-4">{{ __('Last used') }}</th><th class="pb-2 pr-4">{{ __('Status') }}</th><th class="pb-2">{{ __('Action') }}</th></tr></thead>
+            <tbody class="divide-y divide-white/10">
+            @forelse($customer->portalAccesses->take(10) as $access)
+                <tr>
+                    <td class="py-3 pr-4">{{ $access->label ?: __('Customer access') }}</td>
+                    <td class="py-3 pr-4 whitespace-nowrap">{{ $access->expires_at?->copy()->setTimezone($timezone)->format('Y-m-d H:i') }}</td>
+                    <td class="py-3 pr-4 whitespace-nowrap">{{ $access->last_used_at?->copy()->setTimezone($timezone)->format('Y-m-d H:i') ?? '—' }}</td>
+                    <td class="py-3 pr-4">
+                        @if($access->revoked_at)
+                            <span class="text-rose-300">{{ __('Revoked') }}</span>
+                        @elseif($access->expires_at?->isPast())
+                            <span class="text-amber-300">{{ __('Expired') }}</span>
+                        @else
+                            <span class="text-emerald-300">{{ __('Active') }}</span>
+                        @endif
+                    </td>
+                    <td class="py-3">
+                        @if(auth()->user()->hasPermission('customers:manage') && !$access->revoked_at && $access->expires_at?->isFuture())
+                            <form method="POST" action="{{ route('admin.customers.portal-accesses.destroy', [$customer, $access]) }}">@csrf @method('DELETE')<button class="text-sm font-semibold text-rose-300 hover:underline">{{ __('Revoke') }}</button></form>
+                        @else
+                            <span class="text-slate-500">—</span>
+                        @endif
+                    </td>
+                </tr>
+            @empty
+                <tr><td colspan="5" class="py-5 text-slate-400">{{ __('No customer portal links have been created.') }}</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+</section>
 </div>
 </x-layouts.app>
