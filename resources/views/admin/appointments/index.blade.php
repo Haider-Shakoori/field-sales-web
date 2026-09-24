@@ -45,7 +45,7 @@
                     </select>
                     <select name="status" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm">
                         <option value="">{{ __('All statuses') }}</option>
-                        @foreach(AppModelsAppointment::STATUSES as $status)
+                        @foreach($appointmentStatuses as $status)
                             <option value="{{ $status }}" @selected($filters['status'] === $status)>{{ __(str($status)->title()->toString()) }}</option>
                         @endforeach
                     </select>
@@ -159,7 +159,7 @@
                     <div>
                         <label class="mb-1.5 block text-xs font-medium text-slate-400">{{ __('Type') }}</label>
                         <select name="type" class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5">
-                            @foreach(AppModelsAppointment::TYPES as $type)<option value="{{ $type }}" @selected(old('type', 'meeting') === $type)>{{ __(str($type)->title()->toString()) }}</option>@endforeach
+                            @foreach($appointmentTypes as $type)<option value="{{ $type }}" @selected(old('type', 'meeting') === $type)>{{ __(str($type)->title()->toString()) }}</option>@endforeach
                         </select>
                     </div>
                     <div>
