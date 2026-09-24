@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AiConversation;
 use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\CustomerFollowUp;
@@ -52,18 +53,32 @@ class AiInsightsTest extends TestCase
                 'question' => 'How many follow-ups are overdue?',
             ])
             ->assertOk()
-            ->assertJson([
-                'answer' => 'Overdue follow-ups: 1. Open high-priority follow-ups: 1.',
-                'source' => 'fieldpulse_grounded_rules',
+            ->assertJsonPath(
+                'message.content',
+                'Overdue follow-ups: 1. Open high-priority follow-ups: 1.',
+            )
+            ->assertJsonPath(
+                'message.source',
+                'fieldpulse_grounded_rules',
+            )
+            ->assertJsonStructure([
+                'conversation' => ['uuid', 'title'],
+                'message' => ['uuid', 'content', 'source'],
             ]);
 
         $this->actingAs($admin)
             ->post(route('admin.ai-insights.ask'), [
                 'question' => 'How many follow-ups are overdue?',
             ])
-            ->assertRedirect(route('admin.ai-insights.index').'#ask-fieldpulse-answer')
-            ->assertSessionHas('ai_answer')
-            ->assertSessionHas('ai_question', 'How many follow-ups are overdue?');
+            ->assertRedirect();
+
+        $this->assertSame(
+            2,
+            app(TenantContext::class)->withTenant(
+                $tenant,
+                fn () => AiConversation::query()->count(),
+            ),
+        );
     }
 
     public function test_groq_agent_can_call_permission_aware_fieldpulse_tools(): void
