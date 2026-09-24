@@ -76,7 +76,18 @@ class VisitVoiceNotesTest extends TestCase
             $salesman = Salesman::create(['user_id' => $user->id, 'employee_code' => 'VOICE-S1', 'first_name' => 'Voice', 'last_name' => 'Salesman', 'is_active' => true]);
             $device = Device::create(['user_id' => $user->id, 'salesman_id' => $salesman->id, 'device_uuid' => 'voice-device', 'installation_uuid' => 'voice-install', 'is_active' => true]);
             $customer = Customer::create(['branch_id' => $branch->id, 'code' => 'VOICE-C1', 'name' => 'Voice Customer', 'created_by' => $user->id, 'is_active' => true]);
-            $session = WorkSession::create(['user_id' => $user->id, 'salesman_id' => $salesman->id, 'device_id' => $device->id, 'date' => today(), 'start_time' => now()->subHour()]);
+            $session = WorkSession::create([
+                'uuid' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'salesman_id' => $salesman->id,
+                'device_id' => $device->id,
+                'date' => today(),
+                'start_time' => now()->subHour(),
+                'start_latitude' => 34.5553,
+                'start_longitude' => 69.2075,
+                'start_accuracy' => 8,
+                'status' => 'active',
+            ]);
             $visit = CustomerVisit::create([
                 'user_id' => $user->id, 'salesman_id' => $salesman->id, 'device_id' => $device->id, 'customer_id' => $customer->id,
                 'work_session_id' => $session->id, 'is_planned' => false, 'status' => 'active', 'checked_in_at' => now()->subMinutes(10),
