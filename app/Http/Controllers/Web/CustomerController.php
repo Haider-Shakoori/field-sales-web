@@ -12,6 +12,7 @@ use App\Models\Salesman;
 use App\Models\Territory;
 use App\Services\AuditLogger;
 use App\Services\CustomerBalanceService;
+use App\Services\CustomerReorderRecommendationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -65,10 +66,15 @@ class CustomerController extends Controller
         return redirect()->route('admin.customers.show', $customer)->with('status', __('Customer created.'));
     }
 
-    public function show(Request $request, Customer $customer, CustomerBalanceService $balances): View
+    public function show(
+        Request $request,
+        Customer $customer,
+        CustomerBalanceService $balances,
+        CustomerReorderRecommendationService $reorders,
+    ): View
     {
         Gate::authorize('view', $customer);
-        $user = $request->user()->loadMissing('tenant');
+        $user = $request->user()->loadMissing(['tenant', 'salesman']);
         $timezone = $user->tenant?->timezone ?: config('app.timezone', 'UTC');
 
         return view('admin.customers.show', [
@@ -78,6 +84,9 @@ class CustomerController extends Controller
             'salesmen' => Salesman::active()->orderBy('employee_code')->get(),
             'timezone' => $timezone,
             'defaultFollowUpAt' => now($timezone)->addDay()->format('Y-m-d\TH:i'),
+            'reorderRecommendations' => $request->user()->hasPermission('orders:view')
+                ? $reorders->recommend($customer->loadMissing('tenant'), $user->salesman)
+                : [],
         ]);
     }
 
