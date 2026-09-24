@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ReadinessController;
 use App\Http\Controllers\Web\AiInsightsController;
+use App\Http\Controllers\Web\AppointmentController;
 use App\Http\Controllers\Web\AlertController;
 use App\Http\Controllers\Web\AttendanceController;
 use App\Http\Controllers\Web\AuditLogController;
@@ -80,6 +81,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/daily-planner', [DailyRoutePlannerController::class, 'index'])
             ->middleware('permission:sales-team:view')
             ->name('daily-planner.index');
+        Route::get('/appointments', [AppointmentController::class, 'index'])
+            ->middleware('permission:appointments:view')
+            ->name('appointments.index');
+        Route::post('/appointments', [AppointmentController::class, 'store'])
+            ->middleware('permission:appointments:manage')
+            ->name('appointments.store');
+        Route::put('/appointments/{appointment}', [AppointmentController::class, 'update'])
+            ->middleware('permission:appointments:manage')
+            ->name('appointments.update');
+        Route::patch('/appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])
+            ->middleware('permission:appointments:manage')
+            ->name('appointments.status');
+
 
         Route::get('/notifications', [NotificationController::class, 'index'])
             ->name('notifications.index');
