@@ -41,7 +41,7 @@ class MileageFuelTest extends TestCase
 
         $startUuid = (string) Str::uuid();
 
-        $startResponse = $this->postJson('/api/v1/attendance/start', [
+        $this->postJson('/api/v1/attendance/start', [
             'offline_uuid' => $startUuid,
             'started_at' => '2026-09-25T07:00:00Z',
             'latitude' => 34.5500,
@@ -49,15 +49,7 @@ class MileageFuelTest extends TestCase
             'accuracy' => 5,
             'vehicle_reference' => 'CAR-01',
             'odometer_start_km' => 1000,
-        ], $this->headers());
-
-        if ($startResponse->status() !== 201) {
-            $this->fail(
-                'Attendance start failed: '.json_encode($startResponse->json()),
-            );
-        }
-
-        $startResponse
+        ], $this->headers())
             ->assertCreated()
             ->assertJsonPath('data.vehicle_reference', 'CAR-01')
             ->assertJsonPath('data.odometer_start_km', 1000);
@@ -155,7 +147,7 @@ class MileageFuelTest extends TestCase
     {
         $this->salesmanActor();
 
-        $response = $this->postJson('/api/v1/expenses', [
+        $this->postJson('/api/v1/expenses', [
             'offline_uuid' => (string) Str::uuid(),
             'spent_at' => '2026-09-25T07:20:00Z',
             'category' => 'meals',
@@ -165,15 +157,8 @@ class MileageFuelTest extends TestCase
             'latitude' => 34.5550,
             'longitude' => 69.2000,
             'accuracy' => 5,
-        ], $this->headers());
-
-        if ($response->status() !== 422) {
-            $this->fail(
-                'Expense validation failed: '.json_encode($response->json()),
-            );
-        }
-
-        $response->assertUnprocessable();
+        ], $this->headers())
+            ->assertUnprocessable();
     }
 
     private function salesmanActor(): array
@@ -241,7 +226,7 @@ class MileageFuelTest extends TestCase
 
         $this->token = app(TenantContext::class)->withTenant(
             $tenant,
-            fn () => $user->createToken('mileage-mobile')->plainTextToken,
+            fn () => $user->createToken('mobile-'.$device->uuid)->plainTextToken,
         );
 
         return compact('tenant', 'user', 'salesman', 'device');
