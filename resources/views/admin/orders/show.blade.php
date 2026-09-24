@@ -17,7 +17,7 @@
             <h2 class="font-semibold">{{ __('Order items') }}</h2>
             <div class="mt-4 overflow-x-auto">
                 <table class="min-w-full text-left text-sm">
-                    <thead class="text-slate-400"><tr><th class="pb-2 pr-4">{{ __('Product') }}</th><th class="pb-2 pr-4">Qty</th><th class="pb-2 pr-4">{{ __('Price') }}</th><th class="pb-2 pr-4">Discount</th><th class="pb-2 text-right">{{ __('Total') }}</th></tr></thead>
+                    <thead class="text-slate-400"><tr><th class="pb-2 pr-4">{{ __('Product') }}</th><th class="pb-2 pr-4">{{ __('Qty') }}</th><th class="pb-2 pr-4">{{ __('Price') }}</th><th class="pb-2 pr-4">{{ __('Discount') }}</th><th class="pb-2 text-right">{{ __('Total') }}</th></tr></thead>
                     <tbody class="divide-y divide-white/10">
                     @foreach($order->items as $item)
                         <tr>
@@ -46,7 +46,7 @@
             <dl class="mt-4 space-y-4">
                 <div><dt class="text-sm text-slate-400">{{ __('Salesman') }}</dt><dd>{{ $order->salesman?->full_name ?? '—' }}</dd></div>
                 <div><dt class="text-sm text-slate-400">{{ __('Ordered') }}</dt><dd>{{ $order->ordered_at?->format('Y-m-d H:i:s') }}</dd></div>
-                <div><dt class="text-sm text-slate-400">{{ __('Payment') }}</dt><dd>{{ str($order->payment_type)->title() }}</dd></div>
+                <div><dt class="text-sm text-slate-400">{{ __('Payment') }}</dt><dd>{{ __(str($order->payment_type)->title()->toString()) }}</dd></div>
                 <div><dt class="text-sm text-slate-400">{{ __('Visit') }}</dt><dd>{{ $order->visit?->uuid ?? __('Not linked') }}</dd></div>
                 <div><dt class="text-sm text-slate-400">{{ __('Price list') }}</dt><dd>{{ $order->priceList?->name ?? __('Base pricing') }}</dd></div>
                 <div><dt class="text-sm text-slate-400">{{ __('Notes') }}</dt><dd>{{ $order->notes ?? '—' }}</dd></div>
