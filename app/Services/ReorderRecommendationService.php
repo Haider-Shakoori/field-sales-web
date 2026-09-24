@@ -13,7 +13,7 @@ class ReorderRecommendationService
     {
         $from = now()->subDays(max(60, min(365, $lookbackDays)));
         $items = OrderItem::query()
-            ->with(['order.customer', 'product'])
+            ->with(['order.customer', 'order.salesman', 'product'])
             ->whereHas('order', function ($query) use ($from, $salesman): void {
                 $query->where('status', 'approved')->where('ordered_at', '>=', $from);
                 if ($salesman) {
