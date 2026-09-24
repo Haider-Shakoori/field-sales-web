@@ -90,11 +90,6 @@ class Customer extends Model
         return $this->hasMany(Lead::class, 'converted_customer_id');
     }
 
-    public function sourceLeads(): HasMany
-    {
-        return $this->hasMany(Lead::class, 'converted_customer_id');
-    }
-
     public function callActivities(): HasMany
     {
         return $this->hasMany(CustomerCallActivity::class)->latest('called_at');
