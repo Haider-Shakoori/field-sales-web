@@ -133,8 +133,8 @@ class AiInsightToolService
     private function report(User $user, array $arguments): array
     {
         $type = (string) ($arguments['type'] ?? '');
-        $from = $this->date((string) ($arguments['date_from'] ?? ''));
-        $to = $this->date((string) ($arguments['date_to'] ?? ''));
+        $from = $this->date($user, (string) ($arguments['date_from'] ?? ''));
+        $to = $this->date($user, (string) ($arguments['date_to'] ?? ''));
 
         if ($from->gt($to) || $from->diffInDays($to) > 366) {
             throw new InvalidArgumentException('Report date range is invalid or too large.');
@@ -150,7 +150,7 @@ class AiInsightToolService
     {
         abort_unless($user->hasPermission('sales-team:view'), 403);
 
-        $date = $this->date((string) ($arguments['date'] ?? ''))->toDateString();
+        $date = $this->date($user, (string) ($arguments['date'] ?? ''))->toDateString();
         $salesmen = $this->reports->options($user, $date)['salesmen'];
         $sessions = WorkSession::query()
             ->with('salesman')
@@ -322,13 +322,13 @@ class AiInsightToolService
         );
     }
 
-    private function date(string $value): CarbonImmutable
+    private function date(User $user, string $value): CarbonImmutable
     {
         try {
             return CarbonImmutable::createFromFormat(
                 'Y-m-d',
                 $value,
-                $this->clock->timezone(auth()->user()?->tenant),
+                $this->clock->timezone($user->tenant),
             )->startOfDay();
         } catch (\Throwable) {
             throw new InvalidArgumentException('Dates must use YYYY-MM-DD.');
