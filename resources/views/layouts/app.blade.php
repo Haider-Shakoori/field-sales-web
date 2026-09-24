@@ -1,9 +1,22 @@
 <!doctype html>
-<html lang="{{ app()->getLocale() }}" dir="{{ in_array(app()->getLocale(), ['fa', 'ps'], true) ? 'rtl' : 'ltr' }}">
+<html lang="{{ app()->getLocale() }}" dir="{{ in_array(app()->getLocale(), ['fa', 'ps'], true) ? 'rtl' : 'ltr' }}" data-theme="dark" data-sidebar-collapsed="false">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="dark">
+    <script>
+        (() => {
+            try {
+                const storedTheme = localStorage.getItem('fieldpulse-theme');
+                const preferredTheme = window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+                document.documentElement.dataset.theme = ['light', 'dark'].includes(storedTheme) ? storedTheme : preferredTheme;
+                document.documentElement.dataset.sidebarCollapsed = localStorage.getItem('fieldpulse-sidebar-collapsed') === 'true' ? 'true' : 'false';
+            } catch (_) {
+                document.documentElement.dataset.theme = 'dark';
+                document.documentElement.dataset.sidebarCollapsed = 'false';
+            }
+        })();
+    </script>
     <title>{{ $title ?? 'Field Sales' }}</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'>F</text></svg>">
     @php
@@ -41,6 +54,110 @@
             html[dir="rtl"] .fp-shell-auth {
                 padding-left: 0;
                 padding-right: 18rem;
+            }
+        }
+
+        html[data-theme="light"] {
+            color-scheme: light;
+        }
+
+        html[data-theme="light"] body {
+            background-color: #f8fafc !important;
+            background-image: radial-gradient(60rem 60rem at 120% -10%, rgba(99, 102, 241, .06), transparent 60%), radial-gradient(50rem 50rem at -10% 0, rgba(14, 165, 233, .05), transparent 55%) !important;
+            color: #0f172a !important;
+        }
+
+        html[data-theme="light"] .bg-slate-950,
+        html[data-theme="light"] [class~="bg-slate-950/80"],
+        html[data-theme="light"] [class~="bg-slate-950/70"],
+        html[data-theme="light"] [class~="bg-slate-950/60"] {
+            background-color: #f8fafc !important;
+        }
+
+        html[data-theme="light"] .bg-slate-900,
+        html[data-theme="light"] [class~="bg-slate-900/80"],
+        html[data-theme="light"] [class~="bg-slate-900/70"] {
+            background-color: #ffffff !important;
+        }
+
+        html[data-theme="light"] .bg-slate-800,
+        html[data-theme="light"] [class~="bg-white/5"],
+        html[data-theme="light"] [class~="bg-white/10"] {
+            background-color: #f1f5f9 !important;
+        }
+
+        html[data-theme="light"] [class~="border-white/10"],
+        html[data-theme="light"] [class~="border-white/5"] {
+            border-color: #dbe4ee !important;
+        }
+
+        html[data-theme="light"] .text-slate-100,
+        html[data-theme="light"] .text-white {
+            color: #0f172a !important;
+        }
+
+        html[data-theme="light"] .text-slate-200,
+        html[data-theme="light"] .text-slate-300 {
+            color: #334155 !important;
+        }
+
+        html[data-theme="light"] .text-slate-400 {
+            color: #64748b !important;
+        }
+
+        html[data-theme="light"] .text-slate-500 {
+            color: #64748b !important;
+        }
+
+        @media (min-width: 1024px) {
+            html[data-sidebar-collapsed="true"] .fp-sidebar {
+                width: 5.5rem;
+            }
+
+            html[dir="ltr"][data-sidebar-collapsed="true"] .fp-shell-auth {
+                padding-left: 5.5rem;
+            }
+
+            html[dir="rtl"][data-sidebar-collapsed="true"] .fp-shell-auth {
+                padding-right: 5.5rem;
+            }
+
+            html[data-sidebar-collapsed="true"] .fp-sidebar-brand {
+                justify-content: center;
+                padding-left: .75rem;
+                padding-right: .75rem;
+            }
+
+            html[data-sidebar-collapsed="true"] .fp-sidebar-brand > div,
+            html[data-sidebar-collapsed="true"] .fp-sidebar-group-label,
+            html[data-sidebar-collapsed="true"] .fp-nav-label,
+            html[data-sidebar-collapsed="true"] .fp-sidebar-user-copy,
+            html[data-sidebar-collapsed="true"] .fp-language-form,
+            html[data-sidebar-collapsed="true"] .fp-sidebar-action-label {
+                display: none;
+            }
+
+            html[data-sidebar-collapsed="true"] .fp-nav-link {
+                justify-content: center;
+                gap: 0;
+                padding-left: .75rem;
+                padding-right: .75rem;
+            }
+
+            html[data-sidebar-collapsed="true"] .fp-sidebar-footer > .mb-2 {
+                justify-content: center;
+                padding-left: .5rem;
+                padding-right: .5rem;
+            }
+
+            html[data-sidebar-collapsed="true"] .fp-sidebar-controls {
+                grid-template-columns: 1fr;
+            }
+
+            html[data-sidebar-collapsed="true"] .fp-sidebar-control {
+                justify-content: center;
+                padding-left: .5rem;
+                padding-right: .5rem;
             }
         }
     </style>
@@ -198,13 +315,29 @@
             <div class="fp-sidebar-footer border-t border-white/10 p-3">
                 <div class="mb-2 flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2.5">
                     <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-semibold text-indigo-200">{{ $initials ?: '?' }}</span>
-                    <div class="min-w-0 flex-1">
+                    <div class="fp-sidebar-user-copy min-w-0 flex-1">
                         <p class="truncate text-sm font-medium">{{ $currentUser->name }}</p>
                         <p class="truncate text-xs text-slate-400">{{ str($currentUser->role)->replace('_', ' ')->title() }}</p>
                     </div>
                     @if($currentUser->isPlatformAdmin())
                         <span class="shrink-0 rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-200">Platform</span>
                     @endif
+                </div>
+                <div class="fp-sidebar-controls mb-2 grid grid-cols-2 gap-2">
+                    <button type="button" data-theme-toggle class="fp-sidebar-control inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/20" aria-label="{{ __('Switch theme') }}" title="{{ __('Switch theme') }}">
+                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+                            <circle cx="12" cy="12" r="4"/>
+                            <path stroke-linecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                        </svg>
+                        <span class="fp-sidebar-action-label" data-theme-label>{{ __('Theme') }}</span>
+                    </button>
+                    <button type="button" data-sidebar-collapse class="fp-sidebar-control hidden items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/20 lg:inline-flex" aria-label="{{ __('Toggle compact sidebar') }}" title="{{ __('Toggle compact sidebar') }}">
+                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+                            <rect x="3" y="4" width="18" height="16" rx="2"/>
+                            <path stroke-linecap="round" d="M9 4v16"/>
+                        </svg>
+                        <span class="fp-sidebar-action-label">{{ __('Compact') }}</span>
+                    </button>
                 </div>
                 <form method="POST" action="{{ route('locale.update') }}" class="fp-language-form mb-2">
                     @csrf
@@ -223,7 +356,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="m16 17 5-5-5-5"/>
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 12H9"/>
                         </svg>
-                        {{ __('Sign out') }}
+                        <span class="fp-sidebar-action-label">{{ __('Sign out') }}</span>
                     </button>
                 </form>
             </div>
@@ -274,5 +407,40 @@
         {{ $slot }}
     </main>
 </div>
+
+<script>
+(() => {
+    const root = document.documentElement;
+    const themeToggle = document.querySelector('[data-theme-toggle]');
+    const themeLabel = document.querySelector('[data-theme-label]');
+    const sidebarToggle = document.querySelector('[data-sidebar-collapse]');
+
+    const applyThemeLabel = () => {
+        if (!themeLabel) return;
+        themeLabel.textContent = root.dataset.theme === 'light'
+            ? @json(__('Dark'))
+            : @json(__('Light'));
+    };
+
+    applyThemeLabel();
+
+    themeToggle?.addEventListener('click', () => {
+        const next = root.dataset.theme === 'light' ? 'dark' : 'light';
+        root.dataset.theme = next;
+        try {
+            localStorage.setItem('fieldpulse-theme', next);
+        } catch (_) {}
+        applyThemeLabel();
+    });
+
+    sidebarToggle?.addEventListener('click', () => {
+        const next = root.dataset.sidebarCollapsed !== 'true';
+        root.dataset.sidebarCollapsed = next ? 'true' : 'false';
+        try {
+            localStorage.setItem('fieldpulse-sidebar-collapsed', next ? 'true' : 'false');
+        } catch (_) {}
+    });
+})();
+</script>
 </body>
 </html>
