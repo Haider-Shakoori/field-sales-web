@@ -372,5 +372,8 @@
     "Visits today: :visits. Active customers without a visit in 30 days: :customers.": "د نن لیدنې: :visits. فعال پېرودونکي چې په ۳۰ ورځو کې نه دي لیدل شوي: :customers.",
     "Overdue follow-ups: :overdue. Open high-priority follow-ups: :high.": "له موعد اوښتي تعقیبونه: :overdue. د لوړ لومړیتوب پرانیستي تعقیبونه: :high.",
     ":started of :active active salesmen have started work today.": ":started له :active فعالو پلورونکو نن کار پیل کړی.",
-    "none recorded": "هیڅ ثبت نشته"
+    "none recorded": "هیڅ ثبت نشته",
+    "Thinking from current FieldPulse data…": "د FieldPulse اوسني معلومات ارزول کېږي…",
+    "Ask FieldPulse could not answer right now.": "Ask FieldPulse اوس ځواب ورنه کړای شو.",
+    "No answer was returned.": "هیڅ ځواب ونه راستول شو."
 }
