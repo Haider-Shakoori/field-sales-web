@@ -100,6 +100,11 @@ class Customer extends Model
         return $this->hasMany(CustomerCommunicationDelivery::class)->latest();
     }
 
+    public function portalAccesses(): HasMany
+    {
+        return $this->hasMany(CustomerPortalAccess::class)->latest();
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
