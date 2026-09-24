@@ -174,6 +174,111 @@ class AiInsightsTest extends TestCase
             === 'https://api.groq.com/openai/v1/models');
     }
 
+    public function test_tenant_can_disable_external_ai_without_disabling_local_answers(): void
+    {
+        [$tenant, $admin] = $this->fixture();
+
+        config()->set('ai.enabled', true);
+        config()->set('ai.provider', 'groq');
+        config()->set('ai.api_key', 'should-not-be-used');
+        config()->set('ai.model', 'openai/gpt-oss-120b');
+
+        $tenant->update([
+            'settings' => [
+                'ai' => [
+                    'enabled' => false,
+                ],
+            ],
+        ]);
+
+        Http::fake();
+
+        $result = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => app(AiInsightsService::class)->answer(
+                $admin,
+                'How many visits happened today?',
+            ),
+        );
+
+        $this->assertSame('fieldpulse_grounded_rules', $result['source']);
+        $this->assertSame('local', $result['provider_status']);
+        Http::assertNothingSent();
+    }
+
+    public function test_tenant_can_block_customer_data_tools_below_global_ai_policy(): void
+    {
+        [$tenant, $admin] = $this->fixture();
+
+        config()->set('ai.enabled', true);
+        config()->set('ai.allow_customer_data', true);
+
+        $tenant->update([
+            'settings' => [
+                'ai' => [
+                    'enabled' => true,
+                    'allow_customer_data' => false,
+                ],
+            ],
+        ]);
+
+        $definitions = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => app(AiInsightToolService::class)->definitions($admin),
+        );
+        $names = collect($definitions)->pluck('function.name')->all();
+
+        $this->assertNotContains('search_customers', $names);
+        $this->assertNotContains('get_receivables', $names);
+        $this->assertContains('get_report', $names);
+    }
+
+    public function test_tenant_history_retention_prunes_only_expired_conversations(): void
+    {
+        [$tenant, $admin] = $this->fixture();
+
+        $tenant->update([
+            'settings' => [
+                'ai' => [
+                    'history_retention_days' => 30,
+                ],
+            ],
+        ]);
+
+        [$expired, $current, $deleted] = app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($admin): array {
+                $service = app(AiConversationService::class);
+                $expired = $service->create($admin, 'Old AI conversation');
+                $current = $service->create($admin, 'Current AI conversation');
+
+                $expired->forceFill([
+                    'last_message_at' => now()->subDays(31),
+                ])->save();
+
+                return [
+                    $expired,
+                    $current,
+                    $service->pruneExpiredFor($admin),
+                ];
+            },
+        );
+
+        $this->assertSame(1, $deleted);
+
+        app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($expired, $current): void {
+                $this->assertFalse(
+                    AiConversation::whereKey($expired->id)->exists(),
+                );
+                $this->assertTrue(
+                    AiConversation::whereKey($current->id)->exists(),
+                );
+            },
+        );
+    }
+
     public function test_groq_agent_can_call_permission_aware_fieldpulse_tools(): void
     {
         [$tenant, $admin] = $this->fixture();
