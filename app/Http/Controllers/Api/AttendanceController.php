@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\WorkSessionResource;
 use App\Models\WorkSession;
+use App\Services\MileageService;
 use App\Services\TenantClock;
 use App\Services\TrackingSettingsService;
 use App\Support\ApiResponse;
@@ -22,6 +23,8 @@ class AttendanceController extends Controller
             'accuracy' => 'required|numeric|between:0,200',
             'offline_uuid' => 'required|uuid',
             'started_at' => 'nullable|date',
+            'vehicle_reference' => 'nullable|string|max:120',
+            'odometer_start_km' => 'nullable|numeric|min:0|max:999999999.99',
         ]);
 
         $user = $request->user()->load(['tenant', 'salesman']);
@@ -105,6 +108,8 @@ class AttendanceController extends Controller
                 'start_accuracy' => $validated['accuracy'],
                 'status' => 'active',
                 'is_late_start' => $localStartedAt->format('H:i') > $settings['workday_start_time'],
+                'vehicle_reference' => $validated['vehicle_reference'] ?? null,
+                'odometer_start_km' => $validated['odometer_start_km'] ?? null,
             ]);
         });
 
@@ -114,13 +119,15 @@ class AttendanceController extends Controller
         );
     }
 
-    public function end(Request $request)
+    public function end(Request $request, MileageService $mileage)
     {
         $validated = $request->validate([
             'latitude' => 'required|numeric|between:-90,90|not_in:0',
             'longitude' => 'required|numeric|between:-180,180|not_in:0',
             'accuracy' => 'required|numeric|between:0,200',
             'ended_at' => 'nullable|date',
+            'vehicle_reference' => 'nullable|string|max:120',
+            'odometer_end_km' => 'nullable|numeric|min:0|max:999999999.99',
         ]);
 
         $user = $request->user()->load('tenant');
@@ -135,6 +142,10 @@ class AttendanceController extends Controller
         }
 
         if ($session->status === 'completed') {
+            if ($session->gps_distance_km === null) {
+                $session = $mileage->refreshCompletedSession($session);
+            }
+
             return ApiResponse::success(
                 (new WorkSessionResource($session->load(['user', 'device'])))->resolve(),
             );
@@ -162,6 +173,23 @@ class AttendanceController extends Controller
             );
         }
 
+        if (
+            isset($validated['odometer_end_km'])
+            && $session->odometer_start_km !== null
+            && (float) $validated['odometer_end_km'] < (float) $session->odometer_start_km
+        ) {
+            return ApiResponse::error(
+                'End odometer cannot be below the start odometer.',
+                422,
+                [
+                    'odometer_end_km' => [
+                        'End odometer must be greater than or equal to the start odometer.',
+                    ],
+                ],
+                'VALIDATION_ERROR',
+            );
+        }
+
         $settings = app(TrackingSettingsService::class)->get($user->tenant);
         $localEndedAt = $endedAt->setTimezone($settings['timezone']);
 
@@ -173,10 +201,15 @@ class AttendanceController extends Controller
             'status' => 'completed',
             'duration_minutes' => $session->start_time->diffInMinutes($endedAt),
             'is_early_finish' => $localEndedAt->format('H:i') < $settings['workday_end_time'],
+            'vehicle_reference' => $validated['vehicle_reference']
+                ?? $session->vehicle_reference,
+            'odometer_end_km' => $validated['odometer_end_km'] ?? null,
         ]);
 
+        $session = $mileage->refreshCompletedSession($session->fresh());
+
         return ApiResponse::success(
-            (new WorkSessionResource($session->fresh()->load(['user', 'device'])))->resolve(),
+            (new WorkSessionResource($session->load(['user', 'device'])))->resolve(),
         );
     }
 
