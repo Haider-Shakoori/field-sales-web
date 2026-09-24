@@ -90,4 +90,6 @@
             </div>
         </section>
     </div>
+
+<section class="mt-5 rounded-2xl border border-white/10 bg-slate-900"><div class="border-b border-white/10 px-5 py-4"><h2 class="font-semibold">{{ __('Voice notes') }}</h2></div><div class="divide-y divide-white/10">@forelse($visit->voiceNotes as $note)<div class="px-5 py-4"><div class="flex flex-wrap items-center justify-between gap-3"><div><p class="text-sm font-medium">{{ $note->user?->name ?? __('Salesman') }}</p><p class="mt-1 text-xs text-slate-500">{{ $note->captured_at?->format('Y-m-d H:i') }}@if($note->duration_seconds) · {{ $note->duration_seconds }}s @endif</p></div><audio controls preload="none" src="{{ route('admin.visit-voice-notes.show',$note) }}" class="max-w-full"></audio></div></div>@empty<div class="px-5 py-8 text-center text-sm text-slate-500">{{ __('No voice notes for this visit.') }}</div>@endforelse</div></section>
 </x-layouts.app>
