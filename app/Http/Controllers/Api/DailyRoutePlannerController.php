@@ -24,6 +24,8 @@ class DailyRoutePlannerController extends Controller
             'latitude' => ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
             'accuracy' => ['nullable', 'numeric', 'between:0,200'],
+            'nearby_radius_km' => ['nullable', 'numeric', 'between:0.5,25'],
+            'include_customer_ids' => ['nullable', 'string', 'max:400'],
         ]);
 
         $date = CarbonImmutable::now(
@@ -48,8 +50,34 @@ class DailyRoutePlannerController extends Controller
             }
         }
 
+        $includedCustomerUuids = collect(
+            explode(',', (string) ($validated['include_customer_ids'] ?? ''))
+        )
+            ->map(fn (string $value) => trim($value))
+            ->filter()
+            ->unique()
+            ->take(10)
+            ->values()
+            ->all();
+
+        foreach ($includedCustomerUuids as $uuid) {
+            abort_unless(
+                preg_match(
+                    '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+                    $uuid,
+                ) === 1,
+                422,
+            );
+        }
+
         return ApiResponse::success(
-            $planner->planFor($user->salesman, $date, $startLocation)
+            $planner->planFor(
+                $user->salesman,
+                $date,
+                $startLocation,
+                $includedCustomerUuids,
+                (float) ($validated['nearby_radius_km'] ?? 5.0),
+            )
         );
     }
 }
