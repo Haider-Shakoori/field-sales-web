@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\BranchController;
 use App\Http\Controllers\Web\CallActivityController;
 use App\Http\Controllers\Web\CollectionController;
+use App\Http\Controllers\Web\CustomerCommunicationController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\CustomerFollowUpController;
 use App\Http\Controllers\Web\CustomerStatementController;
@@ -153,6 +154,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/customers/{customer}/statement', CustomerStatementController::class)
             ->middleware('permission:customers:view')
             ->name('customers.statement');
+        Route::post('/customers/{customer}/communications', [CustomerCommunicationController::class, 'store'])
+            ->middleware('permission:customers:manage')
+            ->name('customers.communications.store');
 
         Route::resource('routes', SalesRouteController::class)
             ->middlewareFor(['index', 'show'], 'permission:customers:view')
