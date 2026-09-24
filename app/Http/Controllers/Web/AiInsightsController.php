@@ -16,13 +16,32 @@ class AiInsightsController extends Controller
     public function index(
         Request $request,
         AiInsightsService $insights,
+        AiConversationService $conversations,
     ): View {
+        $user = $request->user();
+        $selected = null;
+        $conversationUuid = trim((string) $request->string('chat'));
+
+        if ($conversationUuid !== '') {
+            $selected = $conversations->findOwned($user, $conversationUuid)
+                ->load('messages');
+        }
+
         return view('admin.ai-insights.index', [
-            'snapshot' => $insights->snapshot($request->user()),
-            'question' => session('ai_question'),
-            'answer' => session('ai_answer'),
-            'answerSource' => session('ai_answer_source'),
+            'snapshot' => $insights->snapshot($user),
             'providerEnabled' => $this->providerEnabled(),
+            'provider' => (string) config('ai.provider', 'generic'),
+            'model' => (string) config('ai.model', ''),
+            'customerDataEnabled' => (bool) config('ai.allow_customer_data', false),
+            'historyRetentionDays' => max(
+                0,
+                (int) config('ai.history_retention_days', 90),
+            ),
+            'conversations' => $conversations->recent($user),
+            'archivedConversations' => $conversations->archived($user),
+            'selectedConversation' => $selected
+                ? $conversations->serializeConversation($selected)
+                : null,
         ]);
     }
 
