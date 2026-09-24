@@ -47,30 +47,44 @@ class AiInsightsController extends Controller
 
     public function ask(
         Request $request,
-        AiInsightsService $insights,
-    ): View|JsonResponse|RedirectResponse {
+        AiConversationService $conversations,
+    ): JsonResponse|RedirectResponse {
         $validated = $request->validate([
-            'question' => ['required', 'string', 'max:500'],
+            'question' => ['required', 'string', 'max:2000'],
+            'conversation_id' => ['nullable', 'uuid'],
         ]);
 
-        $result = $insights->answer(
+        $result = $conversations->ask(
             $request->user(),
             $validated['question'],
+            $validated['conversation_id'] ?? null,
         );
+        $conversation = $result['conversation'];
 
         if ($request->expectsJson()) {
             return response()->json([
-                'answer' => $result['answer'],
-                'source' => $result['source'],
+                'conversation' => [
+                    'uuid' => $conversation->uuid,
+                    'title' => $conversation->title,
+                ],
+                'message' => [
+                    'uuid' => $result['message']->uuid,
+                    'content' => $result['answer'],
+                    'source' => $result['source'],
+                    'provider' => $result['provider'],
+                    'model' => $result['model'],
+                    'fallback_reason' => $result['fallback_reason'],
+                    'provider_status' => $result['provider_status'],
+                    'tool_activity' => $result['tool_activity'],
+                    'latency_ms' => $result['latency_ms'],
+                ],
             ]);
         }
 
-        return redirect(
-            route('admin.ai-insights.index').'#ask-fieldpulse-answer'
-        )
-            ->with('ai_question', $validated['question'])
-            ->with('ai_answer', $result['answer'])
-            ->with('ai_answer_source', $result['source']);
+        return redirect()->route(
+            'admin.ai-insights.index',
+            ['chat' => $conversation->uuid],
+        );
     }
 
     private function providerEnabled(): bool
