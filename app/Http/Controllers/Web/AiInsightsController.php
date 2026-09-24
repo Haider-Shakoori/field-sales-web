@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Services\AiConversationService;
 use App\Services\AiInsightsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
