@@ -20,6 +20,7 @@ class DailyRoutePlannerService
     public function planFor(
         Salesman $salesman,
         CarbonImmutable $localDate,
+        ?array $startLocation = null,
     ): array {
         $salesman->loadMissing('user.tenant');
 
@@ -39,6 +40,7 @@ class DailyRoutePlannerService
                 'source' => $source,
                 'route' => $route,
                 'summary' => $this->summary([]),
+                'start_location' => $this->normalizeStartLocation($startLocation),
                 'stops' => [],
                 'approximate_air_distance_km' => 0.0,
                 'distance_method' => self::DISTANCE_METHOD,
@@ -177,13 +179,18 @@ class DailyRoutePlannerService
             ];
         });
 
-        [$orderedStops, $totalDistance] = $this->sequenceStops($stops);
+        $startLocation = $this->normalizeStartLocation($startLocation);
+        [$orderedStops, $totalDistance] = $this->sequenceStops(
+            $stops,
+            $startLocation,
+        );
 
         return [
             ...$this->basePlan($salesman, $localDate, $assignment),
             'source' => $source,
             'route' => $route,
             'summary' => $this->summary($orderedStops),
+            'start_location' => $startLocation,
             'stops' => $orderedStops,
             'approximate_air_distance_km' => round($totalDistance, 2),
             'distance_method' => self::DISTANCE_METHOD,
@@ -534,10 +541,12 @@ class DailyRoutePlannerService
         };
     }
 
-    private function sequenceStops(SupportCollection $stops): array
-    {
+    private function sequenceStops(
+        SupportCollection $stops,
+        ?array $startLocation = null,
+    ): array {
         $ordered = collect();
-        $previous = null;
+        $previous = $startLocation;
         $totalDistance = 0.0;
 
         foreach (['urgent', 'high', 'elevated', 'normal'] as $priority) {
@@ -623,6 +632,44 @@ class DailyRoutePlannerService
                 ];
             })
             ->first();
+    }
+
+    private function normalizeStartLocation(?array $startLocation): ?array
+    {
+        if (! $startLocation) {
+            return null;
+        }
+
+        $latitude = $startLocation['latitude'] ?? null;
+        $longitude = $startLocation['longitude'] ?? null;
+
+        if (
+            ! is_numeric($latitude)
+            || ! is_numeric($longitude)
+            || (float) $latitude < -90
+            || (float) $latitude > 90
+            || (float) $longitude < -180
+            || (float) $longitude > 180
+            || ((float) $latitude === 0.0 && (float) $longitude === 0.0)
+        ) {
+            return null;
+        }
+
+        $accuracy = $startLocation['accuracy'] ?? null;
+
+        if (
+            $accuracy !== null
+            && (! is_numeric($accuracy) || (float) $accuracy < 0 || (float) $accuracy > 200)
+        ) {
+            return null;
+        }
+
+        return [
+            'latitude' => (float) $latitude,
+            'longitude' => (float) $longitude,
+            'accuracy' => $accuracy === null ? null : (float) $accuracy,
+            'source' => (string) ($startLocation['source'] ?? 'provided'),
+        ];
     }
 
     private function distanceBetweenStops(

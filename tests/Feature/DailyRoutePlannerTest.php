@@ -212,6 +212,99 @@ class DailyRoutePlannerTest extends TestCase
         $this->assertGreaterThan(0, $plan['approximate_air_distance_km']);
     }
 
+    public function test_planner_uses_salesman_start_position_for_first_stop(): void
+    {
+        [$tenant, $admin, $salesman, $branch, $territory] = $this->plannerFoundation(
+            'current-position',
+        );
+
+        [$route, $routeFirst, $nearest] = app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($admin, $salesman, $branch, $territory): array {
+                $route = SalesRoute::create([
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'code' => 'POSITION-ROUTE',
+                    'name' => 'Position Route',
+                    'weekdays' => ['wed'],
+                    'is_active' => true,
+                ]);
+
+                $routeFirst = Customer::create([
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'code' => 'POSITION-001',
+                    'name' => 'Route First',
+                    'latitude' => 34.5000,
+                    'longitude' => 69.2000,
+                    'credit_currency' => 'AFN',
+                    'credit_terms_days' => 30,
+                    'created_by' => $admin->id,
+                    'is_active' => true,
+                ]);
+
+                $nearest = Customer::create([
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'code' => 'POSITION-002',
+                    'name' => 'Nearest To Salesman',
+                    'latitude' => 34.7000,
+                    'longitude' => 69.4000,
+                    'credit_currency' => 'AFN',
+                    'credit_terms_days' => 30,
+                    'created_by' => $admin->id,
+                    'is_active' => true,
+                ]);
+
+                RouteCustomer::create([
+                    'route_id' => $route->id,
+                    'customer_id' => $routeFirst->id,
+                    'sequence_number' => 1,
+                    'planned_visit_minutes' => 10,
+                ]);
+
+                RouteCustomer::create([
+                    'route_id' => $route->id,
+                    'customer_id' => $nearest->id,
+                    'sequence_number' => 2,
+                    'planned_visit_minutes' => 10,
+                ]);
+
+                SalesmanAssignment::create([
+                    'salesman_id' => $salesman->id,
+                    'branch_id' => $branch->id,
+                    'territory_id' => $territory->id,
+                    'route_id' => $route->id,
+                    'effective_from' => '2026-09-01',
+                    'created_by' => $admin->id,
+                ]);
+
+                return [$route, $routeFirst, $nearest];
+            }
+        );
+
+        $plan = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => app(DailyRoutePlannerService::class)->planFor(
+                $salesman,
+                CarbonImmutable::parse('2026-09-23', 'Asia/Kabul'),
+                [
+                    'latitude' => 34.7001,
+                    'longitude' => 69.4001,
+                    'accuracy' => 8,
+                    'source' => 'device_current',
+                ],
+            )
+        );
+
+        $this->assertSame($route->uuid, $plan['route']['id']);
+        $this->assertSame($nearest->uuid, $plan['stops'][0]['customer_id']);
+        $this->assertSame(2, $plan['stops'][0]['route_sequence']);
+        $this->assertSame('device_current', $plan['start_location']['source']);
+        $this->assertLessThan(0.1, $plan['stops'][0]['distance_from_previous_km']);
+        $this->assertSame($routeFirst->uuid, $plan['stops'][1]['customer_id']);
+    }
+
     private function plannerFoundation(string $slug): array
     {
         $context = app(TenantContext::class);
