@@ -90,7 +90,7 @@ class AiConversationService
     public function context(AiConversation $conversation, int $limit = 16): array
     {
         return $conversation->messages()
-            ->latest('id')
+            ->reorder('id', 'desc')
             ->limit($limit)
             ->get()
             ->reverse()
