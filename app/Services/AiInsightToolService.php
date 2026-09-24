@@ -21,6 +21,8 @@ class AiInsightToolService
         private readonly ReportService $reports,
         private readonly CustomerBalanceService $balances,
         private readonly SupervisorScorecardService $scorecards,
+        private readonly AiRecommendationService $recommendations,
+        private readonly ManagerBriefingService $briefing,
         private readonly TenantClock $clock,
     ) {}
 
@@ -41,6 +43,26 @@ class AiInsightToolService
                         'date_to' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
                     ],
                     'required' => ['type', 'date_from', 'date_to'],
+                    'additionalProperties' => false,
+                ],
+            ),
+            $this->tool(
+                'get_recommendations',
+                'Get ranked grounded management recommendations with supporting evidence. Use this for questions like what needs attention, priorities, risks, declining sales, reorder opportunities, overdue receivables, stale coverage, pending approvals, or suspicious activity.',
+                [
+                    'type' => 'object',
+                    'properties' => [
+                        'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 20],
+                    ],
+                    'additionalProperties' => false,
+                ],
+            ),
+            $this->tool(
+                'get_manager_briefing',
+                'Get the current manager morning briefing with yesterday sales/collections/visits, today attendance, pending approvals, exceptions, and ranked priorities.',
+                [
+                    'type' => 'object',
+                    'properties' => new \stdClass,
                     'additionalProperties' => false,
                 ],
             ),
@@ -231,6 +253,8 @@ class AiInsightToolService
     {
         return match ($name) {
             'get_report' => $this->report($user, $arguments),
+            'get_recommendations' => $this->recommendationPayload($user, $arguments),
+            'get_manager_briefing' => $this->briefingPayload($user),
             'get_attendance' => $this->attendance($user, $arguments),
             'get_top_products' => $this->topProducts($user, $arguments),
             'get_expenses' => $this->expenses($user, $arguments),
@@ -244,6 +268,62 @@ class AiInsightToolService
             'get_followups' => $this->followups($user, $arguments),
             default => throw new InvalidArgumentException('Unknown AI insight tool.'),
         };
+    }
+
+    private function recommendationPayload(
+        User $user,
+        array $arguments,
+    ): array {
+        $limit = min(20, max(1, (int) ($arguments['limit'] ?? 10)));
+
+        return [
+            'recommendations' => $this->externalRecommendationRows(
+                $user,
+                $this->recommendations->build($user, $limit),
+            ),
+        ];
+    }
+
+    private function briefingPayload(User $user): array
+    {
+        $briefing = $this->briefing->build($user);
+        $briefing['priorities'] = $this->externalRecommendationRows(
+            $user,
+            $briefing['priorities'],
+        );
+
+        return $briefing;
+    }
+
+    private function externalRecommendationRows(
+        User $user,
+        array $recommendations,
+    ): array {
+        $allowCustomerData = (bool) config('ai.allow_customer_data', false)
+            && $user->hasPermission('customers:view');
+
+        return collect($recommendations)
+            ->filter(function (array $item) use ($allowCustomerData): bool {
+                if ($allowCustomerData) {
+                    return true;
+                }
+
+                return ! array_key_exists(
+                    'customer_uuid',
+                    $item['evidence'] ?? [],
+                );
+            })
+            ->map(fn (array $item) => [
+                ...$item,
+                'title_text' => __($item['title']),
+                'message_text' => __(
+                    $item['message'],
+                    $item['message_params'] ?? [],
+                ),
+                'action_text' => __($item['action']),
+            ])
+            ->values()
+            ->all();
     }
 
     private function report(User $user, array $arguments): array
