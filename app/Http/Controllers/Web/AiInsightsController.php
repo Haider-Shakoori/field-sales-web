@@ -88,6 +88,7 @@ class AiInsightsController extends Controller
         ]);
 
         $user = $request->user();
+        $conversations->pruneExpiredFor($user);
         $conversation = $conversations->resolve(
             $user,
             $validated['conversation_uuid'] ?? null,
@@ -211,7 +212,7 @@ class AiInsightsController extends Controller
     }
 
     private function suggestedPrompts(
-        \App\Models\User $user,
+        User $user,
         AiPolicyService $policy,
     ): array {
         $prompts = [
