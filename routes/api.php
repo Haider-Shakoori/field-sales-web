@@ -10,7 +10,6 @@ use App\Http\Controllers\Api\DailyRoutePlannerController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\LeadController;
-use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\MileageController;
 use App\Http\Controllers\Api\NotificationController;
