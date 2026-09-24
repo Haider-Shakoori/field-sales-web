@@ -95,6 +95,7 @@
                     ['route' => 'admin.territories.index', 'match' => 'admin.territories.*', 'label' => 'Territories', 'icon' => 'map', 'can' => 'customers:view'],
                     ['route' => 'admin.routes.index', 'match' => 'admin.routes.*', 'label' => 'Routes', 'icon' => 'map-pin', 'can' => 'customers:view'],
                     ['route' => 'admin.daily-planner.index', 'match' => 'admin.daily-planner.*', 'label' => 'Daily planner', 'icon' => 'calendar-check', 'can' => 'sales-team:view'],
+                    ['route' => 'admin.appointments.index', 'match' => 'admin.appointments.*', 'label' => 'Calendar', 'icon' => 'calendar-check', 'can' => 'appointments:view'],
                     ['route' => 'admin.call-activities.index', 'match' => 'admin.call-activities.*', 'label' => 'Calls', 'icon' => 'phone', 'can' => 'customers:view'],
                     ['route' => 'admin.follow-ups.index', 'match' => 'admin.follow-ups.*', 'label' => 'Follow-ups', 'icon' => 'calendar-check', 'can' => 'customers:view'],
                 ],

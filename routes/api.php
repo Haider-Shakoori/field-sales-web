@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CallActivityController;
@@ -41,6 +42,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/routes', [MasterDataController::class, 'routes']);
             Route::get('/routes/{route:uuid}/customers', [MasterDataController::class, 'routeCustomers']);
             Route::get('/route-plan/today', [DailyRoutePlannerController::class, 'today']);
+            Route::get('/appointments', [AppointmentController::class, 'index']);
+            Route::post('/appointments', [AppointmentController::class, 'store']);
+            Route::patch('/appointments/{appointment:uuid}/status', [AppointmentController::class, 'updateStatus']);
             Route::get('/products', [MasterDataController::class, 'products']);
             Route::get('/price-lists', [MasterDataController::class, 'priceLists']);
             Route::get('/price-lists/{priceList:uuid}/items', [MasterDataController::class, 'priceListItems']);

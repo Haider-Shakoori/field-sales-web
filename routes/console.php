@@ -2,6 +2,7 @@
 
 use App\Models\Tenant;
 use App\Services\AiConversationService;
+use App\Services\AppointmentReminderService;
 use App\Support\ProductionReadiness;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
@@ -40,6 +41,25 @@ Artisan::command('field-sales:production-check {--services : Include database an
     return 0;
 });
 
+Artisan::command('field-sales:send-appointment-reminders', function (): int {
+    $context = app(TenantContext::class);
+    $tenants = $context->withPlatformScope(
+        fn () => Tenant::query()->get(['id']),
+    );
+    $sent = 0;
+
+    foreach ($tenants as $tenant) {
+        $sent += $context->withTenant(
+            $tenant,
+            fn () => app(AppointmentReminderService::class)->sendDue(),
+        );
+    }
+
+    $this->info("Sent {$sent} appointment reminder(s).");
+
+    return 0;
+});
+
 Artisan::command('field-sales:prune-ai-history', function (): int {
     $context = app(TenantContext::class);
     $tenants = $context->withPlatformScope(
@@ -59,6 +79,10 @@ Artisan::command('field-sales:prune-ai-history', function (): int {
 
     return 0;
 });
+
+Schedule::command('field-sales:send-appointment-reminders')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
 
 Schedule::command('field-sales:prune-ai-history')
     ->dailyAt('03:45')
