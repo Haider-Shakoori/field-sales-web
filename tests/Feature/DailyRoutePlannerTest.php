@@ -305,6 +305,149 @@ class DailyRoutePlannerTest extends TestCase
         $this->assertSame($routeFirst->uuid, $plan['stops'][1]['customer_id']);
     }
 
+    public function test_planner_surfaces_nearby_unplanned_opportunity_and_can_include_it(): void
+    {
+        [$tenant, $admin, $salesman, $route] = $this->fixture();
+
+        $opportunity = app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($admin, $route): Customer {
+                $customer = Customer::create([
+                    'branch_id' => $route->branch_id,
+                    'territory_id' => $route->territory_id,
+                    'code' => 'OPP-001',
+                    'name' => 'Nearby Opportunity',
+                    'latitude' => 34.5351,
+                    'longitude' => 69.1751,
+                    'credit_currency' => 'AFN',
+                    'credit_terms_days' => 30,
+                    'created_by' => $admin->id,
+                    'is_active' => true,
+                ]);
+
+                CustomerFollowUp::create([
+                    'customer_id' => $customer->id,
+                    'assigned_salesman_id' => null,
+                    'type' => 'payment',
+                    'priority' => 'high',
+                    'status' => 'pending',
+                    'due_at' => '2026-09-23 04:00:00',
+                    'created_by' => $admin->id,
+                ]);
+
+                return $customer;
+            },
+        );
+
+        $planner = app(DailyRoutePlannerService::class);
+        $date = CarbonImmutable::parse('2026-09-24', 'Asia/Kabul');
+        $position = [
+            'latitude' => 34.5350,
+            'longitude' => 69.1750,
+            'accuracy' => 8,
+            'source' => 'device_current',
+        ];
+
+        $plan = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => $planner->planFor(
+                $salesman,
+                $date,
+                $position,
+                [],
+                5.0,
+            ),
+        );
+
+        $this->assertNotContains(
+            $opportunity->uuid,
+            collect($plan['stops'])->pluck('customer_id')->all(),
+        );
+        $this->assertContains(
+            $opportunity->uuid,
+            collect($plan['nearby_opportunities'])->pluck('customer_id')->all(),
+        );
+        $nearby = collect($plan['nearby_opportunities'])
+            ->firstWhere('customer_id', $opportunity->uuid);
+        $this->assertTrue($nearby['can_add_to_route']);
+        $this->assertLessThan(0.1, $nearby['distance_km']);
+
+        $included = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => $planner->planFor(
+                $salesman,
+                $date,
+                $position,
+                [$opportunity->uuid],
+                5.0,
+            ),
+        );
+
+        $includedStop = collect($included['stops'])
+            ->firstWhere('customer_id', $opportunity->uuid);
+        $this->assertNotNull($includedStop);
+        $this->assertTrue($includedStop['is_opportunity']);
+        $this->assertContains(
+            $opportunity->uuid,
+            $included['dynamic_route']['included_opportunity_ids'],
+        );
+        $this->assertNotContains(
+            $opportunity->uuid,
+            collect($included['nearby_opportunities'])->pluck('customer_id')->all(),
+        );
+    }
+
+    public function test_nearby_opportunities_never_escape_salesman_assignment_scope(): void
+    {
+        [$tenant, $admin, $salesman, $route] = $this->fixture();
+
+        $outside = app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($admin, $route): Customer {
+                $otherTerritory = Territory::create([
+                    'branch_id' => $route->branch_id,
+                    'code' => 'OTHER-TERR',
+                    'name' => 'Other Territory',
+                    'is_active' => true,
+                ]);
+
+                return Customer::create([
+                    'branch_id' => $route->branch_id,
+                    'territory_id' => $otherTerritory->id,
+                    'code' => 'OUT-001',
+                    'name' => 'Outside Territory Shop',
+                    'latitude' => 34.5352,
+                    'longitude' => 69.1752,
+                    'credit_currency' => 'AFN',
+                    'credit_terms_days' => 30,
+                    'created_by' => $admin->id,
+                    'is_active' => true,
+                ]);
+            },
+        );
+
+        $plan = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => app(DailyRoutePlannerService::class)->planFor(
+                $salesman,
+                CarbonImmutable::parse('2026-09-24', 'Asia/Kabul'),
+                [
+                    'latitude' => 34.5350,
+                    'longitude' => 69.1750,
+                    'accuracy' => 8,
+                    'source' => 'device_current',
+                ],
+                [],
+                5.0,
+            ),
+        );
+
+        $this->assertNotContains(
+            $outside->uuid,
+            collect($plan['nearby_opportunities'])->pluck('customer_id')->all(),
+        );
+    }
+
     private function plannerFoundation(string $slug): array
     {
         $context = app(TenantContext::class);
