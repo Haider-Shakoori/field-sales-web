@@ -132,13 +132,17 @@ class OrganizationsAndLiveMapTest extends TestCase
             ->get(route('organization.edit'))
             ->assertOk()
             ->assertSee('Settings Tenant')
-            ->assertSee('Company profile');
+            ->assertSee('Company profile')
+            ->assertSee('Ask FieldPulse AI policy');
 
         $this->actingAs($admin)
             ->put(route('organization.update'), [
                 'name' => 'Settings Tenant Renamed',
                 'timezone' => 'Asia/Dubai',
                 'contact_email' => 'ops@settings.test',
+                'ai_enabled' => '1',
+                'ai_allow_customer_data' => '0',
+                'ai_history_retention_days' => '60',
             ])
             ->assertRedirect();
 
@@ -147,6 +151,15 @@ class OrganizationsAndLiveMapTest extends TestCase
         $this->assertSame('Settings Tenant Renamed', $tenant->name);
         $this->assertSame('Asia/Dubai', $tenant->timezone);
         $this->assertSame('ops@settings.test', $tenant->contact_email);
+        $this->assertTrue((bool) data_get($tenant->settings, 'ai.enabled'));
+        $this->assertFalse((bool) data_get(
+            $tenant->settings,
+            'ai.allow_customer_data',
+        ));
+        $this->assertSame(
+            60,
+            (int) data_get($tenant->settings, 'ai.history_retention_days'),
+        );
     }
 
     public function test_live_map_page_requires_tracking_permission(): void

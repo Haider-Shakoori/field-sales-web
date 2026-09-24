@@ -9,6 +9,7 @@ use App\Models\CustomerVisit;
 use App\Models\Order;
 use App\Models\Salesman;
 use App\Models\User;
+use App\Services\AiPolicyService;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,13 +17,16 @@ use Illuminate\View\View;
 
 class OrganizationController extends Controller
 {
-    public function edit(Request $request): View
-    {
+    public function edit(
+        Request $request,
+        AiPolicyService $aiPolicy,
+    ): View {
         $tenant = $request->user()->tenant;
 
         return view('admin.organization.edit', [
             'tenant' => $tenant,
             'timezones' => $this->timezones(),
+            'aiPolicy' => $aiPolicy->settingsFor($tenant),
             'stats' => [
                 'users' => User::count(),
                 'branches' => Branch::count(),
@@ -34,28 +38,58 @@ class OrganizationController extends Controller
         ]);
     }
 
-    public function update(Request $request, AuditLogger $audit): RedirectResponse
-    {
+    public function update(
+        Request $request,
+        AuditLogger $audit,
+        AiPolicyService $aiPolicy,
+    ): RedirectResponse {
         $tenant = $request->user()->tenant;
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'timezone' => ['required', 'timezone'],
             'contact_email' => ['nullable', 'email', 'max:191'],
+            'ai_enabled' => ['sometimes', 'boolean'],
+            'ai_allow_customer_data' => ['sometimes', 'boolean'],
+            'ai_history_retention_days' => ['sometimes', 'integer', 'in:0,30,60,90,180,365'],
         ]);
 
-        $old = $tenant->only(['name', 'timezone', 'contact_email']);
+        $old = $tenant->only(['name', 'timezone', 'contact_email', 'settings']);
+        $settings = $tenant->settings ?? [];
+
+        if (array_key_exists('ai_enabled', $validated)) {
+            data_set($settings, 'ai.enabled', (bool) $validated['ai_enabled']);
+        }
+
+        if (array_key_exists('ai_allow_customer_data', $validated)) {
+            data_set(
+                $settings,
+                'ai.allow_customer_data',
+                (bool) $validated['ai_allow_customer_data'],
+            );
+        }
+
+        if (array_key_exists('ai_history_retention_days', $validated)) {
+            data_set(
+                $settings,
+                'ai.history_retention_days',
+                (int) $validated['ai_history_retention_days'],
+            );
+        }
 
         $tenant->update([
             'name' => $validated['name'],
             'timezone' => $validated['timezone'],
             'contact_email' => $validated['contact_email'] ?? null,
+            'settings' => $settings,
         ]);
 
         $audit->record('organization.profile_updated', $tenant, $old, [
             'name' => $tenant->name,
             'timezone' => $tenant->timezone,
             'contact_email' => $tenant->contact_email,
+            'settings' => $tenant->settings,
+            'effective_ai_policy' => $aiPolicy->settingsFor($tenant->fresh()),
         ]);
 
         return back()->with('status', 'Organization profile updated.');

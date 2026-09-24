@@ -4,12 +4,52 @@ namespace App\Services;
 
 use App\Models\AiConversation;
 use App\Models\AiMessage;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class AiConversationService
 {
+    public function __construct(
+        private readonly AiPolicyService $policy,
+    ) {}
+
+    public function pruneExpiredFor(User $user): int
+    {
+        $days = $this->policy->historyRetentionDays($user);
+
+        if ($days === 0) {
+            return 0;
+        }
+
+        return AiConversation::query()
+            ->visibleTo($user)
+            ->where(
+                'last_message_at',
+                '<',
+                now()->subDays($days),
+            )
+            ->delete();
+    }
+
+    public function pruneExpiredForTenant(Tenant $tenant): int
+    {
+        $days = $this->policy->historyRetentionDays($tenant);
+
+        if ($days === 0) {
+            return 0;
+        }
+
+        return AiConversation::query()
+            ->where(
+                'last_message_at',
+                '<',
+                now()->subDays($days),
+            )
+            ->delete();
+    }
+
     public function listFor(User $user, int $limit = 30): Collection
     {
         return AiConversation::query()

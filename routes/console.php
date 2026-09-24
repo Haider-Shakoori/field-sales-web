@@ -1,6 +1,9 @@
 <?php
 
+use App\Models\Tenant;
+use App\Services\AiConversationService;
 use App\Support\ProductionReadiness;
+use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
@@ -36,6 +39,30 @@ Artisan::command('field-sales:production-check {--services : Include database an
 
     return 0;
 });
+
+Artisan::command('field-sales:prune-ai-history', function (): int {
+    $context = app(TenantContext::class);
+    $tenants = $context->withPlatformScope(
+        fn () => Tenant::query()->get(['id', 'settings']),
+    );
+    $deleted = 0;
+
+    foreach ($tenants as $tenant) {
+        $deleted += $context->withTenant(
+            $tenant,
+            fn () => app(AiConversationService::class)
+                ->pruneExpiredForTenant($tenant),
+        );
+    }
+
+    $this->info("Pruned {$deleted} expired Ask FieldPulse conversation(s).");
+
+    return 0;
+});
+
+Schedule::command('field-sales:prune-ai-history')
+    ->dailyAt('03:45')
+    ->withoutOverlapping();
 
 Schedule::command('queue:prune-failed --hours=168')
     ->dailyAt('03:30')

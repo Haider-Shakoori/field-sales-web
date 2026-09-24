@@ -24,6 +24,7 @@ class AiInsightToolService
         private readonly AiRecommendationService $recommendations,
         private readonly ManagerBriefingService $briefing,
         private readonly TenantClock $clock,
+        private readonly AiPolicyService $policy,
     ) {}
 
     public function definitions(User $user): array
@@ -173,7 +174,7 @@ class AiInsightToolService
         }
 
         if (
-            config('ai.allow_customer_data', false)
+            $this->policy->customerDataEnabled($user)
             && $user->hasPermission('customers:view')
         ) {
             if ($user->hasPermission('orders:view')) {
@@ -299,7 +300,7 @@ class AiInsightToolService
         User $user,
         array $recommendations,
     ): array {
-        $allowCustomerData = (bool) config('ai.allow_customer_data', false)
+        $allowCustomerData = $this->policy->customerDataEnabled($user)
             && $user->hasPermission('customers:view');
 
         return collect($recommendations)
@@ -743,7 +744,7 @@ class AiInsightToolService
     private function authorizeCustomerData(User $user): void
     {
         abort_unless(
-            config('ai.allow_customer_data', false)
+            $this->policy->customerDataEnabled($user)
                 && $user->hasPermission('customers:view'),
             403,
         );

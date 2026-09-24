@@ -538,5 +538,22 @@
     "Tool activity": "فعالیت ابزارها",
     "Response time": "زمان پاسخ",
     "AI can make mistakes. Verify critical business decisions against source records.": "هوش مصنوعی ممکن است اشتباه کند. تصمیم‌های مهم تجاری را با سوابق اصلی بررسی کنید.",
-    "Search your chat history…": "در تاریخچه گفتگو جستجو کنید…"
+    "Search your chat history…": "در تاریخچه گفتگو جستجو کنید…",
+    "Ask FieldPulse AI policy": "سیاست هوش مصنوعی Ask FieldPulse",
+    "Control external AI access and conversation retention for this organization.": "دسترسی هوش مصنوعی خارجی و مدت نگهداری گفتگوها را برای این سازمان کنترل کنید.",
+    "Platform AI available": "هوش مصنوعی پلتفرم فعال است",
+    "Platform AI disabled": "هوش مصنوعی پلتفرم غیرفعال است",
+    "Enable external AI for this organization": "فعال‌سازی هوش مصنوعی خارجی برای این سازمان",
+    "When disabled, Ask FieldPulse remains available in grounded local mode and does not call the external LLM.": "در حالت غیرفعال، Ask FieldPulse در حالت محلی مبتنی بر داده باقی می‌ماند و مدل زبانی خارجی را فراخوانی نمی‌کند.",
+    "Allow customer-level AI tools": "اجازه ابزارهای هوش مصنوعی سطح مشتری",
+    "Authorized users may ask about customer balances, aging, orders, follow-ups, and other customer-specific records.": "کاربران مجاز می‌توانند درباره مانده مشتری، سررسید مطالبات، سفارش‌ها، پیگیری‌ها و سایر اطلاعات اختصاصی مشتری سؤال کنند.",
+    "The platform administrator has disabled customer-level AI data globally.": "مدیر پلتفرم دسترسی هوش مصنوعی به داده‌های سطح مشتری را به‌صورت سراسری غیرفعال کرده است.",
+    "Conversation history retention": "مدت نگهداری تاریخچه گفتگو",
+    "60 days": "۶۰ روز",
+    "180 days": "۱۸۰ روز",
+    "Keep indefinitely": "نگهداری بدون محدودیت",
+    "Expired Ask FieldPulse conversations are removed with their messages. Tool access remains read-only and permission-aware.": "گفتگوهای منقضی Ask FieldPulse همراه پیام‌هایشان حذف می‌شوند. دسترسی ابزارها همچنان فقط‌خواندنی و مبتنی بر مجوز است.",
+    "Provider credentials remain platform-managed. Organization settings can restrict AI access but cannot expose or override the server API key.": "اعتبارنامه ارائه‌دهنده توسط پلتفرم مدیریت می‌شود. تنظیمات سازمان می‌تواند دسترسی هوش مصنوعی را محدود کند، اما کلید API سرور را نمایش یا جایگزین نمی‌کند.",
+    "Chat history is retained indefinitely for this organization.": "تاریخچه گفتگو برای این سازمان بدون محدودیت نگهداری می‌شود.",
+    "Chat history is retained for :days days for this organization.": "تاریخچه گفتگو برای این سازمان به مدت :days روز نگهداری می‌شود."
 }

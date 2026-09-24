@@ -20,6 +20,7 @@ class AiInsightsService
     public function __construct(
         private readonly AiInsightsAgentService $agent,
         private readonly AiRecommendationService $recommendationEngine,
+        private readonly AiPolicyService $policy,
     ) {}
 
     public function snapshot(User $user): array
@@ -98,7 +99,7 @@ class AiInsightsService
     public function answer(User $user, string $question, array $history = []): array
     {
         $snapshot = $this->snapshot($user);
-        $providerEnabled = (bool) config('ai.enabled', false);
+        $providerEnabled = $this->policy->externalEnabled($user);
         $provider = (string) config('ai.provider', 'generic');
 
         if ($providerEnabled && in_array(

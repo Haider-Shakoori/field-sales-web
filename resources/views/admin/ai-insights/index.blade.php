@@ -248,6 +248,11 @@
             <p class="font-semibold text-slate-300">{{ __('Privacy & access') }}</p>
             <p class="mt-2 leading-5">{{ __('Ask FieldPulse is read-only. Tool access follows the signed-in user’s permissions and tenant scope.') }}</p>
             <p class="mt-2 leading-5">{{ $customerDataEnabled ? __('Customer-level AI tools are enabled for authorized users.') : __('Customer-level AI tools are currently disabled.') }}</p>
+            <p class="mt-2 leading-5">
+                {{ $historyRetentionDays === 0
+                    ? __('Chat history is retained indefinitely for this organization.')
+                    : __('Chat history is retained for :days days for this organization.', ['days' => $historyRetentionDays]) }}
+            </p>
         </section>
     </aside>
 </div>
