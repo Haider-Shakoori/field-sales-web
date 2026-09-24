@@ -34,7 +34,7 @@ class VisitController extends Controller
                 'device',
                 'route',
                 'workSession',
-                'photos',
+                'photos', 'voiceNotes.user',
                 'suspiciousFlags.reviewer',
                 'formSubmissions.answers',
             ]),
