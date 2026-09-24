@@ -168,7 +168,7 @@
                     <div class="min-w-0 flex-1">
                         <div class="flex flex-wrap items-center gap-2">
                             <h3 class="font-semibold">{{ __($recommendation['title']) }}</h3>
-                            <span class="rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">{{ __($recommendation['severity']) }}</span>
+                            <span class="rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">{{ __(str($recommendation['severity'])->title()->toString()) }}</span>
                             <span class="rounded-full bg-black/20 px-2 py-0.5 text-[10px] text-slate-400">{{ __('Priority score') }} {{ $recommendation['score'] }}</span>
                         </div>
                         <p class="mt-2 text-sm leading-6 text-slate-200">{{ __($recommendation['message'], $recommendation['message_params'] ?? []) }}</p>
