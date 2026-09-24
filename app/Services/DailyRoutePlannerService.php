@@ -39,6 +39,44 @@ class DailyRoutePlannerService
 
         $assignment = $this->assignmentFor($salesman, $localDate);
         [$source, $route, $candidates] = $this->candidatesFor($assignment, $localDate);
+        $startLocation = $this->normalizeStartLocation($startLocation);
+
+        $plannedCustomerIds = $candidates
+            ->pluck('customer')
+            ->pluck('id')
+            ->all();
+
+        $includedCustomers = $this->opportunities->includedCustomersFor(
+            $salesman,
+            $localDate,
+            $includedCustomerUuids,
+            $plannedCustomerIds,
+        );
+
+        $nextSequence = $candidates->count() + 1;
+
+        foreach ($includedCustomers as $customer) {
+            $candidates->push([
+                'customer' => $customer,
+                'route_sequence' => null,
+                'source_sequence' => $nextSequence++,
+                'planned_visit_minutes' => 10,
+                'is_opportunity' => true,
+            ]);
+        }
+
+        $customerIds = $candidates
+            ->pluck('customer')
+            ->pluck('id')
+            ->all();
+
+        $nearbyOpportunities = $this->opportunities->nearbyFor(
+            $salesman,
+            $localDate,
+            $startLocation,
+            $customerIds,
+            max(0.5, min(25.0, $nearbyRadiusKm)),
+        );
 
         if ($candidates->isEmpty()) {
             return [
@@ -46,18 +84,20 @@ class DailyRoutePlannerService
                 'source' => $source,
                 'route' => $route,
                 'summary' => $this->summary([]),
-                'start_location' => $this->normalizeStartLocation($startLocation),
+                'start_location' => $startLocation,
                 'stops' => [],
+                'nearby_opportunities' => $nearbyOpportunities,
+                'dynamic_route' => [
+                    'generated_at' => now()->toISOString(),
+                    'rerouted_from_current_position' => $startLocation !== null,
+                    'included_opportunity_ids' => [],
+                    'nearby_radius_km' => max(0.5, min(25.0, $nearbyRadiusKm)),
+                ],
                 'approximate_air_distance_km' => 0.0,
                 'distance_method' => self::DISTANCE_METHOD,
                 'warnings' => $this->warnings($route, $localDate, $candidates),
             ];
         }
-
-        $customerIds = $candidates
-            ->pluck('customer')
-            ->pluck('id')
-            ->all();
 
         $approvedOrders = Order::query()
             ->whereIn('customer_id', $customerIds)
