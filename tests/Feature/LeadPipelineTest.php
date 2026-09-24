@@ -118,5 +118,3 @@ class LeadPipelineTest extends TestCase
         return ['Authorization' => 'Bearer '.$this->token, 'X-Device-UUID' => 'lead-device', 'X-Installation-UUID' => 'lead-install', 'X-App-Version' => '1.0', 'X-Platform' => 'android', 'X-OS-Version' => '16'];
     }
 }
-
-[executed on device: ubuntu-6gb-dal-x8mx (c447f909-fdcc-4121-9924-27a69d35e9b2)]
