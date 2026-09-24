@@ -43,6 +43,9 @@ class AiInsightsController extends Controller
             'selectedConversation' => $selected
                 ? $conversations->serializeConversation($selected)
                 : null,
+            'question' => null,
+            'answer' => null,
+            'answerSource' => null,
         ]);
     }
 
