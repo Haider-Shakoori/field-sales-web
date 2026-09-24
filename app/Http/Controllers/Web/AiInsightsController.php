@@ -11,6 +11,7 @@ use Illuminate\View\View;
 
 class AiInsightsController extends Controller
 {
+    // Ask FieldPulse web experience.
     public function index(
         Request $request,
         AiInsightsService $insights,
