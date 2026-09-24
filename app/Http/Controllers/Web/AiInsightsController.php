@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\AiConversationService;
 use App\Services\AiInsightsAgentService;
 use App\Services\AiInsightsService;
@@ -23,6 +24,7 @@ class AiInsightsController extends Controller
         AiPolicyService $policy,
     ): View {
         $user = $request->user();
+        $conversations->pruneExpiredFor($user);
         $conversation = $conversations->resolve(
             $user,
             $request->query('conversation'),
@@ -40,6 +42,7 @@ class AiInsightsController extends Controller
             'providerName' => (string) config('ai.provider', 'generic'),
             'providerModel' => (string) config('ai.model', ''),
             'customerDataEnabled' => $policy->customerDataEnabled($user),
+            'historyRetentionDays' => $policy->historyRetentionDays($user),
             'suggestedPrompts' => $this->suggestedPrompts($user, $policy),
         ]);
     }
@@ -190,7 +193,7 @@ class AiInsightsController extends Controller
     }
 
     private function providerEnabled(
-        \App\Models\User $user,
+        User $user,
         AiPolicyService $policy,
     ): bool {
         if (! $policy->externalEnabled($user)) {
