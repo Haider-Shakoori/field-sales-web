@@ -15,5 +15,62 @@
 @if(auth()->user()->hasPermission('customers:manage'))<form method="POST" action="{{ route('admin.customers.follow-ups.store', $customer) }}" class="mt-5 grid gap-3 border-t border-white/10 pt-5 sm:grid-cols-2">@csrf<select name="type" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5">@foreach(\App\Models\CustomerFollowUp::TYPES as $type)<option value="{{ $type }}">{{ __(str($type)->title()->toString()) }}</option>@endforeach</select><select name="priority" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5">@foreach(\App\Models\CustomerFollowUp::PRIORITIES as $priority)<option value="{{ $priority }}" @selected($priority === 'normal')>{{ __(str($priority)->title()->toString()) }}</option>@endforeach</select><select name="assigned_salesman_id" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5"><option value="">{{ __('Unassigned') }}</option>@foreach($salesmen as $salesman)<option value="{{ $salesman->id }}">{{ $salesman->employee_code }} · {{ $salesman->full_name }}</option>@endforeach</select><input type="datetime-local" name="due_at" value="{{ $defaultFollowUpAt }}" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5" required><textarea name="notes" rows="2" placeholder="{{ __('Follow-up notes') }}" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5 sm:col-span-2"></textarea><button class="rounded-xl bg-indigo-500 px-4 py-2.5 font-semibold sm:col-span-2">{{ __('Schedule follow-up') }}</button></form>@endif
 </section>
 <section class="rounded-2xl border border-white/10 bg-slate-900 p-5 lg:col-span-2"><div class="flex items-center justify-between gap-3"><h2 class="font-semibold">{{ __('Recent call activity') }}</h2><a href="{{ route('admin.call-activities.index') }}" class="text-sm text-indigo-300 hover:underline">{{ __('All calls') }}</a></div><div class="mt-4 overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="text-slate-400"><tr><th class="pb-2 pr-4">{{ __('Called') }}</th><th class="pb-2 pr-4">{{ __('Salesman') }}</th><th class="pb-2 pr-4">{{ __('Outcome') }}</th><th class="pb-2">{{ __('Notes') }}</th></tr></thead><tbody class="divide-y divide-white/10">@forelse($customer->callActivities->take(20) as $call)<tr><td class="py-3 pr-4">{{ $call->called_at?->format('Y-m-d H:i') }}</td><td class="py-3 pr-4">{{ $call->user?->name ?? '—' }}</td><td class="py-3 pr-4">{{ $call->outcome ? str($call->outcome)->replace('_', ' ')->title() : __('Not recorded') }}</td><td class="py-3">{{ $call->notes ?? '—' }}</td></tr>@empty<tr><td colspan="4" class="py-5 text-slate-400">{{ __('No call activity recorded.') }}</td></tr>@endforelse</tbody></table></div></section>
+
+<section class="rounded-2xl border border-white/10 bg-slate-900 p-5 lg:col-span-2">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h2 class="font-semibold">{{ __('Customer messaging') }}</h2>
+            <p class="mt-1 text-sm text-slate-400">{{ __('Queue an audited WhatsApp or SMS message to the customer phone number.') }}</p>
+        </div>
+        <span class="text-sm text-slate-400">{{ $customer->phone ?: $customer->alternate_phone ?: __('No phone') }}</span>
+    </div>
+
+    @if(auth()->user()->hasPermission('customers:manage'))
+        <form method="POST" action="{{ route('admin.customers.communications.store', $customer) }}" class="mt-5 grid gap-3 md:grid-cols-[180px_220px_1fr_auto]">
+            @csrf
+            <select name="channel" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5" required>
+                <option value="whatsapp">{{ __('WhatsApp') }}</option>
+                <option value="sms">{{ __('SMS') }}</option>
+            </select>
+            <select name="kind" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5" required>
+                <option value="custom">{{ __('Custom message') }}</option>
+                <option value="payment_reminder">{{ __('Payment reminder') }}</option>
+                <option value="order_update">{{ __('Order update') }}</option>
+                <option value="statement">{{ __('Statement message') }}</option>
+            </select>
+            <textarea name="message" rows="2" maxlength="1600" required placeholder="{{ __('Message to customer') }}" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5"></textarea>
+            <button class="rounded-xl bg-emerald-600 px-5 py-2.5 font-semibold">{{ __('Send') }}</button>
+        </form>
+    @endif
+
+    <div class="mt-5 overflow-x-auto">
+        <table class="min-w-full text-left text-sm">
+            <thead class="text-slate-400">
+            <tr>
+                <th class="pb-2 pr-4">{{ __('Created') }}</th>
+                <th class="pb-2 pr-4">{{ __('Channel') }}</th>
+                <th class="pb-2 pr-4">{{ __('Type') }}</th>
+                <th class="pb-2 pr-4">{{ __('Status') }}</th>
+                <th class="pb-2 pr-4">{{ __('By') }}</th>
+                <th class="pb-2">{{ __('Message') }}</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-white/10">
+            @forelse($customer->communicationDeliveries->take(10) as $delivery)
+                <tr>
+                    <td class="py-3 pr-4 whitespace-nowrap">{{ $delivery->created_at?->copy()->setTimezone($timezone)->format('Y-m-d H:i') }}</td>
+                    <td class="py-3 pr-4">{{ __(str($delivery->channel)->upper()->toString()) }}</td>
+                    <td class="py-3 pr-4">{{ __(str($delivery->kind)->replace('_', ' ')->title()->toString()) }}</td>
+                    <td class="py-3 pr-4">{{ __(str($delivery->status)->title()->toString()) }}@if($delivery->last_error)<div class="mt-1 max-w-xs text-xs text-rose-300">{{ $delivery->last_error }}</div>@endif</td>
+                    <td class="py-3 pr-4">{{ $delivery->creator?->name ?? '—' }}</td>
+                    <td class="py-3 max-w-xl">{{ str($delivery->message)->limit(180) }}</td>
+                </tr>
+            @empty
+                <tr><td colspan="6" class="py-5 text-slate-400">{{ __('No WhatsApp or SMS messages recorded yet.') }}</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+</section>
 </div>
 </x-layouts.app>
