@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AiConversation;
 use App\Models\AiMessage;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -24,6 +25,23 @@ class AiConversationService
 
         return AiConversation::query()
             ->visibleTo($user)
+            ->where(
+                'last_message_at',
+                '<',
+                now()->subDays($days),
+            )
+            ->delete();
+    }
+
+    public function pruneExpiredForTenant(Tenant $tenant): int
+    {
+        $days = $this->policy->historyRetentionDays($tenant);
+
+        if ($days === 0) {
+            return 0;
+        }
+
+        return AiConversation::query()
             ->where(
                 'last_message_at',
                 '<',
