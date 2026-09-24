@@ -57,7 +57,7 @@ class LocalizationCoverageTest extends TestCase
         $this->assertStringContainsString("__('Collection detail')", $collections);
         $this->assertStringContainsString("__('Payment method')", $collections);
         $this->assertStringContainsString(
-            "__($recommendation['message'], $recommendation['message_params'] ?? [])",
+            '__($recommendation[\'message\'], $recommendation[\'message_params\'] ?? [])',
             $ai,
         );
     }
