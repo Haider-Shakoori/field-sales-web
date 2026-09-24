@@ -11,6 +11,9 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-2 text-xs">
+        <a href="{{ route('admin.ai-insights.briefing') }}" class="rounded-full border border-amber-400/20 bg-amber-500/10 px-3 py-1.5 font-semibold text-amber-200 transition hover:bg-amber-500/15">
+            ☀ {{ __('Morning Briefing') }}
+        </a>
         <span id="ai-provider-chip" class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 {{ $providerEnabled ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-300' : 'border-white/10 bg-slate-900 text-slate-400' }}">
             <span class="h-2 w-2 rounded-full {{ $providerEnabled ? 'bg-emerald-400' : 'bg-slate-500' }}"></span>
             <span>{{ $providerEnabled ? __('AI provider configured') : __('Grounded local mode') }}</span>
@@ -144,7 +147,7 @@
             <h2 class="text-sm font-semibold">{{ __('Recommended actions') }}</h2>
             <div class="mt-3 space-y-2">
                 @foreach(array_slice($snapshot['recommendations'], 0, 4) as $recommendation)
-                    @php($dot = match($recommendation['severity']) { 'high' => 'bg-rose-400', 'medium' => 'bg-amber-400', default => 'bg-emerald-400' })
+                    @php($dot = match($recommendation['severity']) { 'critical' => 'bg-rose-500', 'high' => 'bg-orange-400', 'medium' => 'bg-amber-400', default => 'bg-emerald-400' })
                     <div class="rounded-xl bg-slate-950/70 p-3">
                         <div class="flex gap-2">
                             <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full {{ $dot }}"></span>
