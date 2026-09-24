@@ -16,6 +16,9 @@
         <a href="{{ route('admin.ai-insights.index') }}" class="rounded-xl border border-white/10 bg-slate-900 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/5">
             {{ __('Back to Ask FieldPulse') }}
         </a>
+        <a href="{{ route('admin.ai-insights.usage') }}" class="rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/15">
+            {{ __('Usage & Audit') }}
+        </a>
         <button type="button" onclick="window.print()" class="rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold transition hover:bg-indigo-400">
             {{ __('Print briefing') }}
         </button>
