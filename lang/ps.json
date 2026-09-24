@@ -553,5 +553,7 @@
     "180 days": "۱۸۰ ورځې",
     "Keep indefinitely": "د تل لپاره وساتئ",
     "Expired Ask FieldPulse conversations are removed with their messages. Tool access remains read-only and permission-aware.": "د Ask FieldPulse زړې شوې خبرې له پیغامونو سره حذف کېږي. د وسیلو لاسرسی یوازې لوست او د اجازې پر بنسټ پاتې کېږي.",
-    "Provider credentials remain platform-managed. Organization settings can restrict AI access but cannot expose or override the server API key.": "د برابرونکي اسناد د پلاتفورم له خوا اداره کېږي. د ادارې تنظیمات د AI لاسرسی محدودولی شي، خو د سرور API کیلي نه شي ښکاره یا بدلولی."
+    "Provider credentials remain platform-managed. Organization settings can restrict AI access but cannot expose or override the server API key.": "د برابرونکي اسناد د پلاتفورم له خوا اداره کېږي. د ادارې تنظیمات د AI لاسرسی محدودولی شي، خو د سرور API کیلي نه شي ښکاره یا بدلولی.",
+    "Chat history is retained indefinitely for this organization.": "د خبرو تاریخچه د دې ادارې لپاره بې محدودې مودې ساتل کېږي.",
+    "Chat history is retained for :days days for this organization.": "د خبرو تاریخچه د دې ادارې لپاره :days ورځې ساتل کېږي."
 }
