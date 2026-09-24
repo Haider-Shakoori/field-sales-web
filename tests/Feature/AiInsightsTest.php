@@ -318,6 +318,8 @@ class AiInsightsTest extends TestCase
             $this->assertContains('get_salesman_stock', $names);
             $this->assertContains('get_returns', $names);
             $this->assertContains('get_scorecards', $names);
+            $this->assertContains('get_recommendations', $names);
+            $this->assertContains('get_manager_briefing', $names);
             $this->assertNotContains('search_customers', $names);
         });
     }
@@ -375,13 +377,16 @@ class AiInsightsTest extends TestCase
         ]));
 
         return $context->withTenant($tenant, function () use ($tenant): array {
-            $permission = Permission::firstOrCreate(
-                ['slug' => 'reports:view'],
+            $permissions = collect([
+                'reports:view',
+                'customers:view',
+            ])->map(fn (string $slug) => Permission::firstOrCreate(
+                ['slug' => $slug],
                 [
-                    'name' => 'Reports View',
-                    'group' => 'reports',
+                    'name' => str($slug)->replace(':', ' ')->title(),
+                    'group' => str($slug)->before(':')->toString(),
                 ],
-            );
+            ));
 
             $role = Role::create([
                 'tenant_id' => $tenant->id,
@@ -389,7 +394,7 @@ class AiInsightsTest extends TestCase
                 'slug' => 'ai-manager',
                 'is_system' => false,
             ]);
-            $role->permissions()->sync([$permission->id]);
+            $role->permissions()->sync($permissions->pluck('id'));
 
             $admin = User::create([
                 'uuid' => (string) Str::uuid(),
