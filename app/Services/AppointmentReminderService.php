@@ -23,7 +23,7 @@ class AppointmentReminderService
             ->where('starts_at', '>', $now->copy()->subMinutes(5))
             ->where('starts_at', '<=', $now->copy()->addDay())
             ->orderBy('starts_at')
-            ->chunkById(100, function ($appointments) use ($now, &$sent): void {
+            ->chunkById(100, function ($appointments) use (&$sent): void {
                 foreach ($appointments as $appointment) {
                     $minutes = (int) $appointment->reminder_minutes_before;
                     $dueAt = $appointment->starts_at->copy()->subMinutes($minutes);
