@@ -592,5 +592,22 @@
     "Thu": "پنج‌شنبه",
     "Fri": "جمعه",
     "Sat": "شنبه",
-    "Sun": "یکشنبه"
+    "Sun": "یکشنبه",
+    "Mileage & Fuel": "مسافت و سوخت",
+    "Reconcile GPS travel, odometer readings, and approved fuel expenses.": "مسافت GPS، کیلومترشمار و مصارف تأییدشده سوخت را با هم تطبیق دهید.",
+    "Tracked sessions": "جلسات ثبت‌شده",
+    "Travel distance": "مسافت سفر",
+    "Fuel recorded": "سوخت ثبت‌شده",
+    "Average efficiency": "میانگین بهره‌وری",
+    "Approved fuel cost": "هزینه تأییدشده سوخت",
+    "Vehicle": "وسیله نقلیه",
+    "GPS km": "کیلومتر GPS",
+    "Odometer km": "کیلومترشمار",
+    "Variance": "اختلاف",
+    "Fuel liters": "لیتر سوخت",
+    "Efficiency": "بهره‌وری",
+    "Fuel cost": "هزینه سوخت",
+    "No mileage records were found for this period.": "برای این دوره هیچ رکورد مسافتی یافت نشد.",
+    "GPS distance ignores mock locations, points worse than 50 m accuracy, and implausible segments above 200 km/h. When both odometer readings exist, odometer distance is used for fuel-efficiency calculations and GPS remains the reconciliation baseline.": "مسافت GPS موقعیت‌های جعلی، نقاط با دقت بدتر از ۵۰ متر و قطعات غیرواقعی بالاتر از ۲۰۰ کیلومتر در ساعت را نادیده می‌گیرد. وقتی هر دو عدد کیلومترشمار موجود باشد، مسافت کیلومترشمار برای محاسبه بهره‌وری سوخت استفاده می‌شود و GPS مبنای تطبیق باقی می‌ماند.",
+    "Fuel unit price": "قیمت واحد سوخت"
 }
