@@ -108,6 +108,7 @@ class LeadPipelineTest extends TestCase
             $salesman = Salesman::create(['user_id' => $salesmanUser->id, 'employee_code' => 'LEAD-S1', 'first_name' => 'Lead', 'last_name' => 'Salesman', 'is_active' => true]);
             $device = Device::create(['user_id' => $salesmanUser->id, 'salesman_id' => $salesman->id, 'device_uuid' => 'lead-device', 'installation_uuid' => 'lead-install', 'is_active' => true]);
             $this->token = $salesmanUser->createToken('mobile-'.$device->uuid)->plainTextToken;
+
             return compact('tenant', 'branch', 'admin', 'salesmanUser', 'salesman', 'device');
         });
     }
@@ -117,3 +118,5 @@ class LeadPipelineTest extends TestCase
         return ['Authorization' => 'Bearer '.$this->token, 'X-Device-UUID' => 'lead-device', 'X-Installation-UUID' => 'lead-install', 'X-App-Version' => '1.0', 'X-Platform' => 'android', 'X-OS-Version' => '16'];
     }
 }
+
+[executed on device: ubuntu-6gb-dal-x8mx (c447f909-fdcc-4121-9924-27a69d35e9b2)]
