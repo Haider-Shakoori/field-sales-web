@@ -668,7 +668,7 @@ class DailyRoutePlannerService
             'latitude' => (float) $latitude,
             'longitude' => (float) $longitude,
             'accuracy' => $accuracy === null ? null : (float) $accuracy,
-            'source' => ($startLocation['source'] ?? 'provided').toString(),
+            'source' => (string) ($startLocation['source'] ?? 'provided'),
         ];
     }
 
