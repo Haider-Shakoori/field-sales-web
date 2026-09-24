@@ -52,6 +52,8 @@ class TenantProvisioningService
         'targets:view',
         'targets:manage',
         'reports:view',
+        'commissions:view',
+        'commissions:manage',
         'notifications:send',
         'integrations:manage',
     ];
@@ -92,6 +94,8 @@ class TenantProvisioningService
             'targets:view',
             'targets:manage',
             'reports:view',
+            'commissions:view',
+            'commissions:manage',
             'notifications:send',
         ],
         'supervisor' => [
@@ -114,6 +118,7 @@ class TenantProvisioningService
             'expenses:view',
             'targets:view',
             'reports:view',
+            'commissions:view',
             'notifications:send',
         ],
         'salesman' => [
@@ -131,6 +136,7 @@ class TenantProvisioningService
             'collections:view',
             'expenses:view',
             'targets:view',
+            'commissions:view',
         ],
         'accountant' => [
             'collections:view',
@@ -138,6 +144,8 @@ class TenantProvisioningService
             'expenses:view',
             'expenses:manage',
             'reports:view',
+            'commissions:view',
+            'commissions:manage',
         ],
         'warehouse_user' => [
             'catalog:view',
@@ -169,6 +177,7 @@ class TenantProvisioningService
             'expenses:view',
             'targets:view',
             'reports:view',
+            'commissions:view',
         ],
     ];
 
