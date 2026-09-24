@@ -17,10 +17,16 @@ class DailyRoutePlannerService
 {
     public const DISTANCE_METHOD = 'straight_line';
 
+    public function __construct(
+        private readonly RouteOpportunityService $opportunities,
+    ) {}
+
     public function planFor(
         Salesman $salesman,
         CarbonImmutable $localDate,
         ?array $startLocation = null,
+        array $includedCustomerUuids = [],
+        float $nearbyRadiusKm = 5.0,
     ): array {
         $salesman->loadMissing('user.tenant');
 
