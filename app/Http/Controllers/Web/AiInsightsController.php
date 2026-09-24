@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Services\AiConversationService;
 use App\Services\AiInsightsService;
+use App\Services\AiUsageService;
 use App\Services\ManagerBriefingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -36,6 +37,27 @@ class AiInsightsController extends Controller
             'providerModel' => (string) config('ai.model', ''),
             'customerDataEnabled' => (bool) config('ai.allow_customer_data', false),
             'suggestedPrompts' => $this->suggestedPrompts(),
+        ]);
+    }
+
+    public function usage(
+        Request $request,
+        AiUsageService $usage,
+    ): View {
+        $validated = $request->validate([
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => [
+                'nullable',
+                'date_format:Y-m-d',
+                'after_or_equal:date_from',
+            ],
+        ]);
+
+        return view('admin.ai-insights.usage', [
+            'usage' => $usage->dashboard(
+                $request->user(),
+                $validated,
+            ),
         ]);
     }
 
