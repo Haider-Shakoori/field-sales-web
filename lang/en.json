@@ -592,5 +592,22 @@
     "Thu": "Thu",
     "Fri": "Fri",
     "Sat": "Sat",
-    "Sun": "Sun"
+    "Sun": "Sun",
+    "Mileage & Fuel": "Mileage & Fuel",
+    "Reconcile GPS travel, odometer readings, and approved fuel expenses.": "Reconcile GPS travel, odometer readings, and approved fuel expenses.",
+    "Tracked sessions": "Tracked sessions",
+    "Travel distance": "Travel distance",
+    "Fuel recorded": "Fuel recorded",
+    "Average efficiency": "Average efficiency",
+    "Approved fuel cost": "Approved fuel cost",
+    "Vehicle": "Vehicle",
+    "GPS km": "GPS km",
+    "Odometer km": "Odometer km",
+    "Variance": "Variance",
+    "Fuel liters": "Fuel liters",
+    "Efficiency": "Efficiency",
+    "Fuel cost": "Fuel cost",
+    "No mileage records were found for this period.": "No mileage records were found for this period.",
+    "GPS distance ignores mock locations, points worse than 50 m accuracy, and implausible segments above 200 km/h. When both odometer readings exist, odometer distance is used for fuel-efficiency calculations and GPS remains the reconciliation baseline.": "GPS distance ignores mock locations, points worse than 50 m accuracy, and implausible segments above 200 km/h. When both odometer readings exist, odometer distance is used for fuel-efficiency calculations and GPS remains the reconciliation baseline.",
+    "Fuel unit price": "Fuel unit price"
 }
