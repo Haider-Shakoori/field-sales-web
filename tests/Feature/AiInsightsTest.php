@@ -48,12 +48,22 @@ class AiInsightsTest extends TestCase
             ->assertSee('Grounded local mode');
 
         $this->actingAs($admin)
-            ->post(route('admin.ai-insights.ask'), [
+            ->postJson(route('admin.ai-insights.ask'), [
                 'question' => 'How many follow-ups are overdue?',
             ])
             ->assertOk()
-            ->assertSee('Overdue follow-ups: 1')
-            ->assertSee('Generated locally from FieldPulse metrics');
+            ->assertJson([
+                'answer' => 'Overdue follow-ups: 1. Open high-priority follow-ups: 1.',
+                'source' => 'fieldpulse_grounded_rules',
+            ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.ai-insights.ask'), [
+                'question' => 'How many follow-ups are overdue?',
+            ])
+            ->assertRedirect(route('admin.ai-insights.index').'#ask-fieldpulse-answer')
+            ->assertSessionHas('ai_answer')
+            ->assertSessionHas('ai_question', 'How many follow-ups are overdue?');
     }
 
     public function test_configured_ai_provider_receives_aggregate_snapshot_only(): void
