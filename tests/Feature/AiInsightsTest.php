@@ -66,6 +66,96 @@ class AiInsightsTest extends TestCase
             ->assertSessionHas('ai_question', 'How many follow-ups are overdue?');
     }
 
+
+    public function test_groq_agent_can_call_permission_aware_fieldpulse_tools(): void
+    {
+        [$tenant, $admin] = $this->fixture();
+
+        config()->set('ai.enabled', true);
+        config()->set('ai.provider', 'groq');
+        config()->set('ai.base_url', null);
+        config()->set('ai.api_key', 'groq-test-key');
+        config()->set('ai.model', 'openai/gpt-oss-120b');
+        config()->set('ai.endpoint', null);
+        config()->set('ai.allow_customer_data', false);
+
+        Http::fakeSequence()
+            ->push([
+                'choices' => [[
+                    'message' => [
+                        'role' => 'assistant',
+                        'content' => null,
+                        'tool_calls' => [[
+                            'id' => 'call_performance',
+                            'type' => 'function',
+                            'function' => [
+                                'name' => 'get_report',
+                                'arguments' => json_encode([
+                                    'type' => 'performance',
+                                    'date_from' => '2026-09-01',
+                                    'date_to' => '2026-09-24',
+                                ]),
+                            ],
+                        ]],
+                    ],
+                ]],
+            ], 200)
+            ->push([
+                'choices' => [[
+                    'message' => [
+                        'role' => 'assistant',
+                        'content' => 'There are no active salesman performance rows for that period.',
+                    ],
+                ]],
+            ], 200);
+
+        $result = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => app(AiInsightsService::class)->answer(
+                $admin,
+                'Who sold the most this month?',
+            ),
+        );
+
+        $this->assertSame('configured_ai_agent', $result['source']);
+        $this->assertSame(
+            'There are no active salesman performance rows for that period.',
+            $result['answer'],
+        );
+
+        Http::assertSentCount(2);
+
+        $requests = Http::recorded();
+        $firstPayload = $requests[0][0]->data();
+        $secondPayload = $requests[1][0]->data();
+
+        $this->assertSame(
+            'https://api.groq.com/openai/v1/chat/completions',
+            $requests[0][0]->url(),
+        );
+        $this->assertSame('openai/gpt-oss-120b', $firstPayload['model']);
+        $this->assertContains(
+            'get_report',
+            collect($firstPayload['tools'])
+                ->pluck('function.name')
+                ->all(),
+        );
+        $this->assertNotContains(
+            'search_customers',
+            collect($firstPayload['tools'])
+                ->pluck('function.name')
+                ->all(),
+        );
+        $this->assertSame(
+            'tool',
+            collect($secondPayload['messages'])->last()['role'],
+        );
+        $this->assertStringContainsString(
+            'Performance report',
+            collect($secondPayload['messages'])->last()['content'],
+        );
+    }
+
     public function test_configured_ai_provider_receives_aggregate_snapshot_only(): void
     {
         [$tenant, $admin] = $this->fixture();
