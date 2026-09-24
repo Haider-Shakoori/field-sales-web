@@ -130,6 +130,9 @@ class MileageFuelTest extends TestCase
             ->assertJsonPath('data.km_per_liter', 0.2)
             ->assertJsonPath('data.fuel_cost_by_currency.AFN', 450);
 
+        auth('sanctum')->forgetUser();
+        app('auth')->forgetGuards();
+
         $admin = $this->admin($actor['tenant']);
 
         $this->actingAs($admin)
