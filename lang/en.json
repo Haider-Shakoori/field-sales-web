@@ -522,5 +522,21 @@
     "User / question": "User / question",
     "Restricted": "Restricted",
     "No AI audit records in this period.": "No AI audit records in this period.",
-    "AI audit records never store API keys or provider bearer tokens. Cost is an estimate only when input/output token rates are configured.": "AI audit records never store API keys or provider bearer tokens. Cost is an estimate only when input/output token rates are configured."
+    "AI audit records never store API keys or provider bearer tokens. Cost is an estimate only when input/output token rates are configured.": "AI audit records never store API keys or provider bearer tokens. Cost is an estimate only when input/output token rates are configured.",
+    "Search conversations": "Search conversations",
+    "No conversations match your search.": "No conversations match your search.",
+    "Archived chats": "Archived chats",
+    "Restore": "Restore",
+    "Conversation restored.": "Conversation restored.",
+    "Check AI connection": "Check AI connection",
+    "Checking AI connection…": "Checking AI connection…",
+    "AI connection healthy": "AI connection healthy",
+    "AI connection failed": "AI connection failed",
+    "History": "History",
+    "Close panel": "Close panel",
+    "Ask again": "Ask again",
+    "Tool activity": "Tool activity",
+    "Response time": "Response time",
+    "AI can make mistakes. Verify critical business decisions against source records.": "AI can make mistakes. Verify critical business decisions against source records.",
+    "Search your chat history…": "Search your chat history…"
 }

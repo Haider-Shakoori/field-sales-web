@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Services\AiConversationService;
+use App\Services\AiInsightsAgentService;
 use App\Services\AiInsightsService;
 use App\Services\AiUsageService;
 use App\Services\ManagerBriefingService;
@@ -28,6 +29,7 @@ class AiInsightsController extends Controller
         return view('admin.ai-insights.index', [
             'snapshot' => $insights->snapshot($user),
             'conversations' => $conversations->listFor($user),
+            'archivedConversations' => $conversations->archivedFor($user),
             'conversation' => $conversation,
             'messages' => $conversation
                 ? $conversations->messages($conversation)
@@ -157,6 +159,32 @@ class AiInsightsController extends Controller
         return redirect()
             ->route('admin.ai-insights.index')
             ->with('status', __('Conversation archived.'));
+    }
+
+    public function restore(
+        Request $request,
+        string $conversation,
+        AiConversationService $conversations,
+    ): RedirectResponse {
+        $thread = $conversations->restore(
+            $request->user(),
+            $conversation,
+        );
+
+        return redirect()
+            ->route('admin.ai-insights.index', [
+                'conversation' => $thread->uuid,
+            ])
+            ->with('status', __('Conversation restored.'));
+    }
+
+    public function providerHealth(
+        Request $request,
+        AiInsightsAgentService $agent,
+    ): JsonResponse {
+        abort_unless($request->user()->hasPermission('reports:view'), 403);
+
+        return response()->json($agent->health());
     }
 
     private function providerEnabled(): bool

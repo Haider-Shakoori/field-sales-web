@@ -22,6 +22,17 @@ class AiConversationService
             ->get();
     }
 
+    public function archivedFor(User $user, int $limit = 20): Collection
+    {
+        return AiConversation::query()
+            ->visibleTo($user)
+            ->whereNotNull('archived_at')
+            ->withCount('messages')
+            ->orderByDesc('archived_at')
+            ->limit($limit)
+            ->get();
+    }
+
     public function resolve(User $user, ?string $uuid): ?AiConversation
     {
         if (! $uuid) {
@@ -116,6 +127,22 @@ class AiConversationService
     public function archive(AiConversation $conversation): void
     {
         $conversation->forceFill(['archived_at' => now()])->save();
+    }
+
+    public function restore(User $user, string $uuid): AiConversation
+    {
+        $conversation = AiConversation::query()
+            ->visibleTo($user)
+            ->whereNotNull('archived_at')
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+
+        $conversation->forceFill([
+            'archived_at' => null,
+            'last_message_at' => now(),
+        ])->save();
+
+        return $conversation;
     }
 
     private function estimatedCost(array $result): ?float

@@ -12,6 +12,7 @@ use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\Territory;
 use App\Models\User;
+use App\Services\AiConversationService;
 use App\Services\AiInsightsService;
 use App\Services\AiInsightToolService;
 use App\Tenancy\TenantContext;
@@ -86,6 +87,91 @@ class AiInsightsTest extends TestCase
                     'conversation' => $conversationUuid,
                 ]).'#ask-fieldpulse-bottom',
             );
+    }
+
+    public function test_chat_history_can_be_archived_and_restored(): void
+    {
+        [$tenant, $admin] = $this->fixture();
+
+        $conversation = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => app(AiConversationService::class)->create(
+                $admin,
+                'Remember this conversation',
+            ),
+        );
+
+        $this->actingAs($admin)
+            ->delete(route(
+                'admin.ai-insights.conversations.archive',
+                $conversation->uuid,
+            ))
+            ->assertRedirect(route('admin.ai-insights.index'));
+
+        $this->assertNotNull(
+            app(TenantContext::class)->withTenant(
+                $tenant,
+                fn () => AiConversation::where('uuid', $conversation->uuid)
+                    ->firstOrFail()
+                    ->archived_at,
+            ),
+        );
+
+        $this->actingAs($admin)
+            ->patch(route(
+                'admin.ai-insights.conversations.restore',
+                $conversation->uuid,
+            ))
+            ->assertRedirect(route('admin.ai-insights.index', [
+                'conversation' => $conversation->uuid,
+            ]));
+
+        $this->assertNull(
+            app(TenantContext::class)->withTenant(
+                $tenant,
+                fn () => AiConversation::where('uuid', $conversation->uuid)
+                    ->firstOrFail()
+                    ->archived_at,
+            ),
+        );
+
+        $this->actingAs($admin)
+            ->get(route('admin.ai-insights.index'))
+            ->assertOk()
+            ->assertSee('Search conversations')
+            ->assertSee('Check AI connection');
+    }
+
+    public function test_provider_health_check_verifies_groq_without_exposing_key(): void
+    {
+        [, $admin] = $this->fixture();
+
+        config()->set('ai.enabled', true);
+        config()->set('ai.provider', 'groq');
+        config()->set('ai.base_url', null);
+        config()->set('ai.api_key', 'groq-health-test-key');
+        config()->set('ai.model', 'openai/gpt-oss-120b');
+
+        Http::fake([
+            'https://api.groq.com/openai/v1/models' => Http::response([
+                'object' => 'list',
+                'data' => [],
+            ], 200),
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.ai-insights.provider-health'))
+            ->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'status' => 'connected',
+                'provider' => 'groq',
+                'model' => 'openai/gpt-oss-120b',
+            ])
+            ->assertJsonMissing(['api_key' => 'groq-health-test-key']);
+
+        Http::assertSent(fn ($request): bool => $request->url()
+            === 'https://api.groq.com/openai/v1/models');
     }
 
     public function test_groq_agent_can_call_permission_aware_fieldpulse_tools(): void
