@@ -88,6 +88,15 @@ class AiInsightsController extends Controller
         );
     }
 
+    public function providerCheck(
+        Request $request,
+        AiInsightsAgentService $agent,
+    ): JsonResponse {
+        abort_unless($request->user()->hasPermission('reports:view'), 403);
+
+        return response()->json($agent->checkConnection());
+    }
+
     private function providerEnabled(): bool
     {
         if (! config('ai.enabled', false)) {
