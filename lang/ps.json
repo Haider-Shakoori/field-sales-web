@@ -117,7 +117,7 @@
     "Assigned salesman": "ټاکل شوی پلورونکی",
     "Type": "ډول",
     "Priority": "لومړیتوب",
-    "Overdue": "له موعد اوښتي",
+    "Overdue": "له وخته اوښتی",
     "Complete": "بشپړول",
     "No follow-ups found.": "تعقیب ونه موندل شو.",
     "Pending": "په تمه",
@@ -623,5 +623,15 @@
     "Lead created.": "مخکښ جوړ شو.",
     "Lead updated.": "مخکښ تازه شو.",
     "Lead activity added.": "د مخکښ فعالیت اضافه شو.",
-    "Lead converted to customer.": "مخکښ پېرېدونکي ته واوښت."
+    "Lead converted to customer.": "مخکښ پېرېدونکي ته واوښت.",
+    "Reorder recommendations": "د بیا سپارښتنې وړاندیزونه",
+    "Explainable suggestions from approved purchase cadence and recent average quantities. One-off purchases are not treated as recurring demand.": "د تایید شوو پېرودونو د دورې او وروستیو منځنیو مقدارونو پر بنسټ تشریح کېدونکي وړاندیزونه. یو ځل پېرود د تکراري غوښتنې په توګه نه حسابېږي.",
+    "due or upcoming": "رسېدلي یا نږدې",
+    "approved orders": "تایید شوي فرمایشونه",
+    "Suggested": "وړاندیز شوی",
+    "Typical cycle": "معمولي دوره",
+    "Due today": "نن رسېږي",
+    "Due soon": "ژر رسېږي",
+    "Available salesman stock": "د پلورونکي شته موجودي",
+    "No repeat-purchase recommendation is due yet. FieldPulse needs at least two approved purchases of a product before predicting its reorder cycle.": "تر اوسه د تکراري پېرود وړاندیز نه دی رسېدلی. FieldPulse د بیا فرمایش دورې اټکل لپاره د یوه محصول لږ تر لږه دوه تایید شوي پېرودونه غواړي."
 }

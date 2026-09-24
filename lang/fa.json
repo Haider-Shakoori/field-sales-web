@@ -117,7 +117,7 @@
     "Assigned salesman": "فروشنده تعیین‌شده",
     "Type": "نوع",
     "Priority": "اولویت",
-    "Overdue": "سررسیدگذشته",
+    "Overdue": "دیرشده",
     "Complete": "تکمیل",
     "No follow-ups found.": "پیگیری یافت نشد.",
     "Pending": "در انتظار",
@@ -623,5 +623,15 @@
     "Lead created.": "سرنخ ایجاد شد.",
     "Lead updated.": "سرنخ به‌روزرسانی شد.",
     "Lead activity added.": "فعالیت سرنخ اضافه شد.",
-    "Lead converted to customer.": "سرنخ به مشتری تبدیل شد."
+    "Lead converted to customer.": "سرنخ به مشتری تبدیل شد.",
+    "Reorder recommendations": "پیشنهادهای سفارش مجدد",
+    "Explainable suggestions from approved purchase cadence and recent average quantities. One-off purchases are not treated as recurring demand.": "پیشنهادهای قابل توضیح بر اساس دوره خریدهای تأییدشده و میانگین مقدارهای اخیر. خریدهای یک‌باره به‌عنوان تقاضای تکراری در نظر گرفته نمی‌شوند.",
+    "due or upcoming": "سررسید یا نزدیک",
+    "approved orders": "سفارش تأییدشده",
+    "Suggested": "پیشنهادی",
+    "Typical cycle": "چرخه معمول",
+    "Due today": "امروز سررسید",
+    "Due soon": "نزدیک سررسید",
+    "Available salesman stock": "موجودی در دسترس فروشنده",
+    "No repeat-purchase recommendation is due yet. FieldPulse needs at least two approved purchases of a product before predicting its reorder cycle.": "هنوز پیشنهاد خرید تکراری سررسید نشده است. FieldPulse برای پیش‌بینی چرخه سفارش مجدد حداقل به دو خرید تأییدشده از یک محصول نیاز دارد."
 }
