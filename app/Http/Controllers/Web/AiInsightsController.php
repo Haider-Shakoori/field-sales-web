@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Services\AiConversationService;
 use App\Services\AiInsightsService;
+use App\Services\ManagerBriefingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,6 +36,15 @@ class AiInsightsController extends Controller
             'providerModel' => (string) config('ai.model', ''),
             'customerDataEnabled' => (bool) config('ai.allow_customer_data', false),
             'suggestedPrompts' => $this->suggestedPrompts(),
+        ]);
+    }
+
+    public function briefing(
+        Request $request,
+        ManagerBriefingService $briefing,
+    ): View {
+        return view('admin.ai-insights.briefing', [
+            'briefing' => $briefing->build($request->user()),
         ]);
     }
 
@@ -147,6 +157,7 @@ class AiInsightsController extends Controller
     {
         $prompts = [
             __('What needs my attention today?'),
+            __('Give me the manager morning briefing.'),
             __('Who sold the most this month?'),
             __('Compare sales and collections for the last 30 days.'),
             __('Which salesmen have not started work today?'),
