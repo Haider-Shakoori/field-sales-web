@@ -15,7 +15,7 @@
             <h2 class="font-semibold">{{ __('Collection detail') }}</h2>
             <dl class="mt-4 grid gap-4 sm:grid-cols-2">
                 <div><dt class="text-sm text-slate-400">{{ __('Amount') }}</dt><dd class="text-lg font-semibold">{{ number_format((float) $collection->amount, 2) }} {{ $collection->currency }}</dd></div>
-                <div><dt class="text-sm text-slate-400">{{ __('Payment method') }}</dt><dd>{{ str($collection->payment_method)->replace('_', ' ')->title() }}</dd></div>
+                <div><dt class="text-sm text-slate-400">{{ __('Payment method') }}</dt><dd>{{ __(str($collection->payment_method)->replace('_', ' ')->title()->toString()) }}</dd></div>
                 <div><dt class="text-sm text-slate-400">{{ __('Collected') }}</dt><dd>{{ $collection->collected_at?->format('Y-m-d H:i:s') }}</dd></div>
                 <div><dt class="text-sm text-slate-400">{{ __('Reference') }}</dt><dd>{{ $collection->reference_number ?? '—' }}</dd></div>
                 <div><dt class="text-sm text-slate-400">{{ __('Salesman') }}</dt><dd>{{ $collection->salesman?->full_name ?? '—' }}</dd></div>
