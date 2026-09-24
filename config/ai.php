@@ -11,4 +11,6 @@ return [
     'timeout_seconds' => (int) env('AI_INSIGHTS_TIMEOUT', 20),
     'max_tool_rounds' => (int) env('AI_INSIGHTS_MAX_TOOL_ROUNDS', 4),
     'allow_customer_data' => (bool) env('AI_INSIGHTS_ALLOW_CUSTOMER_DATA', false),
+    'history_messages' => (int) env('AI_INSIGHTS_HISTORY_MESSAGES', 20),
+    'history_retention_days' => (int) env('AI_INSIGHTS_HISTORY_RETENTION_DAYS', 90),
 ];
