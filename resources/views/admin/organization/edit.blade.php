@@ -73,6 +73,76 @@
             </div>
         </section>
 
+        <section class="space-y-5 rounded-2xl border border-white/10 bg-slate-900 p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 class="font-semibold">{{ __('Ask FieldPulse AI policy') }}</h2>
+                    <p class="mt-1 text-sm text-slate-400">{{ __('Control external AI access and conversation retention for this organization.') }}</p>
+                </div>
+                <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $aiPolicy['external_available'] ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300' }}">
+                    {{ $aiPolicy['external_available'] ? __('Platform AI available') : __('Platform AI disabled') }}
+                </span>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                    <input type="hidden" name="ai_enabled" value="0">
+                    <input
+                        type="checkbox"
+                        name="ai_enabled"
+                        value="1"
+                        @checked((bool) old('ai_enabled', data_get($tenant->settings, 'ai.enabled', true)))
+                        class="mt-1 rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500"
+                    >
+                    <span>
+                        <span class="block text-sm font-semibold text-slate-200">{{ __('Enable external AI for this organization') }}</span>
+                        <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('When disabled, Ask FieldPulse remains available in grounded local mode and does not call the external LLM.') }}</span>
+                    </span>
+                </label>
+
+                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                    <input type="hidden" name="ai_allow_customer_data" value="0">
+                    <input
+                        type="checkbox"
+                        name="ai_allow_customer_data"
+                        value="1"
+                        @checked((bool) old('ai_allow_customer_data', data_get($tenant->settings, 'ai.allow_customer_data', true)))
+                        @disabled(! $aiPolicy['customer_data_available'])
+                        class="mt-1 rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                    <span>
+                        <span class="block text-sm font-semibold text-slate-200">{{ __('Allow customer-level AI tools') }}</span>
+                        <span class="mt-1 block text-xs leading-5 text-slate-500">
+                            {{ $aiPolicy['customer_data_available']
+                                ? __('Authorized users may ask about customer balances, aging, orders, follow-ups, and other customer-specific records.')
+                                : __('The platform administrator has disabled customer-level AI data globally.') }}
+                        </span>
+                    </span>
+                </label>
+            </div>
+
+            <div class="max-w-md">
+                <label class="mb-2 block text-sm text-slate-300">{{ __('Conversation history retention') }}</label>
+                <select name="ai_history_retention_days" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
+                    @foreach([
+                        30 => __('30 days'),
+                        60 => __('60 days'),
+                        90 => __('90 days'),
+                        180 => __('180 days'),
+                        365 => __('1 year'),
+                        0 => __('Keep indefinitely'),
+                    ] as $days => $label)
+                        <option value="{{ $days }}" @selected((int) old('ai_history_retention_days', $aiPolicy['history_retention_days']) === $days)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-2 text-xs leading-5 text-slate-500">{{ __('Expired Ask FieldPulse conversations are removed with their messages. Tool access remains read-only and permission-aware.') }}</p>
+            </div>
+
+            <div class="rounded-xl border border-cyan-400/10 bg-cyan-500/5 px-4 py-3 text-xs leading-5 text-slate-400">
+                {{ __('Provider credentials remain platform-managed. Organization settings can restrict AI access but cannot expose or override the server API key.') }}
+            </div>
+        </section>
+
         <div class="flex flex-wrap gap-3">
             @if(auth()->user()->hasPermission('settings:manage'))
                 <button class="rounded-xl bg-indigo-500 px-5 py-3 font-semibold hover:bg-indigo-400">Save profile</button>
