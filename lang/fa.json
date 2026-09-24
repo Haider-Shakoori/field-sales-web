@@ -372,5 +372,8 @@
     "Visits today: :visits. Active customers without a visit in 30 days: :customers.": "بازدیدهای امروز: :visits. مشتریان فعال بدون بازدید در ۳۰ روز: :customers.",
     "Overdue follow-ups: :overdue. Open high-priority follow-ups: :high.": "پیگیری‌های معوق: :overdue. پیگیری‌های باز با اولویت بالا: :high.",
     ":started of :active active salesmen have started work today.": ":started از :active فروشنده فعال امروز کار را آغاز کرده‌اند.",
-    "none recorded": "موردی ثبت نشده"
+    "none recorded": "موردی ثبت نشده",
+    "Thinking from current FieldPulse data…": "در حال بررسی داده‌های فعلی FieldPulse…",
+    "Ask FieldPulse could not answer right now.": "Ask FieldPulse در حال حاضر نتوانست پاسخ دهد.",
+    "No answer was returned.": "پاسخی برگردانده نشد."
 }
