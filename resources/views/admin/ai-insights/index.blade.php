@@ -11,6 +11,9 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-2 text-xs">
+        <a href="{{ route('admin.ai-insights.usage') }}" class="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1.5 font-semibold text-cyan-200 transition hover:bg-cyan-500/15">
+            {{ __('Usage & Audit') }}
+        </a>
         <a href="{{ route('admin.ai-insights.briefing') }}" class="rounded-full border border-amber-400/20 bg-amber-500/10 px-3 py-1.5 font-semibold text-amber-200 transition hover:bg-amber-500/15">
             ☀ {{ __('Morning Briefing') }}
         </a>
