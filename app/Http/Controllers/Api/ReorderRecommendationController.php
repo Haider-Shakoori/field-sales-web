@@ -7,7 +7,6 @@ use App\Models\Customer;
 use App\Models\SalesmanAssignment;
 use App\Services\CustomerReorderRecommendationService;
 use App\Support\ApiResponse;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

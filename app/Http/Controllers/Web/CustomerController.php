@@ -71,8 +71,7 @@ class CustomerController extends Controller
         Customer $customer,
         CustomerBalanceService $balances,
         CustomerReorderRecommendationService $reorders,
-    ): View
-    {
+    ): View {
         Gate::authorize('view', $customer);
         $user = $request->user()->loadMissing(['tenant', 'salesman']);
         $timezone = $user->tenant?->timezone ?: config('app.timezone', 'UTC');
