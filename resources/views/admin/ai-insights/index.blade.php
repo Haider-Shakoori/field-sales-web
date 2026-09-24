@@ -79,7 +79,7 @@
 
         <form id="ask-fieldpulse-form" method="POST" action="{{ route('admin.ai-insights.ask') }}" class="mt-4 space-y-3">
             @csrf
-            <textarea name="question" rows="4" maxlength="500" required class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3" placeholder="{{ __('Example: How is customer coverage looking today?') }}">{{ old('question', $question) }}</textarea>
+            <textarea id="ai-question" name="question" rows="3" maxlength="2000" required class="w-full resize-none rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 leading-6 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="{{ __('Ask anything about your FieldPulse business data…') }}">{{ old('question') }}</textarea>
             <button id="ask-fieldpulse-button" class="w-full rounded-xl bg-indigo-500 px-4 py-3 font-semibold disabled:cursor-not-allowed disabled:opacity-60">{{ __('Ask FieldPulse') }}</button>
             <p id="ask-fieldpulse-status" class="hidden text-sm text-slate-400" aria-live="polite"></p>
         </form>
