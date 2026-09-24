@@ -110,6 +110,7 @@
                     ['route' => 'admin.returns.index', 'match' => 'admin.returns.*', 'label' => 'Returns', 'icon' => 'rotate-ccw', 'can' => 'returns:view'],
                     ['route' => 'admin.collections.index', 'match' => 'admin.collections.*', 'label' => 'Collections', 'icon' => 'banknotes', 'can' => 'collections:view'],
                     ['route' => 'admin.expenses.index', 'match' => 'admin.expenses.*', 'label' => 'Expenses', 'icon' => 'receipt', 'can' => 'expenses:view'],
+                    ['route' => 'admin.mileage.index', 'match' => 'admin.mileage.*', 'label' => 'Mileage & Fuel', 'icon' => 'map', 'can' => 'reports:view'],
                     ['route' => 'admin.targets.index', 'match' => 'admin.targets.*', 'label' => 'Targets', 'icon' => 'flag', 'can' => 'targets:view'],
                 ],
             ],
