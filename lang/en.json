@@ -553,5 +553,7 @@
     "180 days": "180 days",
     "Keep indefinitely": "Keep indefinitely",
     "Expired Ask FieldPulse conversations are removed with their messages. Tool access remains read-only and permission-aware.": "Expired Ask FieldPulse conversations are removed with their messages. Tool access remains read-only and permission-aware.",
-    "Provider credentials remain platform-managed. Organization settings can restrict AI access but cannot expose or override the server API key.": "Provider credentials remain platform-managed. Organization settings can restrict AI access but cannot expose or override the server API key."
+    "Provider credentials remain platform-managed. Organization settings can restrict AI access but cannot expose or override the server API key.": "Provider credentials remain platform-managed. Organization settings can restrict AI access but cannot expose or override the server API key.",
+    "Chat history is retained indefinitely for this organization.": "Chat history is retained indefinitely for this organization.",
+    "Chat history is retained for :days days for this organization.": "Chat history is retained for :days days for this organization."
 }
