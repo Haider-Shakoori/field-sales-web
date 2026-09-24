@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\CustomerStatementController;
 use App\Http\Controllers\Api\DailyRoutePlannerController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GpsController;
+use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\MileageController;
 use App\Http\Controllers\Api\NotificationController;
@@ -43,6 +45,13 @@ Route::prefix('v1')->group(function () {
             Route::get('/routes', [MasterDataController::class, 'routes']);
             Route::get('/routes/{route:uuid}/customers', [MasterDataController::class, 'routeCustomers']);
             Route::get('/route-plan/today', [DailyRoutePlannerController::class, 'today']);
+            Route::get('/leads', [LeadController::class, 'index']);
+            Route::get('/leads/{lead:uuid}', [LeadController::class, 'show']);
+            Route::post('/leads', [LeadController::class, 'store']);
+            Route::patch('/leads/{lead:uuid}', [LeadController::class, 'update']);
+            Route::post('/leads/{lead:uuid}/activities', [LeadController::class, 'activity']);
+            Route::post('/leads/{lead:uuid}/convert', [LeadController::class, 'convert']);
+
             Route::get('/appointments', [AppointmentController::class, 'index']);
             Route::get('/mileage/today', [MileageController::class, 'today']);
             Route::get('/mileage/history', [MileageController::class, 'history']);
