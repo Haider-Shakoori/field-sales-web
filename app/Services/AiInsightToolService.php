@@ -277,24 +277,42 @@ class AiInsightToolService
         $limit = min(20, max(1, (int) ($arguments['limit'] ?? 10)));
 
         return [
-            'recommendations' => collect(
+            'recommendations' => $this->externalRecommendationRows(
+                $user,
                 $this->recommendations->build($user, $limit),
-            )->map(fn (array $item) => [
-                ...$item,
-                'title_text' => __($item['title']),
-                'message_text' => __(
-                    $item['message'],
-                    $item['message_params'] ?? [],
-                ),
-                'action_text' => __($item['action']),
-            ])->all(),
+            ),
         ];
     }
 
     private function briefingPayload(User $user): array
     {
         $briefing = $this->briefing->build($user);
-        $briefing['priorities'] = collect($briefing['priorities'])
+        $briefing['priorities'] = $this->externalRecommendationRows(
+            $user,
+            $briefing['priorities'],
+        );
+
+        return $briefing;
+    }
+
+    private function externalRecommendationRows(
+        User $user,
+        array $recommendations,
+    ): array {
+        $allowCustomerData = (bool) config('ai.allow_customer_data', false)
+            && $user->hasPermission('customers:view');
+
+        return collect($recommendations)
+            ->filter(function (array $item) use ($allowCustomerData): bool {
+                if ($allowCustomerData) {
+                    return true;
+                }
+
+                return ! array_key_exists(
+                    'customer_uuid',
+                    $item['evidence'] ?? [],
+                );
+            })
             ->map(fn (array $item) => [
                 ...$item,
                 'title_text' => __($item['title']),
@@ -304,9 +322,8 @@ class AiInsightToolService
                 ),
                 'action_text' => __($item['action']),
             ])
+            ->values()
             ->all();
-
-        return $briefing;
     }
 
     private function report(User $user, array $arguments): array
