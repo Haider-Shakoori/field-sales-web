@@ -122,8 +122,11 @@ class AiInsightsService
                     'model' => $agent['model'] ?? null,
                     'provider_status' => 'connected',
                     'fallback_reason' => null,
+                    'provider_http_status' => $agent['provider_http_status'] ?? null,
+                    'provider_request_id' => $agent['provider_request_id'] ?? null,
                     'latency_ms' => $agent['latency_ms'] ?? null,
                     'usage' => $agent['usage'] ?? [],
+                    'tool_call_count' => $agent['tool_call_count'] ?? 0,
                     'tools_used' => $agent['tools_used'] ?? [],
                 ];
             }
@@ -131,10 +134,22 @@ class AiInsightsService
             $fallbackReason = $agent['fallback_reason'] ?? 'provider_failed';
             $fallbackMessage = $agent['fallback_message']
                 ?? 'The external AI provider was unavailable.';
+            $fallbackHttpStatus = $agent['provider_http_status'] ?? null;
+            $fallbackRequestId = $agent['provider_request_id'] ?? null;
+            $fallbackLatency = $agent['latency_ms'] ?? null;
+            $fallbackUsage = $agent['usage'] ?? [];
+            $fallbackToolCount = $agent['tool_call_count'] ?? 0;
+            $fallbackTools = $agent['tools_used'] ?? [];
         }
 
         $fallbackReason = $fallbackReason ?? null;
         $fallbackMessage = $fallbackMessage ?? null;
+        $fallbackHttpStatus = $fallbackHttpStatus ?? null;
+        $fallbackRequestId = $fallbackRequestId ?? null;
+        $fallbackLatency = $fallbackLatency ?? null;
+        $fallbackUsage = $fallbackUsage ?? [];
+        $fallbackToolCount = $fallbackToolCount ?? 0;
+        $fallbackTools = $fallbackTools ?? [];
 
         $endpoint = trim((string) config('ai.endpoint'));
 
@@ -150,8 +165,11 @@ class AiInsightsService
                     'model' => config('ai.model'),
                     'provider_status' => 'connected',
                     'fallback_reason' => null,
+                    'provider_http_status' => null,
+                    'provider_request_id' => null,
                     'latency_ms' => null,
                     'usage' => [],
+                    'tool_call_count' => 0,
                     'tools_used' => [],
                 ];
             }
@@ -166,9 +184,12 @@ class AiInsightsService
             'provider_status' => $providerEnabled ? 'fallback' : 'local',
             'fallback_reason' => $fallbackReason,
             'fallback_message' => $fallbackMessage,
-            'latency_ms' => null,
-            'usage' => [],
-            'tools_used' => [],
+            'provider_http_status' => $fallbackHttpStatus,
+            'provider_request_id' => $fallbackRequestId,
+            'latency_ms' => $fallbackLatency,
+            'usage' => $fallbackUsage,
+            'tool_call_count' => $fallbackToolCount,
+            'tools_used' => $fallbackTools,
         ];
     }
 

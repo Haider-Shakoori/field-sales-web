@@ -17,6 +17,7 @@ class AiMessage extends Model
     {
         return [
             'meta' => 'array',
+            'estimated_cost_usd' => 'decimal:8',
         ];
     }
 

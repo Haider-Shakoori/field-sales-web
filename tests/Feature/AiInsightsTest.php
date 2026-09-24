@@ -120,7 +120,11 @@ class AiInsightsTest extends TestCase
                         ]],
                     ],
                 ]],
-            ], 200)
+                'usage' => [
+                    'prompt_tokens' => 120,
+                    'completion_tokens' => 10,
+                ],
+            ], 200, ['x-request-id' => 'req-tool-round'])
             ->push([
                 'choices' => [[
                     'message' => [
@@ -128,7 +132,11 @@ class AiInsightsTest extends TestCase
                         'content' => 'There are no active salesman performance rows for that period.',
                     ],
                 ]],
-            ], 200);
+                'usage' => [
+                    'prompt_tokens' => 180,
+                    'completion_tokens' => 30,
+                ],
+            ], 200, ['x-request-id' => 'req-final']);
 
         $result = app(TenantContext::class)->withTenant(
             $tenant,
@@ -143,6 +151,11 @@ class AiInsightsTest extends TestCase
             'There are no active salesman performance rows for that period.',
             $result['answer'],
         );
+        $this->assertSame(300, $result['usage']['prompt_tokens']);
+        $this->assertSame(40, $result['usage']['completion_tokens']);
+        $this->assertSame(1, $result['tool_call_count']);
+        $this->assertSame(200, $result['provider_http_status']);
+        $this->assertSame('req-final', $result['provider_request_id']);
 
         Http::assertSentCount(2);
 

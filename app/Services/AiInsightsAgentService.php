@@ -54,6 +54,10 @@ class AiInsightsAgentService
             'content' => trim($question),
         ];
         $toolsUsed = [];
+        $promptTokens = 0;
+        $completionTokens = 0;
+        $providerHttpStatus = null;
+        $providerRequestId = null;
 
         $maxRounds = min(6, max(1, (int) config('ai.max_tool_rounds', 4)));
 
@@ -72,11 +76,21 @@ class AiInsightsAgentService
                         'temperature' => 0.1,
                     ]);
 
+                $providerHttpStatus = $response->status();
+                $providerRequestId = $this->requestId($response);
+                $promptTokens += (int) ($response->json('usage.prompt_tokens') ?? 0);
+                $completionTokens += (int) ($response->json('usage.completion_tokens') ?? 0);
+
                 if (! $response->successful()) {
                     return $this->failure(
                         'http_'.$response->status(),
                         $this->providerErrorMessage($response->status()),
                         $startedAt,
+                        $providerHttpStatus,
+                        $providerRequestId,
+                        $promptTokens,
+                        $completionTokens,
+                        $toolsUsed,
                     );
                 }
 
@@ -87,6 +101,11 @@ class AiInsightsAgentService
                         'invalid_provider_response',
                         'The AI provider returned an invalid response.',
                         $startedAt,
+                        $providerHttpStatus,
+                        $providerRequestId,
+                        $promptTokens,
+                        $completionTokens,
+                        $toolsUsed,
                     );
                 }
 
@@ -100,6 +119,11 @@ class AiInsightsAgentService
                             'empty_provider_response',
                             'The AI provider returned an empty answer.',
                             $startedAt,
+                            $providerHttpStatus,
+                            $providerRequestId,
+                            $promptTokens,
+                            $completionTokens,
+                            $toolsUsed,
                         );
                     }
 
@@ -110,10 +134,13 @@ class AiInsightsAgentService
                         'model' => $model,
                         'provider_status' => 'connected',
                         'latency_ms' => $this->elapsedMs($startedAt),
+                        'provider_http_status' => $providerHttpStatus,
+                        'provider_request_id' => $providerRequestId,
                         'usage' => [
-                            'prompt_tokens' => $response->json('usage.prompt_tokens'),
-                            'completion_tokens' => $response->json('usage.completion_tokens'),
+                            'prompt_tokens' => $promptTokens,
+                            'completion_tokens' => $completionTokens,
                         ],
+                        'tool_call_count' => count($toolsUsed),
                         'tools_used' => array_values(array_unique($toolsUsed)),
                     ];
                 }
@@ -138,6 +165,11 @@ class AiInsightsAgentService
                             'invalid_tool_call',
                             'The AI provider returned an invalid tool request.',
                             $startedAt,
+                            $providerHttpStatus,
+                            $providerRequestId,
+                            $promptTokens,
+                            $completionTokens,
+                            $toolsUsed,
                         );
                     }
 
@@ -174,6 +206,11 @@ class AiInsightsAgentService
                 'provider_connection_failed',
                 'The AI provider could not be reached.',
                 $startedAt,
+                $providerHttpStatus,
+                $providerRequestId,
+                $promptTokens,
+                $completionTokens,
+                $toolsUsed,
             );
         }
 
@@ -181,6 +218,11 @@ class AiInsightsAgentService
             'tool_round_limit',
             'The AI provider reached the maximum tool-call rounds.',
             $startedAt,
+            $providerHttpStatus,
+            $providerRequestId,
+            $promptTokens,
+            $completionTokens,
+            $toolsUsed,
         );
     }
 
@@ -216,6 +258,11 @@ class AiInsightsAgentService
         string $reason,
         string $message,
         int $startedAt,
+        ?int $providerHttpStatus = null,
+        ?string $providerRequestId = null,
+        int $promptTokens = 0,
+        int $completionTokens = 0,
+        array $toolsUsed = [],
     ): array {
         return [
             'ok' => false,
@@ -224,9 +271,33 @@ class AiInsightsAgentService
             'provider' => (string) config('ai.provider'),
             'model' => (string) config('ai.model'),
             'provider_status' => 'fallback',
+            'provider_http_status' => $providerHttpStatus,
+            'provider_request_id' => $providerRequestId,
             'latency_ms' => $this->elapsedMs($startedAt),
-            'tools_used' => [],
+            'usage' => [
+                'prompt_tokens' => $promptTokens,
+                'completion_tokens' => $completionTokens,
+            ],
+            'tool_call_count' => count($toolsUsed),
+            'tools_used' => array_values(array_unique($toolsUsed)),
         ];
+    }
+
+    private function requestId($response): ?string
+    {
+        foreach ([
+            'x-request-id',
+            'x-groq-request-id',
+            'request-id',
+        ] as $header) {
+            $value = $response->header($header);
+
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        return null;
     }
 
     private function elapsedMs(int $startedAt): int

@@ -72,9 +72,13 @@ class AiConversationService
             'source' => $result['source'] ?? null,
             'provider' => $result['provider'] ?? null,
             'model' => $result['model'] ?? null,
+            'provider_http_status' => $result['provider_http_status'] ?? null,
+            'provider_request_id' => $result['provider_request_id'] ?? null,
             'latency_ms' => $result['latency_ms'] ?? null,
             'prompt_tokens' => data_get($result, 'usage.prompt_tokens'),
             'completion_tokens' => data_get($result, 'usage.completion_tokens'),
+            'tool_call_count' => (int) ($result['tool_call_count'] ?? 0),
+            'estimated_cost_usd' => $this->estimatedCost($result),
             'meta' => array_filter([
                 'provider_status' => $result['provider_status'] ?? null,
                 'fallback_reason' => $result['fallback_reason'] ?? null,
@@ -112,6 +116,34 @@ class AiConversationService
     public function archive(AiConversation $conversation): void
     {
         $conversation->forceFill(['archived_at' => now()])->save();
+    }
+
+    private function estimatedCost(array $result): ?float
+    {
+        $inputRate = config('ai.input_cost_per_million');
+        $outputRate = config('ai.output_cost_per_million');
+
+        if (
+            $inputRate === null
+            || $inputRate === ''
+            || $outputRate === null
+            || $outputRate === ''
+        ) {
+            return null;
+        }
+
+        $promptTokens = (int) data_get($result, 'usage.prompt_tokens', 0);
+        $completionTokens = (int) data_get($result, 'usage.completion_tokens', 0);
+
+        if ($promptTokens === 0 && $completionTokens === 0) {
+            return 0.0;
+        }
+
+        return round(
+            (($promptTokens / 1_000_000) * (float) $inputRate)
+                + (($completionTokens / 1_000_000) * (float) $outputRate),
+            8,
+        );
     }
 
     private function title(string $question): string
