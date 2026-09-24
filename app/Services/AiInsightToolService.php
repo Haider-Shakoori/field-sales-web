@@ -4,6 +4,11 @@ namespace App\Services;
 
 use App\Models\Customer;
 use App\Models\CustomerFollowUp;
+use App\Models\Expense;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\SalesmanStockBalance;
+use App\Models\SalesReturn;
 use App\Models\User;
 use App\Models\WorkSession;
 use Carbon\CarbonImmutable;
@@ -15,6 +20,7 @@ class AiInsightToolService
     public function __construct(
         private readonly ReportService $reports,
         private readonly CustomerBalanceService $balances,
+        private readonly SupervisorScorecardService $scorecards,
         private readonly TenantClock $clock,
     ) {}
 
@@ -55,10 +61,114 @@ class AiInsightToolService
             );
         }
 
+        if ($user->hasPermission('catalog:view')) {
+            $tools[] = $this->tool(
+                'get_top_products',
+                'Get top-selling products from approved orders for a date range, separated by currency.',
+                [
+                    'type' => 'object',
+                    'properties' => [
+                        'date_from' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                        'date_to' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                        'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 20],
+                    ],
+                    'required' => ['date_from', 'date_to'],
+                    'additionalProperties' => false,
+                ],
+            );
+        }
+
+        if ($user->hasPermission('expenses:view')) {
+            $tools[] = $this->tool(
+                'get_expenses',
+                'Summarize expenses by category and currency for a date range.',
+                [
+                    'type' => 'object',
+                    'properties' => [
+                        'date_from' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                        'date_to' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                        'status' => [
+                            'type' => 'string',
+                            'enum' => ['approved', 'pending', 'rejected', 'cancelled', 'any'],
+                        ],
+                    ],
+                    'required' => ['date_from', 'date_to'],
+                    'additionalProperties' => false,
+                ],
+            );
+        }
+
+        if ($user->hasPermission('stock:view')) {
+            $tools[] = $this->tool(
+                'get_salesman_stock',
+                'Get current salesman stock balances. Optionally filter by salesman name/code or product name/SKU.',
+                [
+                    'type' => 'object',
+                    'properties' => [
+                        'salesman_query' => ['type' => 'string'],
+                        'product_query' => ['type' => 'string'],
+                        'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 30],
+                    ],
+                    'additionalProperties' => false,
+                ],
+            );
+        }
+
+        if ($user->hasPermission('returns:view')) {
+            $tools[] = $this->tool(
+                'get_returns',
+                'Summarize customer returns by product, condition, and status for a date range.',
+                [
+                    'type' => 'object',
+                    'properties' => [
+                        'date_from' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                        'date_to' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                        'status' => [
+                            'type' => 'string',
+                            'enum' => ['approved', 'pending', 'rejected', 'any'],
+                        ],
+                    ],
+                    'required' => ['date_from', 'date_to'],
+                    'additionalProperties' => false,
+                ],
+            );
+        }
+
+        if ($user->hasPermission('reports:view')) {
+            $tools[] = $this->tool(
+                'get_scorecards',
+                'Get supervisor/salesman performance scorecards for a date range.',
+                [
+                    'type' => 'object',
+                    'properties' => [
+                        'date_from' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                        'date_to' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                    ],
+                    'required' => ['date_from', 'date_to'],
+                    'additionalProperties' => false,
+                ],
+            );
+        }
+
         if (
             config('ai.allow_customer_data', false)
             && $user->hasPermission('customers:view')
         ) {
+            if ($user->hasPermission('orders:view')) {
+                $tools[] = $this->tool(
+                    'get_order_details',
+                    'Find a specific order by order number and return its customer, salesman, totals, status, and line items.',
+                    [
+                        'type' => 'object',
+                        'properties' => [
+                            'order_number' => ['type' => 'string'],
+                        ],
+                        'required' => ['order_number'],
+                        'additionalProperties' => false,
+                    ],
+                );
+            }
+
             $tools[] = $this->tool(
                 'search_customers',
                 'Find customers by name, code, phone, or contact person and return credit balances plus recent visit/follow-up indicators.',
@@ -122,6 +232,12 @@ class AiInsightToolService
         return match ($name) {
             'get_report' => $this->report($user, $arguments),
             'get_attendance' => $this->attendance($user, $arguments),
+            'get_top_products' => $this->topProducts($user, $arguments),
+            'get_expenses' => $this->expenses($user, $arguments),
+            'get_salesman_stock' => $this->salesmanStock($user, $arguments),
+            'get_returns' => $this->returns($user, $arguments),
+            'get_scorecards' => $this->scorecards($user, $arguments),
+            'get_order_details' => $this->orderDetails($user, $arguments),
             'search_customers' => $this->customerSearch($user, $arguments),
             'get_receivables' => $this->receivables($user, $arguments),
             'get_stale_customers' => $this->staleCustomers($user, $arguments),
@@ -174,6 +290,237 @@ class AiInsightToolService
                     'early_finish' => (bool) ($session?->is_early_finish ?? false),
                 ];
             })->values()->all(),
+        ];
+    }
+
+    private function topProducts(User $user, array $arguments): array
+    {
+        abort_unless($user->hasPermission('catalog:view'), 403);
+        [$from, $to] = $this->dateRange($user, $arguments);
+        $limit = min(20, max(1, (int) ($arguments['limit'] ?? 10)));
+
+        $rows = OrderItem::query()
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->where('orders.status', 'approved')
+            ->where('orders.ordered_at', '>=', $from)
+            ->where('orders.ordered_at', '<', $to->addDay())
+            ->selectRaw(
+                'products.sku, products.name, products.unit, orders.currency,
+                SUM(order_items.quantity) as quantity,
+                SUM(order_items.line_total) as sales_total'
+            )
+            ->groupBy(
+                'products.id',
+                'products.sku',
+                'products.name',
+                'products.unit',
+                'orders.currency',
+            )
+            ->orderByDesc('sales_total')
+            ->limit($limit)
+            ->get();
+
+        return [
+            'period' => [
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+            ],
+            'products' => $rows->map(fn ($row) => [
+                'sku' => $row->sku,
+                'product' => $row->name,
+                'unit' => $row->unit,
+                'currency' => $row->currency,
+                'quantity' => round((float) $row->quantity, 4),
+                'sales_total' => round((float) $row->sales_total, 4),
+            ])->all(),
+        ];
+    }
+
+    private function expenses(User $user, array $arguments): array
+    {
+        abort_unless($user->hasPermission('expenses:view'), 403);
+        [$from, $to] = $this->dateRange($user, $arguments);
+        $status = (string) ($arguments['status'] ?? 'any');
+
+        $rows = Expense::query()
+            ->when($status !== 'any', fn ($query) => $query->where('status', $status))
+            ->where('spent_at', '>=', $from)
+            ->where('spent_at', '<', $to->addDay())
+            ->selectRaw(
+                'category, currency, status, COUNT(*) as count, SUM(amount) as total'
+            )
+            ->groupBy('category', 'currency', 'status')
+            ->orderByDesc('total')
+            ->get();
+
+        return [
+            'period' => [
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+            ],
+            'expenses' => $rows->map(fn ($row) => [
+                'category' => $row->category,
+                'currency' => $row->currency,
+                'status' => $row->status,
+                'count' => (int) $row->count,
+                'total' => round((float) $row->total, 4),
+            ])->all(),
+        ];
+    }
+
+    private function salesmanStock(User $user, array $arguments): array
+    {
+        abort_unless($user->hasPermission('stock:view'), 403);
+        $salesmanQuery = trim((string) ($arguments['salesman_query'] ?? ''));
+        $productQuery = trim((string) ($arguments['product_query'] ?? ''));
+        $limit = min(30, max(1, (int) ($arguments['limit'] ?? 20)));
+
+        $rows = SalesmanStockBalance::query()
+            ->with(['salesman', 'product'])
+            ->when($salesmanQuery !== '', function ($query) use ($salesmanQuery): void {
+                $query->whereHas('salesman', function ($salesman) use ($salesmanQuery): void {
+                    $salesman
+                        ->where('first_name', 'like', "%{$salesmanQuery}%")
+                        ->orWhere('last_name', 'like', "%{$salesmanQuery}%")
+                        ->orWhere('employee_code', 'like', "%{$salesmanQuery}%");
+                });
+            })
+            ->when($productQuery !== '', function ($query) use ($productQuery): void {
+                $query->whereHas('product', function ($product) use ($productQuery): void {
+                    $product
+                        ->where('name', 'like', "%{$productQuery}%")
+                        ->orWhere('sku', 'like', "%{$productQuery}%");
+                });
+            })
+            ->orderByDesc('sellable_qty')
+            ->limit($limit)
+            ->get();
+
+        return [
+            'stock' => $rows->map(fn (SalesmanStockBalance $row) => [
+                'salesman' => $row->salesman?->full_name,
+                'employee_code' => $row->salesman?->employee_code,
+                'product' => $row->product?->name,
+                'sku' => $row->product?->sku,
+                'unit' => $row->product?->unit,
+                'sellable_qty' => round((float) $row->sellable_qty, 4),
+                'damaged_qty' => round((float) $row->damaged_qty, 4),
+            ])->all(),
+        ];
+    }
+
+    private function returns(User $user, array $arguments): array
+    {
+        abort_unless($user->hasPermission('returns:view'), 403);
+        [$from, $to] = $this->dateRange($user, $arguments);
+        $status = (string) ($arguments['status'] ?? 'any');
+
+        $rows = SalesReturn::query()
+            ->with(['items.product'])
+            ->when($status !== 'any', fn ($query) => $query->where('status', $status))
+            ->where('returned_at', '>=', $from)
+            ->where('returned_at', '<', $to->addDay())
+            ->get();
+
+        $items = $rows
+            ->flatMap(fn (SalesReturn $return) => $return->items->map(fn ($item) => [
+                'product' => $item->product?->name,
+                'sku' => $item->product?->sku,
+                'condition' => $item->condition,
+                'status' => $return->status,
+                'quantity' => (float) $item->quantity,
+            ]))
+            ->groupBy(fn (array $row) => implode('|', [
+                $row['sku'],
+                $row['condition'],
+                $row['status'],
+            ]))
+            ->map(function ($rows): array {
+                $first = $rows->first();
+
+                return [
+                    'product' => $first['product'],
+                    'sku' => $first['sku'],
+                    'condition' => $first['condition'],
+                    'status' => $first['status'],
+                    'quantity' => round((float) $rows->sum('quantity'), 4),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'period' => [
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+            ],
+            'return_count' => $rows->count(),
+            'items' => $items,
+        ];
+    }
+
+    private function scorecards(User $user, array $arguments): array
+    {
+        abort_unless($user->hasPermission('reports:view'), 403);
+        [$from, $to] = $this->dateRange($user, $arguments);
+
+        $payload = $this->scorecards->build(
+            $user,
+            $from->toDateString(),
+            $to->toDateString(),
+        );
+
+        return [
+            'period' => $payload['period'],
+            'summary' => $payload['summary'],
+            'rows' => collect($payload['rows'])->map(fn (array $row) => [
+                'salesman' => $row['salesman']->full_name,
+                'employee_code' => $row['salesman']->employee_code,
+                'attendance' => $row['attendance'],
+                'visits' => $row['visits'],
+                'orders' => $row['orders'],
+                'collections' => $row['collections'],
+                'follow_ups' => $row['follow_ups'],
+                'unresolved_flags' => $row['unresolved_flags'],
+                'target_average_percent' => $row['target_average_percent'],
+            ])->values()->all(),
+        ];
+    }
+
+    private function orderDetails(User $user, array $arguments): array
+    {
+        $this->authorizeCustomerData($user);
+        abort_unless($user->hasPermission('orders:view'), 403);
+
+        $number = trim((string) ($arguments['order_number'] ?? ''));
+        if ($number === '') {
+            throw new InvalidArgumentException('Order number is required.');
+        }
+
+        $order = Order::query()
+            ->with(['customer', 'salesman', 'items.product'])
+            ->where('order_number', $number)
+            ->firstOrFail();
+
+        return [
+            'order_number' => $order->order_number,
+            'status' => $order->status,
+            'customer' => $order->customer?->name,
+            'salesman' => $order->salesman?->full_name,
+            'ordered_at' => $order->ordered_at?->toISOString(),
+            'currency' => $order->currency,
+            'subtotal' => (float) $order->subtotal,
+            'discount_total' => (float) $order->discount_total,
+            'grand_total' => (float) $order->grand_total,
+            'payment_type' => $order->payment_type,
+            'items' => $order->items->map(fn ($item) => [
+                'product' => $item->product?->name,
+                'sku' => $item->product?->sku,
+                'quantity' => (float) $item->quantity,
+                'unit_price' => (float) $item->unit_price,
+                'line_total' => (float) $item->line_total,
+            ])->all(),
         ];
     }
 
@@ -320,6 +667,20 @@ class AiInsightToolService
                 && $user->hasPermission('customers:view'),
             403,
         );
+    }
+
+    private function dateRange(User $user, array $arguments): array
+    {
+        $from = $this->date($user, (string) ($arguments['date_from'] ?? ''));
+        $to = $this->date($user, (string) ($arguments['date_to'] ?? ''));
+
+        if ($from->gt($to) || $from->diffInDays($to) > 366) {
+            throw new InvalidArgumentException(
+                'Date range is invalid or exceeds 366 days.',
+            );
+        }
+
+        return [$from, $to];
     }
 
     private function date(User $user, string $value): CarbonImmutable

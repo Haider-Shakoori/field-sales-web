@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\CustomerFollowUp;
@@ -11,6 +13,7 @@ use App\Models\Tenant;
 use App\Models\Territory;
 use App\Models\User;
 use App\Services\AiInsightsService;
+use App\Services\AiInsightToolService;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -47,7 +50,7 @@ class AiInsightsTest extends TestCase
             ->assertSee('Recover stale customer coverage')
             ->assertSee('Grounded local mode');
 
-        $this->actingAs($admin)
+        $response = $this->actingAs($admin)
             ->postJson(route('admin.ai-insights.ask'), [
                 'question' => 'How many follow-ups are overdue?',
             ])
@@ -55,15 +58,34 @@ class AiInsightsTest extends TestCase
             ->assertJson([
                 'answer' => 'Overdue follow-ups: 1. Open high-priority follow-ups: 1.',
                 'source' => 'fieldpulse_grounded_rules',
+                'provider_status' => 'local',
             ]);
+
+        $conversationUuid = $response->json('conversation.uuid');
+
+        $this->assertDatabaseHas('ai_conversations', [
+            'tenant_id' => $tenant->id,
+            'user_id' => $admin->id,
+            'uuid' => $conversationUuid,
+        ]);
+        $this->assertSame(
+            2,
+            app(TenantContext::class)->withTenant(
+                $tenant,
+                fn () => AiMessage::count(),
+            ),
+        );
 
         $this->actingAs($admin)
             ->post(route('admin.ai-insights.ask'), [
                 'question' => 'How many follow-ups are overdue?',
+                'conversation_uuid' => $conversationUuid,
             ])
-            ->assertRedirect(route('admin.ai-insights.index').'#ask-fieldpulse-answer')
-            ->assertSessionHas('ai_answer')
-            ->assertSessionHas('ai_question', 'How many follow-ups are overdue?');
+            ->assertRedirect(
+                route('admin.ai-insights.index', [
+                    'conversation' => $conversationUuid,
+                ]).'#ask-fieldpulse-bottom',
+            );
     }
 
     public function test_groq_agent_can_call_permission_aware_fieldpulse_tools(): void
@@ -153,6 +175,151 @@ class AiInsightsTest extends TestCase
             'Performance report',
             collect($secondPayload['messages'])->last()['content'],
         );
+    }
+
+    public function test_conversation_history_is_sent_to_groq_for_follow_up_questions(): void
+    {
+        [$tenant, $admin] = $this->fixture();
+
+        config()->set('ai.enabled', true);
+        config()->set('ai.provider', 'groq');
+        config()->set('ai.api_key', 'groq-test-key');
+        config()->set('ai.model', 'openai/gpt-oss-120b');
+
+        Http::fakeSequence()
+            ->push([
+                'choices' => [[
+                    'message' => [
+                        'role' => 'assistant',
+                        'content' => 'Ahmad was the top seller this month.',
+                    ],
+                ]],
+                'usage' => [
+                    'prompt_tokens' => 100,
+                    'completion_tokens' => 20,
+                ],
+            ], 200)
+            ->push([
+                'choices' => [[
+                    'message' => [
+                        'role' => 'assistant',
+                        'content' => 'Last month, Ahmad was second.',
+                    ],
+                ]],
+            ], 200);
+
+        $first = $this->actingAs($admin)
+            ->postJson(route('admin.ai-insights.ask'), [
+                'question' => 'Who sold the most this month?',
+            ])
+            ->assertOk()
+            ->assertJson([
+                'source' => 'configured_ai_agent',
+                'provider_status' => 'connected',
+            ]);
+
+        $conversationUuid = $first->json('conversation.uuid');
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.ai-insights.ask'), [
+                'question' => 'What about last month?',
+                'conversation_uuid' => $conversationUuid,
+            ])
+            ->assertOk()
+            ->assertJson([
+                'answer' => 'Last month, Ahmad was second.',
+            ]);
+
+        $requests = Http::recorded();
+        $secondMessages = $requests[1][0]->data()['messages'];
+
+        $this->assertSame(
+            ['system', 'user', 'assistant', 'user'],
+            collect($secondMessages)->pluck('role')->all(),
+        );
+        $this->assertSame(
+            'Ahmad was the top seller this month.',
+            $secondMessages[2]['content'],
+        );
+        $this->assertSame(
+            'What about last month?',
+            $secondMessages[3]['content'],
+        );
+
+        $stored = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => AiConversation::where('uuid', $conversationUuid)
+                ->with('messages')
+                ->firstOrFail(),
+        );
+
+        $this->assertCount(4, $stored->messages);
+        $this->assertSame(100, $stored->messages[1]->prompt_tokens);
+        $this->assertSame(20, $stored->messages[1]->completion_tokens);
+    }
+
+    public function test_groq_failure_is_visible_and_falls_back_to_local_analysis(): void
+    {
+        [, $admin] = $this->fixture();
+
+        config()->set('ai.enabled', true);
+        config()->set('ai.provider', 'groq');
+        config()->set('ai.api_key', 'groq-test-key');
+        config()->set('ai.model', 'openai/gpt-oss-120b');
+
+        Http::fake([
+            'https://api.groq.com/openai/v1/chat/completions' => Http::response([
+                'error' => ['message' => 'Rate limit reached'],
+            ], 429),
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.ai-insights.ask'), [
+                'question' => 'How many visits happened today?',
+            ])
+            ->assertOk()
+            ->assertJson([
+                'source' => 'fieldpulse_grounded_rules',
+                'provider_status' => 'fallback',
+                'fallback_reason' => 'http_429',
+                'fallback_message' => 'The AI provider rate limit has been reached.',
+            ]);
+    }
+
+    public function test_ai_tool_catalog_expands_with_existing_user_permissions(): void
+    {
+        [$tenant, $admin] = $this->fixture();
+
+        app(TenantContext::class)->withTenant($tenant, function () use ($admin): void {
+            $permissions = collect([
+                'catalog:view',
+                'expenses:view',
+                'stock:view',
+                'returns:view',
+            ])->map(fn (string $slug) => Permission::firstOrCreate(
+                ['slug' => $slug],
+                [
+                    'name' => str($slug)->replace(':', ' ')->title(),
+                    'group' => str($slug)->before(':')->toString(),
+                ],
+            ));
+
+            $admin->roles()->firstOrFail()->permissions()->syncWithoutDetaching(
+                $permissions->pluck('id'),
+            );
+
+            $definitions = app(AiInsightToolService::class)->definitions(
+                $admin->fresh()->load('roles.permissions'),
+            );
+            $names = collect($definitions)->pluck('function.name')->all();
+
+            $this->assertContains('get_top_products', $names);
+            $this->assertContains('get_expenses', $names);
+            $this->assertContains('get_salesman_stock', $names);
+            $this->assertContains('get_returns', $names);
+            $this->assertContains('get_scorecards', $names);
+            $this->assertNotContains('search_customers', $names);
+        });
     }
 
     public function test_configured_ai_provider_receives_aggregate_snapshot_only(): void

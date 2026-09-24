@@ -91,7 +91,7 @@ class AiInsightsService
         return $snapshot;
     }
 
-    public function answer(User $user, string $question): array
+    public function answer(User $user, string $question, array $history = []): array
     {
         $snapshot = $this->snapshot($user);
         $providerEnabled = (bool) config('ai.enabled', false);
@@ -102,16 +102,35 @@ class AiInsightsService
             ['groq', 'openrouter', 'openai_compatible'],
             true,
         )) {
-            $answer = $this->agent->answer($user, $question, $snapshot);
+            $agent = $this->agent->answer(
+                $user,
+                $question,
+                $snapshot,
+                $history,
+            );
 
-            if ($answer !== null) {
+            if (($agent['ok'] ?? false) === true) {
                 return [
-                    'answer' => $answer,
+                    'answer' => $agent['answer'],
                     'source' => 'configured_ai_agent',
                     'snapshot' => $snapshot,
+                    'provider' => $agent['provider'] ?? null,
+                    'model' => $agent['model'] ?? null,
+                    'provider_status' => 'connected',
+                    'fallback_reason' => null,
+                    'latency_ms' => $agent['latency_ms'] ?? null,
+                    'usage' => $agent['usage'] ?? [],
+                    'tools_used' => $agent['tools_used'] ?? [],
                 ];
             }
+
+            $fallbackReason = $agent['fallback_reason'] ?? 'provider_failed';
+            $fallbackMessage = $agent['fallback_message']
+                ?? 'The external AI provider was unavailable.';
         }
+
+        $fallbackReason = $fallbackReason ?? null;
+        $fallbackMessage = $fallbackMessage ?? null;
 
         $endpoint = trim((string) config('ai.endpoint'));
 
@@ -123,6 +142,13 @@ class AiInsightsService
                     'answer' => $answer,
                     'source' => 'configured_ai_provider',
                     'snapshot' => $snapshot,
+                    'provider' => $provider,
+                    'model' => config('ai.model'),
+                    'provider_status' => 'connected',
+                    'fallback_reason' => null,
+                    'latency_ms' => null,
+                    'usage' => [],
+                    'tools_used' => [],
                 ];
             }
         }
@@ -131,6 +157,14 @@ class AiInsightsService
             'answer' => $this->localAnswer($question, $snapshot),
             'source' => 'fieldpulse_grounded_rules',
             'snapshot' => $snapshot,
+            'provider' => $providerEnabled ? $provider : null,
+            'model' => $providerEnabled ? config('ai.model') : null,
+            'provider_status' => $providerEnabled ? 'fallback' : 'local',
+            'fallback_reason' => $fallbackReason,
+            'fallback_message' => $fallbackMessage,
+            'latency_ms' => null,
+            'usage' => [],
+            'tools_used' => [],
         ];
     }
 

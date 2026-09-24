@@ -96,6 +96,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/ai-insights/ask', [AiInsightsController::class, 'ask'])
             ->middleware('permission:reports:view')
             ->name('ai-insights.ask');
+        Route::delete('/ai-insights/conversations/{conversation}', [AiInsightsController::class, 'archive'])
+            ->middleware('permission:reports:view')
+            ->name('ai-insights.conversations.archive');
 
         Route::get('/alerts', [AlertController::class, 'index'])
             ->middleware('permission:reports:view')

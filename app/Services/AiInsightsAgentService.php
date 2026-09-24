@@ -16,26 +16,44 @@ class AiInsightsAgentService
         User $user,
         string $question,
         array $snapshot,
-    ): ?string {
+        array $history = [],
+    ): array {
+        $startedAt = hrtime(true);
         $baseUrl = $this->baseUrl();
         $apiKey = trim((string) config('ai.api_key'));
         $model = trim((string) config('ai.model'));
 
         if ($baseUrl === '' || $apiKey === '' || $model === '') {
-            return null;
+            return $this->failure(
+                'provider_not_configured',
+                'The external AI provider is not fully configured.',
+                $startedAt,
+            );
         }
 
         $toolDefinitions = $this->tools->definitions($user);
-        $messages = [
-            [
-                'role' => 'system',
-                'content' => $this->systemPrompt($user, $snapshot),
-            ],
-            [
-                'role' => 'user',
-                'content' => trim($question),
-            ],
+        $messages = [[
+            'role' => 'system',
+            'content' => $this->systemPrompt($user, $snapshot),
+        ]];
+
+        foreach (array_slice($history, -16) as $historyMessage) {
+            $role = $historyMessage['role'] ?? null;
+            $content = trim((string) ($historyMessage['content'] ?? ''));
+
+            if (in_array($role, ['user', 'assistant'], true) && $content !== '') {
+                $messages[] = [
+                    'role' => $role,
+                    'content' => $content,
+                ];
+            }
+        }
+
+        $messages[] = [
+            'role' => 'user',
+            'content' => trim($question),
         ];
+        $toolsUsed = [];
 
         $maxRounds = min(6, max(1, (int) config('ai.max_tool_rounds', 4)));
 
@@ -55,13 +73,21 @@ class AiInsightsAgentService
                     ]);
 
                 if (! $response->successful()) {
-                    return null;
+                    return $this->failure(
+                        'http_'.$response->status(),
+                        $this->providerErrorMessage($response->status()),
+                        $startedAt,
+                    );
                 }
 
                 $message = $response->json('choices.0.message');
 
                 if (! is_array($message)) {
-                    return null;
+                    return $this->failure(
+                        'invalid_provider_response',
+                        'The AI provider returned an invalid response.',
+                        $startedAt,
+                    );
                 }
 
                 $toolCalls = $message['tool_calls'] ?? [];
@@ -69,9 +95,27 @@ class AiInsightsAgentService
                 if (! is_array($toolCalls) || $toolCalls === []) {
                     $content = $message['content'] ?? null;
 
-                    return is_string($content) && trim($content) !== ''
-                        ? trim($content)
-                        : null;
+                    if (! is_string($content) || trim($content) === '') {
+                        return $this->failure(
+                            'empty_provider_response',
+                            'The AI provider returned an empty answer.',
+                            $startedAt,
+                        );
+                    }
+
+                    return [
+                        'ok' => true,
+                        'answer' => trim($content),
+                        'provider' => (string) config('ai.provider'),
+                        'model' => $model,
+                        'provider_status' => 'connected',
+                        'latency_ms' => $this->elapsedMs($startedAt),
+                        'usage' => [
+                            'prompt_tokens' => $response->json('usage.prompt_tokens'),
+                            'completion_tokens' => $response->json('usage.completion_tokens'),
+                        ],
+                        'tools_used' => array_values(array_unique($toolsUsed)),
+                    ];
                 }
 
                 $messages[] = [
@@ -90,8 +134,14 @@ class AiInsightsAgentService
                     );
 
                     if ($toolId === '' || $name === '' || ! is_array($arguments)) {
-                        return null;
+                        return $this->failure(
+                            'invalid_tool_call',
+                            'The AI provider returned an invalid tool request.',
+                            $startedAt,
+                        );
                     }
+
+                    $toolsUsed[] = $name;
 
                     try {
                         $result = $this->tools->execute(
@@ -120,10 +170,18 @@ class AiInsightsAgentService
                 }
             }
         } catch (Throwable) {
-            return null;
+            return $this->failure(
+                'provider_connection_failed',
+                'The AI provider could not be reached.',
+                $startedAt,
+            );
         }
 
-        return null;
+        return $this->failure(
+            'tool_round_limit',
+            'The AI provider reached the maximum tool-call rounds.',
+            $startedAt,
+        );
     }
 
     private function systemPrompt(User $user, array $snapshot): string
@@ -150,6 +208,38 @@ class AiInsightsAgentService
                 JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
             ),
         ]);
+    }
+
+    private function failure(
+        string $reason,
+        string $message,
+        int $startedAt,
+    ): array {
+        return [
+            'ok' => false,
+            'fallback_reason' => $reason,
+            'fallback_message' => $message,
+            'provider' => (string) config('ai.provider'),
+            'model' => (string) config('ai.model'),
+            'provider_status' => 'fallback',
+            'latency_ms' => $this->elapsedMs($startedAt),
+            'tools_used' => [],
+        ];
+    }
+
+    private function elapsedMs(int $startedAt): int
+    {
+        return (int) round((hrtime(true) - $startedAt) / 1_000_000);
+    }
+
+    private function providerErrorMessage(int $status): string
+    {
+        return match ($status) {
+            401, 403 => 'The AI provider rejected the configured credentials.',
+            429 => 'The AI provider rate limit has been reached.',
+            408, 504 => 'The AI provider timed out.',
+            default => 'The AI provider returned HTTP '.$status.'.',
+        };
     }
 
     private function baseUrl(): string
