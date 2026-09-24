@@ -38,6 +38,20 @@ class AiRecommendationService
         $this->activitySpikeRecommendations($user, $recommendations, $now);
         $this->customerRecommendations($user, $recommendations, $now);
 
+        if ($recommendations->isEmpty()) {
+            $recommendations->push($this->item(
+                'no_immediate_exception',
+                'operations',
+                'low',
+                10,
+                'No immediate operational exception',
+                'FieldPulse found no material management exception in the current grounded checks.',
+                [],
+                'Continue monitoring route execution, sales, collections, customer coverage, and approvals.',
+                [],
+            ));
+        }
+
         return $recommendations
             ->sortByDesc('score')
             ->take(max(1, min(50, $limit)))
