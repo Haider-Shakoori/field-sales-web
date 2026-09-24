@@ -109,7 +109,10 @@ class Batch1AuthBootstrappingTest extends TestCase
 
         $this->get('/admin/tracking-settings')
             ->assertOk()
-            ->assertSee('Attendance');
+            ->assertSee('Attendance')
+            ->assertSee('data-theme-toggle', false)
+            ->assertSee('data-sidebar-collapse', false)
+            ->assertSee('data-sidebar-collapsed="false"', false);
 
         $this->assertSame(TenantContextState::Uninitialized, $this->context->state());
     }
