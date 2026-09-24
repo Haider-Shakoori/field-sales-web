@@ -21,7 +21,7 @@
         <p class="mt-1 text-sm text-slate-400">{{ __('Grounded recommendations and manager Q&A from FieldPulse operational data.') }}</p>
     </div>
     <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $providerEnabled ? 'bg-emerald-500/10 text-emerald-300' : 'bg-slate-800 text-slate-300' }}">
-        {{ $providerEnabled ? __('AI provider connected') : __('Grounded local mode') }}
+        {{ $providerEnabled ? __('AI provider connected').' · '.strtoupper($provider).' · '.$model : __('Grounded local mode') }}
     </span>
 </div>
 
