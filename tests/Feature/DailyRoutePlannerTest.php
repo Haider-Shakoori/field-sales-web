@@ -212,7 +212,6 @@ class DailyRoutePlannerTest extends TestCase
         $this->assertGreaterThan(0, $plan['approximate_air_distance_km']);
     }
 
-
     public function test_planner_uses_salesman_start_position_for_first_stop(): void
     {
         [$tenant, $admin, $salesman, $branch, $territory] = $this->plannerFoundation(
