@@ -49,24 +49,33 @@ class OrganizationController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'timezone' => ['required', 'timezone'],
             'contact_email' => ['nullable', 'email', 'max:191'],
-            'ai_enabled' => ['required', 'boolean'],
-            'ai_allow_customer_data' => ['required', 'boolean'],
-            'ai_history_retention_days' => ['required', 'integer', 'in:0,30,60,90,180,365'],
+            'ai_enabled' => ['sometimes', 'boolean'],
+            'ai_allow_customer_data' => ['sometimes', 'boolean'],
+            'ai_history_retention_days' => ['sometimes', 'integer', 'in:0,30,60,90,180,365'],
         ]);
 
         $old = $tenant->only(['name', 'timezone', 'contact_email', 'settings']);
         $settings = $tenant->settings ?? [];
-        data_set($settings, 'ai.enabled', (bool) $validated['ai_enabled']);
-        data_set(
-            $settings,
-            'ai.allow_customer_data',
-            (bool) $validated['ai_allow_customer_data'],
-        );
-        data_set(
-            $settings,
-            'ai.history_retention_days',
-            (int) $validated['ai_history_retention_days'],
-        );
+
+        if (array_key_exists('ai_enabled', $validated)) {
+            data_set($settings, 'ai.enabled', (bool) $validated['ai_enabled']);
+        }
+
+        if (array_key_exists('ai_allow_customer_data', $validated)) {
+            data_set(
+                $settings,
+                'ai.allow_customer_data',
+                (bool) $validated['ai_allow_customer_data'],
+            );
+        }
+
+        if (array_key_exists('ai_history_retention_days', $validated)) {
+            data_set(
+                $settings,
+                'ai.history_retention_days',
+                (int) $validated['ai_history_retention_days'],
+            );
+        }
 
         $tenant->update([
             'name' => $validated['name'],
