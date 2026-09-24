@@ -47,7 +47,7 @@
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <h3 class="font-semibold">{{ __($recommendation['title']) }}</h3>
-                            <p class="mt-1 text-sm text-slate-200">{{ __($recommendation['message']) }}</p>
+                            <p class="mt-1 text-sm text-slate-200">{{ __($recommendation['message'], $recommendation['message_params'] ?? []) }}</p>
                             <p class="mt-2 text-sm text-slate-400">{{ __($recommendation['action']) }}</p>
                         </div>
                         <span class="rounded-full bg-black/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide">{{ __($recommendation['severity']) }}</span>
