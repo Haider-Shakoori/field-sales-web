@@ -522,10 +522,83 @@ class AiInsightsTest extends TestCase
             $this->assertContains('get_salesman_stock', $names);
             $this->assertContains('get_returns', $names);
             $this->assertContains('get_scorecards', $names);
+            $this->assertContains('get_mileage_summary', $names);
             $this->assertContains('get_recommendations', $names);
             $this->assertContains('get_manager_briefing', $names);
             $this->assertNotContains('search_customers', $names);
         });
+    }
+
+    public function test_groq_agent_can_answer_mileage_questions_with_mileage_tool(): void
+    {
+        [$tenant, $admin] = $this->fixture();
+
+        config()->set('ai.enabled', true);
+        config()->set('ai.provider', 'groq');
+        config()->set('ai.base_url', null);
+        config()->set('ai.api_key', 'groq-test-key');
+        config()->set('ai.model', 'openai/gpt-oss-120b');
+
+        Http::fakeSequence()
+            ->push([
+                'choices' => [[
+                    'message' => [
+                        'role' => 'assistant',
+                        'content' => null,
+                        'tool_calls' => [[
+                            'id' => 'call_mileage',
+                            'type' => 'function',
+                            'function' => [
+                                'name' => 'get_mileage_summary',
+                                'arguments' => json_encode([
+                                    'date_from' => '2026-09-01',
+                                    'date_to' => '2026-09-25',
+                                ]),
+                            ],
+                        ]],
+                    ],
+                ]],
+            ], 200)
+            ->push([
+                'choices' => [[
+                    'message' => [
+                        'role' => 'assistant',
+                        'content' => 'No mileage sessions were recorded for that period.',
+                    ],
+                ]],
+            ], 200);
+
+        $result = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => app(AiInsightsService::class)->answer(
+                $admin,
+                'How far did the team travel this month?',
+            ),
+        );
+
+        $this->assertSame('configured_ai_agent', $result['source']);
+        $this->assertSame(
+            'No mileage sessions were recorded for that period.',
+            $result['answer'],
+        );
+        $this->assertContains(
+            'get_mileage_summary',
+            $result['tools_used'],
+        );
+
+        $requests = Http::recorded();
+        $toolPayload = collect($requests[1][0]->data()['messages'])
+            ->last();
+
+        $this->assertSame('tool', $toolPayload['role']);
+        $this->assertStringContainsString(
+            '"distance_km":0',
+            $toolPayload['content'],
+        );
+        $this->assertStringContainsString(
+            '"fuel_liters":0',
+            $toolPayload['content'],
+        );
     }
 
     public function test_configured_ai_provider_receives_aggregate_snapshot_only(): void
