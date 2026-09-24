@@ -110,7 +110,6 @@ class AiUsageService
             'tools' => $toolUsage,
             'daily' => $this->dailyBreakdown($fromUtc, $toUtc, $timezone),
             'recent' => $this->recent(
-                $user,
                 $fromUtc,
                 $toUtc,
                 $user->hasPermission('audit:view'),
@@ -267,7 +266,6 @@ class AiUsageService
     }
 
     private function recent(
-        User $user,
         CarbonImmutable $fromUtc,
         CarbonImmutable $toUtc,
         bool $canViewPrompts,
@@ -281,7 +279,6 @@ class AiUsageService
             ->limit(50)
             ->get()
             ->map(function (AiMessage $message) use (
-                $user,
                 $canViewPrompts,
             ): array {
                 $question = $message->conversation?->messages
