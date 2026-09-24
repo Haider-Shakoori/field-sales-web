@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\AiConversationService;
 use App\Services\AiInsightsAgentService;
 use App\Services\AiInsightsService;
+use App\Services\AiPolicyService;
 use App\Services\AiUsageService;
 use App\Services\ManagerBriefingService;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,7 @@ class AiInsightsController extends Controller
         Request $request,
         AiInsightsService $insights,
         AiConversationService $conversations,
+        AiPolicyService $policy,
     ): View {
         $user = $request->user();
         $conversation = $conversations->resolve(
@@ -34,11 +36,11 @@ class AiInsightsController extends Controller
             'messages' => $conversation
                 ? $conversations->messages($conversation)
                 : collect(),
-            'providerEnabled' => $this->providerEnabled(),
+            'providerEnabled' => $this->providerEnabled($user, $policy),
             'providerName' => (string) config('ai.provider', 'generic'),
             'providerModel' => (string) config('ai.model', ''),
-            'customerDataEnabled' => (bool) config('ai.allow_customer_data', false),
-            'suggestedPrompts' => $this->suggestedPrompts(),
+            'customerDataEnabled' => $policy->customerDataEnabled($user),
+            'suggestedPrompts' => $this->suggestedPrompts($user, $policy),
         ]);
     }
 
@@ -184,12 +186,14 @@ class AiInsightsController extends Controller
     ): JsonResponse {
         abort_unless($request->user()->hasPermission('reports:view'), 403);
 
-        return response()->json($agent->health());
+        return response()->json($agent->health($request->user()));
     }
 
-    private function providerEnabled(): bool
-    {
-        if (! config('ai.enabled', false)) {
+    private function providerEnabled(
+        \App\Models\User $user,
+        AiPolicyService $policy,
+    ): bool {
+        if (! $policy->externalEnabled($user)) {
             return false;
         }
 
@@ -203,8 +207,10 @@ class AiInsightsController extends Controller
         return trim((string) config('ai.endpoint')) !== '';
     }
 
-    private function suggestedPrompts(): array
-    {
+    private function suggestedPrompts(
+        \App\Models\User $user,
+        AiPolicyService $policy,
+    ): array {
         $prompts = [
             __('What needs my attention today?'),
             __('Give me the manager morning briefing.'),
@@ -213,7 +219,7 @@ class AiInsightsController extends Controller
             __('Which salesmen have not started work today?'),
         ];
 
-        if (config('ai.allow_customer_data', false)) {
+        if ($policy->customerDataEnabled($user)) {
             $prompts[] = __('Which customers owe us the most?');
             $prompts[] = __('Which customers have not been visited in 30 days?');
             $prompts[] = __('Show overdue high-priority follow-ups.');
