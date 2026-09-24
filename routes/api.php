@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\MileageController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ReorderRecommendationController;
 use App\Http\Controllers\Api\SalesReturnController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\StockController;
@@ -40,6 +41,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/customers', [MasterDataController::class, 'customers']);
             Route::post('/customers', [MasterDataController::class, 'storeCustomer']);
             Route::get('/customers/{customer:uuid}/statement', CustomerStatementController::class);
+            Route::get('/customers/{customer:uuid}/reorder-recommendations', ReorderRecommendationController::class);
             Route::get('/territories', [MasterDataController::class, 'territories']);
             Route::get('/routes', [MasterDataController::class, 'routes']);
             Route::get('/routes/{route:uuid}/customers', [MasterDataController::class, 'routeCustomers']);

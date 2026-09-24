@@ -25,6 +25,7 @@ class AiInsightToolService
         private readonly AiRecommendationService $recommendations,
         private readonly ManagerBriefingService $briefing,
         private readonly MileageService $mileage,
+        private readonly CustomerReorderRecommendationService $reorders,
         private readonly TenantClock $clock,
         private readonly AiPolicyService $policy,
     ) {}
@@ -198,6 +199,18 @@ class AiInsightToolService
         ) {
             if ($user->hasPermission('orders:view')) {
                 $tools[] = $this->tool(
+                    'get_customer_reorder_recommendations',
+                    'Get explainable reorder suggestions for one customer from approved purchase cadence, quantities, due timing, and current salesman stock when available.',
+                    [
+                        'type' => 'object',
+                        'properties' => [
+                            'customer_query' => ['type' => 'string'],
+                        ],
+                        'required' => ['customer_query'],
+                        'additionalProperties' => false,
+                    ],
+                );
+                $tools[] = $this->tool(
                     'get_order_details',
                     'Find a specific order by order number and return its customer, salesman, totals, status, and line items.',
                     [
@@ -282,6 +295,7 @@ class AiInsightToolService
             'get_returns' => $this->returns($user, $arguments),
             'get_scorecards' => $this->scorecards($user, $arguments),
             'get_mileage_summary' => $this->mileageSummary($user, $arguments),
+            'get_customer_reorder_recommendations' => $this->customerReorders($user, $arguments),
             'get_order_details' => $this->orderDetails($user, $arguments),
             'search_customers' => $this->customerSearch($user, $arguments),
             'get_receivables' => $this->receivables($user, $arguments),
@@ -699,6 +713,37 @@ class AiInsightToolService
                 'fuel_cost_by_currency' => $totalFuelCost,
             ],
             'salesmen' => $bySalesman->take(50)->all(),
+        ];
+    }
+
+    private function customerReorders(User $user, array $arguments): array
+    {
+        $this->authorizeCustomerData($user);
+        abort_unless($user->hasPermission('orders:view'), 403);
+        $query = trim((string) ($arguments['customer_query'] ?? ''));
+
+        if ($query === '') {
+            throw new InvalidArgumentException('Customer query is required.');
+        }
+
+        $customer = Customer::query()
+            ->where(function ($builder) use ($query): void {
+                $builder->where('uuid', $query)
+                    ->orWhere('code', $query)
+                    ->orWhere('name', 'like', "%{$query}%")
+                    ->orWhere('phone', $query);
+            })
+            ->orderByRaw('CASE WHEN code = ? OR uuid = ? THEN 0 ELSE 1 END', [$query, $query])
+            ->orderBy('name')
+            ->firstOrFail();
+
+        return [
+            'customer' => $customer->name,
+            'code' => $customer->code,
+            'recommendations' => $this->reorders->recommend(
+                $customer->loadMissing('tenant'),
+                $user->salesman,
+            ),
         ];
     }
 

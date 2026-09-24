@@ -623,5 +623,15 @@
     "Leads & sales pipeline": "Leads & sales pipeline",
     "Lost leads": "Lost leads",
     "Open leads": "Open leads",
-    "Won leads": "Won leads"
+    "Won leads": "Won leads",
+    "Reorder recommendations": "Reorder recommendations",
+    "Explainable suggestions from approved purchase cadence and recent average quantities. One-off purchases are not treated as recurring demand.": "Explainable suggestions from approved purchase cadence and recent average quantities. One-off purchases are not treated as recurring demand.",
+    "due or upcoming": "due or upcoming",
+    "approved orders": "approved orders",
+    "Suggested": "Suggested",
+    "Typical cycle": "Typical cycle",
+    "Due today": "Due today",
+    "Due soon": "Due soon",
+    "Available salesman stock": "Available salesman stock",
+    "No repeat-purchase recommendation is due yet. FieldPulse needs at least two approved purchases of a product before predicting its reorder cycle.": "No repeat-purchase recommendation is due yet. FieldPulse needs at least two approved purchases of a product before predicting its reorder cycle."
 }
