@@ -69,6 +69,7 @@ class ManagerBriefingService
 
         return [
             'generated_at' => $now->toIso8601String(),
+            'generated_time' => $now->format('H:i'),
             'timezone' => $timezone,
             'today' => $today,
             'yesterday' => $yesterday->toDateString(),
