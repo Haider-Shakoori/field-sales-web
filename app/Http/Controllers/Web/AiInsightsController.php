@@ -51,6 +51,7 @@ class AiInsightsController extends Controller
             ->with('ai_answer', $result['answer'])
             ->with('ai_answer_source', $result['source']);
     }
+
     private function providerEnabled(): bool
     {
         if (! config('ai.enabled', false)) {
