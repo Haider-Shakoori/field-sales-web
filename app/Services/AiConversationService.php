@@ -10,6 +10,11 @@ use Illuminate\Support\Str;
 
 class AiConversationService
 {
+    public function __construct(
+        private readonly AiInsightsService $insights,
+        private readonly AiInsightsAgentService $agent,
+    ) {}
+
     public function recent(User $user, int $limit = 40): Collection
     {
         return AiConversation::query()
