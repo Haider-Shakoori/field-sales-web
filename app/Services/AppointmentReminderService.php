@@ -16,7 +16,7 @@ class AppointmentReminderService
         $sent = 0;
 
         Appointment::query()
-            ->with(['assignedSalesman.user', 'customer'])
+            ->with(['assignedSalesman.user', 'customer', 'tenant'])
             ->where('status', 'scheduled')
             ->whereNull('reminder_sent_at')
             ->whereNotNull('reminder_minutes_before')
