@@ -82,6 +82,8 @@ class AppointmentController extends Controller
                 'status' => $validated['status'] ?? '',
             ],
             'canManage' => $user->hasPermission('appointments:manage'),
+            'appointmentTypes' => Appointment::TYPES,
+            'appointmentStatuses' => Appointment::STATUSES,
         ]);
     }
 
