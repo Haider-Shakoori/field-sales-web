@@ -105,6 +105,12 @@ Route::middleware('auth')->group(function () {
         Route::delete('/ai-insights/conversations/{conversation}', [AiInsightsController::class, 'archive'])
             ->middleware('permission:reports:view')
             ->name('ai-insights.conversations.archive');
+        Route::patch('/ai-insights/conversations/{conversation}/restore', [AiInsightsController::class, 'restore'])
+            ->middleware('permission:reports:view')
+            ->name('ai-insights.conversations.restore');
+        Route::get('/ai-insights/provider-health', [AiInsightsController::class, 'providerHealth'])
+            ->middleware(['permission:reports:view', 'throttle:10,1'])
+            ->name('ai-insights.provider-health');
 
         Route::get('/alerts', [AlertController::class, 'index'])
             ->middleware('permission:reports:view')
