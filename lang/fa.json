@@ -609,5 +609,19 @@
     "Fuel cost": "هزینه سوخت",
     "No mileage records were found for this period.": "برای این دوره هیچ رکورد مسافتی یافت نشد.",
     "GPS distance ignores mock locations, points worse than 50 m accuracy, and implausible segments above 200 km/h. When both odometer readings exist, odometer distance is used for fuel-efficiency calculations and GPS remains the reconciliation baseline.": "مسافت GPS موقعیت‌های جعلی، نقاط با دقت بدتر از ۵۰ متر و قطعات غیرواقعی بالاتر از ۲۰۰ کیلومتر در ساعت را نادیده می‌گیرد. وقتی هر دو عدد کیلومترشمار موجود باشد، مسافت کیلومترشمار برای محاسبه بهره‌وری سوخت استفاده می‌شود و GPS مبنای تطبیق باقی می‌ماند.",
-    "Fuel unit price": "قیمت واحد سوخت"
+    "Fuel unit price": "قیمت واحد سوخت",
+    "Leads": "سرنخ‌های فروش",
+    "Leads & sales pipeline": "سرنخ‌ها و قیف فروش",
+    "Capture lead": "ثبت سرنخ",
+    "Create lead": "ایجاد سرنخ",
+    "Open leads": "سرنخ‌های باز",
+    "Won leads": "سرنخ‌های موفق",
+    "Lost leads": "سرنخ‌های از دست رفته",
+    "Activity timeline": "تاریخچه فعالیت",
+    "Convert to customer": "تبدیل به مشتری",
+    "Convert lead": "تبدیل سرنخ",
+    "Lead created.": "سرنخ ایجاد شد.",
+    "Lead updated.": "سرنخ به‌روزرسانی شد.",
+    "Lead activity added.": "فعالیت سرنخ اضافه شد.",
+    "Lead converted to customer.": "سرنخ به مشتری تبدیل شد."
 }
