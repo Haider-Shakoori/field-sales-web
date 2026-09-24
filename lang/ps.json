@@ -592,5 +592,22 @@
     "Thu": "پنجشنبه",
     "Fri": "جمعه",
     "Sat": "شنبه",
-    "Sun": "یکشنبه"
+    "Sun": "یکشنبه",
+    "Mileage & Fuel": "واټن او سون توکي",
+    "Reconcile GPS travel, odometer readings, and approved fuel expenses.": "د GPS سفر، اوډومیټر لوستنې او تایید شوي د سون لګښتونه سره پرتله کړئ.",
+    "Tracked sessions": "ثبت شوې ناستې",
+    "Travel distance": "د سفر واټن",
+    "Fuel recorded": "ثبت شوی سون",
+    "Average efficiency": "منځنی موثریت",
+    "Approved fuel cost": "تایید شوی د سون لګښت",
+    "Vehicle": "وسایط",
+    "GPS km": "GPS کیلومتر",
+    "Odometer km": "اوډومیټر کیلومتر",
+    "Variance": "توپیر",
+    "Fuel liters": "د سون لیټر",
+    "Efficiency": "موثریت",
+    "Fuel cost": "د سون لګښت",
+    "No mileage records were found for this period.": "د دې مودې لپاره د واټن هېڅ ریکارډ ونه موندل شو.",
+    "GPS distance ignores mock locations, points worse than 50 m accuracy, and implausible segments above 200 km/h. When both odometer readings exist, odometer distance is used for fuel-efficiency calculations and GPS remains the reconciliation baseline.": "د GPS واټن جعلي موقعیتونه، له ۵۰ مترو بد دقت لرونکي ټکي او له ۲۰۰ کیلومتره/ساعت څخه لوړ نامعقول حرکتونه نه شمېري. که د اوډومیټر دواړه لوستنې موجودې وي، د اوډومیټر واټن د سون موثریت لپاره کارول کېږي او GPS د پرتله کولو بنسټ پاتې کېږي.",
+    "Fuel unit price": "د سون د واحد بیه"
 }
