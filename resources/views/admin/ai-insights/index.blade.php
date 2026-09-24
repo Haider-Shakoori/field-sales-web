@@ -147,10 +147,16 @@
         status.textContent = @json(__('Thinking from current FieldPulse data…'));
         answerBox.classList.add('hidden');
 
+        const body = new FormData(form);
+        const activeConversation = new URLSearchParams(window.location.search).get('chat');
+        if (activeConversation) {
+            body.set('conversation_id', activeConversation);
+        }
+
         try {
             const response = await fetch(form.action, {
                 method: 'POST',
-                body: new FormData(form),
+                body,
                 headers: {
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
