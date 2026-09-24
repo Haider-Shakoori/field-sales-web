@@ -66,7 +66,6 @@ class AiInsightsTest extends TestCase
             ->assertSessionHas('ai_question', 'How many follow-ups are overdue?');
     }
 
-
     public function test_groq_agent_can_call_permission_aware_fieldpulse_tools(): void
     {
         [$tenant, $admin] = $this->fixture();
@@ -191,8 +190,8 @@ class AiInsightsTest extends TestCase
             return $request->url() === 'https://ai.example.test/answer'
                 && $payload['model'] === 'fieldpulse-test'
                 && isset($payload['snapshot']['active_customers'])
-                && ! isset($payload['snapshot']['customer_names'])
-                && ! str_contains(json_encode($payload), 'Portal Customer');
+                && !isset($payload['snapshot']['customer_names'])
+                && !str_contains(json_encode($payload), 'Portal Customer');
         });
     }
 
