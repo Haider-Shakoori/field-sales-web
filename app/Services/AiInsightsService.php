@@ -17,6 +17,10 @@ use Throwable;
 
 class AiInsightsService
 {
+    public function __construct(
+        private readonly AiInsightsAgentService $agent,
+    ) {}
+
     public function snapshot(User $user): array
     {
         $tenant = $user->loadMissing('tenant')->tenant;
@@ -91,6 +95,24 @@ class AiInsightsService
     {
         $snapshot = $this->snapshot($user);
         $providerEnabled = (bool) config('ai.enabled', false);
+        $provider = (string) config('ai.provider', 'generic');
+
+        if ($providerEnabled && in_array(
+            $provider,
+            ['groq', 'openrouter', 'openai_compatible'],
+            true,
+        )) {
+            $answer = $this->agent->answer($user, $question, $snapshot);
+
+            if ($answer !== null) {
+                return [
+                    'answer' => $answer,
+                    'source' => 'configured_ai_agent',
+                    'snapshot' => $snapshot,
+                ];
+            }
+        }
+
         $endpoint = trim((string) config('ai.endpoint'));
 
         if ($providerEnabled && $endpoint !== '') {

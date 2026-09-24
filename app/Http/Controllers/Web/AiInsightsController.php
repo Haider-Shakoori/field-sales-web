@@ -20,8 +20,7 @@ class AiInsightsController extends Controller
             'question' => session('ai_question'),
             'answer' => session('ai_answer'),
             'answerSource' => session('ai_answer_source'),
-            'providerEnabled' => (bool) config('ai.enabled', false)
-                && trim((string) config('ai.endpoint')) !== '',
+            'providerEnabled' => $this->providerEnabled(),
         ]);
     }
 
@@ -51,5 +50,21 @@ class AiInsightsController extends Controller
             ->with('ai_question', $validated['question'])
             ->with('ai_answer', $result['answer'])
             ->with('ai_answer_source', $result['source']);
+    }
+
+    private function providerEnabled(): bool
+    {
+        if (! config('ai.enabled', false)) {
+            return false;
+        }
+
+        $provider = (string) config('ai.provider', 'generic');
+
+        if (in_array($provider, ['groq', 'openrouter', 'openai_compatible'], true)) {
+            return trim((string) config('ai.api_key')) !== ''
+                && trim((string) config('ai.model')) !== '';
+        }
+
+        return trim((string) config('ai.endpoint')) !== '';
     }
 }
