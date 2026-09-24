@@ -145,3 +145,21 @@ After changing production environment settings:
 php artisan optimize:clear
 php artisan config:cache
 ```
+
+
+### Ask FieldPulse usage monitoring
+
+The AI Usage & Audit page tracks provider/model usage, provider success vs fallback, latency, multi-round token usage, FieldPulse tools called, fallback reasons, daily activity, and recent AI audit records.
+
+Question text, user identity, and provider request IDs are only shown to users with `audit:view`. Users with `reports:view` can see aggregate AI operational metrics without question-level audit detail.
+
+API keys and provider bearer tokens are never written to AI audit records.
+
+Optional cost estimation is configuration-driven. Set the current provider/model prices per one million tokens when you want FieldPulse to estimate spend:
+
+```env
+AI_INSIGHTS_INPUT_COST_PER_MILLION=
+AI_INSIGHTS_OUTPUT_COST_PER_MILLION=
+```
+
+Leave them blank when you do not want cost estimates or when pricing is unknown. FieldPulse deliberately does not hard-code provider pricing.
