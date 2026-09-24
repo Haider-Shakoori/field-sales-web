@@ -108,7 +108,6 @@ class LeadPipelineTest extends TestCase
             $salesman = Salesman::create(['user_id' => $salesmanUser->id, 'employee_code' => 'LEAD-S1', 'first_name' => 'Lead', 'last_name' => 'Salesman', 'is_active' => true]);
             $device = Device::create(['user_id' => $salesmanUser->id, 'salesman_id' => $salesman->id, 'device_uuid' => 'lead-device', 'installation_uuid' => 'lead-install', 'is_active' => true]);
             $this->token = $salesmanUser->createToken('mobile-'.$device->uuid)->plainTextToken;
-
             return compact('tenant', 'branch', 'admin', 'salesmanUser', 'salesman', 'device');
         });
     }

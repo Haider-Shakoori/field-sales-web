@@ -244,6 +244,9 @@
                 'label' => 'Insights',
                 'links' => [
                     ['route' => 'admin.ai-insights.index', 'match' => 'admin.ai-insights.*', 'label' => 'AI insights', 'icon' => 'chart', 'can' => 'reports:view'],
+                    ['route' => 'admin.reorder-recommendations.index', 'match' => 'admin.reorder-recommendations.*', 'label' => 'Reorder recommendations', 'icon' => 'cart', 'can' => 'reports:view'],
+                    ['route' => 'admin.territory-heatmap.index', 'match' => 'admin.territory-heatmap.*', 'label' => 'Territory heat map', 'icon' => 'map', 'can' => 'reports:view'],
+                    ['route' => 'admin.commissions.index', 'match' => 'admin.commissions.*', 'label' => 'Commissions', 'icon' => 'banknotes', 'can' => 'commissions:view'],
                     ['route' => 'admin.alerts.index', 'match' => 'admin.alerts.*', 'label' => 'Alerts', 'icon' => 'alert', 'can' => 'reports:view'],
                     ['route' => 'admin.reports.index', 'match' => 'admin.reports.*', 'label' => 'Reports', 'icon' => 'chart', 'can' => 'reports:view'],
                     ['route' => 'admin.scorecards.index', 'match' => 'admin.scorecards.*', 'label' => 'Scorecards', 'icon' => 'chart', 'can' => 'reports:view'],

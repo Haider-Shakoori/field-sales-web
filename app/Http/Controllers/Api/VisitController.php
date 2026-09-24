@@ -357,7 +357,7 @@ class VisitController extends Controller
 
     private function relations(): array
     {
-        return ['customer', 'route', 'photos', 'suspiciousFlags'];
+        return ['customer', 'route', 'photos', 'voiceNotes', 'suspiciousFlags'];
     }
 
     private function payload(CustomerVisit $visit): array
@@ -390,6 +390,14 @@ class VisitController extends Controller
             ] : null,
             'photos' => $visit->relationLoaded('photos')
                 ? $visit->photos->map(fn (VisitPhoto $photo) => $this->photoPayload($photo))->values()->all()
+                : [],
+            'voice_notes' => $visit->relationLoaded('voiceNotes')
+                ? $visit->voiceNotes->map(fn ($note) => [
+                    'id' => $note->uuid,
+                    'mime_type' => $note->mime_type,
+                    'duration_seconds' => $note->duration_seconds,
+                    'captured_at' => $note->captured_at?->toISOString(),
+                ])->values()->all()
                 : [],
             'suspicious_flags' => $visit->relationLoaded('suspiciousFlags')
                 ? $visit->suspiciousFlags->map(fn (VisitSuspiciousFlag $flag) => [

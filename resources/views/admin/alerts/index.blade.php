@@ -1,7 +1,7 @@
 <x-layouts.app>
     <div class="mb-6">
-        <h1 class="text-2xl font-bold">Operational alerts</h1>
-        <p class="mt-1 text-sm text-slate-400">Only evidence already captured by visits and GPS is shown here. No synthetic fraud score is generated.</p>
+        <h1 class="text-2xl font-bold">Fraud & anomaly monitoring</h1>
+        <p class="mt-1 text-sm text-slate-400">Deterministic risk signals from captured GPS, visits, collections and expenses. FieldPulse surfaces evidence for review; it does not accuse or assign a synthetic fraud score.</p>
     </div>
 
     <form method="GET" action="{{ route('admin.alerts.index') }}" class="mb-6 grid gap-3 rounded-2xl border border-white/10 bg-slate-900 p-4 md:grid-cols-5">
@@ -35,10 +35,11 @@
         </div>
     </form>
 
-    <section class="mb-6 grid gap-3 sm:grid-cols-3">
+    <section class="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-2xl border border-white/10 bg-slate-900 p-4"><div class="text-xs text-slate-500">Open visit flags</div><div class="mt-2 text-2xl font-bold">{{ $alerts['summary']['open_visit_flags'] }}</div></div>
         <div class="rounded-2xl border border-white/10 bg-slate-900 p-4"><div class="text-xs text-slate-500">Reviewed visit flags</div><div class="mt-2 text-2xl font-bold">{{ $alerts['summary']['reviewed_visit_flags'] }}</div></div>
         <div class="rounded-2xl border border-white/10 bg-slate-900 p-4"><div class="text-xs text-slate-500">Mock GPS points</div><div class="mt-2 text-2xl font-bold">{{ $alerts['summary']['mock_location_points'] }}</div></div>
+        <div class="rounded-2xl border border-white/10 bg-slate-900 p-4"><div class="text-xs text-slate-500">Derived risk signals</div><div class="mt-2 text-2xl font-bold">{{ $alerts['summary']['derived_anomaly_signals'] }}</div></div>
     </section>
 
     <section class="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
@@ -82,6 +83,11 @@
         </div>
     </section>
 
+
+    <section class="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+        <div class="border-b border-white/10 px-5 py-4"><h2 class="font-semibold">Deterministic anomaly signals</h2><p class="mt-1 text-xs text-slate-400">Outside-geofence collections, overpayments, and suspicious duplicate collection/expense windows. These are review cues, not proof of wrongdoing.</p></div>
+        <div class="divide-y divide-white/10">@forelse($alerts['derived_signals'] as $signal)<div class="px-5 py-4"><div class="flex flex-wrap items-center gap-2"><span class="font-medium">{{ str($signal['type'])->replace('_',' ')->title() }}</span><span class="rounded-full bg-white/5 px-2 py-1 text-xs">{{ str($signal['severity'])->title() }}</span></div><p class="mt-2 text-sm text-slate-400">{{ $signal['salesman'] ?? 'Unknown salesman' }}@if($signal['customer']) · {{ $signal['customer'] }}@endif · {{ $signal['occurred_at'] }}</p><p class="mt-2 text-sm text-slate-300">{{ $signal['detail'] }}</p></div>@empty<div class="px-5 py-10 text-center text-slate-400">No derived anomaly signals in this period.</div>@endforelse</div>
+    </section>
     <section class="overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
         <div class="border-b border-white/10 px-5 py-4">
             <h2 class="font-semibold">Mock-location GPS evidence</h2>

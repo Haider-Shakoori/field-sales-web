@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CallActivityController;
 use App\Http\Controllers\Api\CollectionController;
+use App\Http\Controllers\Api\CommissionController;
 use App\Http\Controllers\Api\CustomerStatementController;
 use App\Http\Controllers\Api\DailyRoutePlannerController;
 use App\Http\Controllers\Api\ExpenseController;
@@ -14,12 +15,14 @@ use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\MileageController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ReorderRecommendationController;
 use App\Http\Controllers\Api\SalesReturnController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\StockController;
 use App\Http\Controllers\Api\TargetController;
 use App\Http\Controllers\Api\VisitController;
 use App\Http\Controllers\Api\VisitFormController;
+use App\Http\Controllers\Api\VisitVoiceNoteController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -72,6 +75,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/visits/check-in', [VisitController::class, 'checkIn']);
             Route::post('/visits/{visit:uuid}/check-out', [VisitController::class, 'checkOut']);
             Route::post('/visits/{visit:uuid}/photos', [VisitController::class, 'uploadPhoto']);
+            Route::post('/visits/{visit:uuid}/voice-notes', [VisitVoiceNoteController::class, 'store']);
             Route::post('/visits/{visit:uuid}/form-submissions', [VisitFormController::class, 'store']);
 
             Route::get('/call-activities/history', [CallActivityController::class, 'history']);
@@ -81,6 +85,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/returns', [SalesReturnController::class, 'store']);
             Route::get('/returns/history', [SalesReturnController::class, 'history']);
 
+            Route::get('/recommendations/reorders', ReorderRecommendationController::class);
+            Route::get('/commissions/me', CommissionController::class);
             Route::get('/orders/history', [OrderController::class, 'history']);
             Route::get('/orders/{order:uuid}', [OrderController::class, 'show']);
             Route::post('/orders', [OrderController::class, 'store']);

@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\BranchController;
 use App\Http\Controllers\Web\CallActivityController;
 use App\Http\Controllers\Web\CollectionController;
+use App\Http\Controllers\Web\CommissionController;
 use App\Http\Controllers\Web\CustomerCommunicationController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\CustomerFollowUpController;
@@ -20,8 +21,8 @@ use App\Http\Controllers\Web\DailyRoutePlannerController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\ExpenseController;
-use App\Http\Controllers\Web\LeadController;
 use App\Http\Controllers\Web\LiveMapController;
+use App\Http\Controllers\Web\LeadController;
 use App\Http\Controllers\Web\LocaleController;
 use App\Http\Controllers\Web\MileageController;
 use App\Http\Controllers\Web\NotificationController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\Web\PriceListController;
 use App\Http\Controllers\Web\PriceListItemController;
 use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\ReportController;
+use App\Http\Controllers\Web\ReorderRecommendationController;
 use App\Http\Controllers\Web\RoleController;
 use App\Http\Controllers\Web\RouteCustomerController;
 use App\Http\Controllers\Web\SalesmanAssignmentController;
@@ -45,9 +47,11 @@ use App\Http\Controllers\Web\SupervisorController;
 use App\Http\Controllers\Web\SupervisorScorecardController;
 use App\Http\Controllers\Web\TerritoryController;
 use App\Http\Controllers\Web\TrackingSettingsController;
+use App\Http\Controllers\Web\TerritoryHeatmapController;
 use App\Http\Controllers\Web\UserController;
 use App\Http\Controllers\Web\VisitController;
 use App\Http\Controllers\Web\VisitFormTemplateController;
+use App\Http\Controllers\Web\VisitVoiceNoteController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin/users');
@@ -136,6 +140,13 @@ Route::middleware('auth')->group(function () {
         Route::patch('/alerts/{flag}/review', [AlertController::class, 'review'])
             ->middleware('permission:visits:manage')
             ->name('alerts.review');
+
+        Route::get('/reorder-recommendations', ReorderRecommendationController::class)->middleware('permission:reports:view')->name('reorder-recommendations.index');
+        Route::get('/territory-heatmap', TerritoryHeatmapController::class)->middleware('permission:reports:view')->name('territory-heatmap.index');
+        Route::get('/commissions', [CommissionController::class, 'index'])->middleware('permission:commissions:view')->name('commissions.index');
+        Route::post('/commissions', [CommissionController::class, 'store'])->middleware('permission:commissions:manage')->name('commissions.store');
+        Route::post('/commissions/recalculate', [CommissionController::class, 'recalculate'])->middleware('permission:commissions:manage')->name('commissions.recalculate');
+        Route::patch('/commissions/earnings/{earning}/paid', [CommissionController::class, 'markPaid'])->middleware('permission:commissions:manage')->name('commissions.paid');
 
         Route::get('/reports', [ReportController::class, 'index'])
             ->middleware('permission:reports:view')
@@ -324,6 +335,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('visits', VisitController::class)
             ->only(['index', 'show'])
             ->middleware('permission:visits:view');
+        Route::get('/visit-voice-notes/{voiceNote}', [VisitVoiceNoteController::class, 'show'])->middleware('permission:visits:view')->name('visit-voice-notes.show');
 
         Route::get('/audit-logs', [AuditLogController::class, 'index'])
             ->middleware('permission:audit:view')

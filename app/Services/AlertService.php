@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\LocationHistory;
+use App\Models\Collection as PaymentCollection;
+use App\Models\Expense;
 use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
 use App\Models\User;
@@ -69,6 +71,14 @@ class AlertService
             ->get()
             ->keyBy('id');
 
+        $collections = PaymentCollection::query()->with(['customer','salesman'])->whereIn('salesman_id', $salesmanIds)->where('collected_at','>=',$start)->where('collected_at','<',$end)->orderBy('collected_at')->get();
+        $expenses = Expense::query()->with('salesman')->whereIn('salesman_id', $salesmanIds)->where('spent_at','>=',$start)->where('spent_at','<',$end)->orderBy('spent_at')->get();
+        $signals = collect();
+        foreach ($collections->where('within_geofence', false) as $row) $signals->push(['type'=>'collection_outside_geofence','severity'=>'high','salesman'=>$row->salesman?->full_name,'customer'=>$row->customer?->name,'occurred_at'=>$row->collected_at?->toISOString(),'detail'=>'Collection was recorded outside the customer geofence.']);
+        foreach ($collections->where('overpayment_flag', true) as $row) $signals->push(['type'=>'collection_overpayment','severity'=>'medium','salesman'=>$row->salesman?->full_name,'customer'=>$row->customer?->name,'occurred_at'=>$row->collected_at?->toISOString(),'detail'=>'Collection exceeded the balance snapshot captured at entry.']);
+        foreach ($collections->groupBy(fn($row)=>$row->salesman_id.':'.$row->customer_id.':'.$row->currency.':'.$row->amount) as $group) { $prev=null; foreach($group as $row){ if($prev && $prev->collected_at->diffInMinutes($row->collected_at)<=10) $signals->push(['type'=>'duplicate_collection_window','severity'=>'high','salesman'=>$row->salesman?->full_name,'customer'=>$row->customer?->name,'occurred_at'=>$row->collected_at?->toISOString(),'detail'=>'Same customer, amount and currency were collected again within 10 minutes.']); $prev=$row; } }
+        foreach ($expenses->groupBy(fn($row)=>$row->salesman_id.':'.$row->category.':'.$row->currency.':'.$row->amount) as $group) { $prev=null; foreach($group as $row){ if($prev && $prev->spent_at->diffInMinutes($row->spent_at)<=10) $signals->push(['type'=>'duplicate_expense_window','severity'=>'medium','salesman'=>$row->salesman?->full_name,'customer'=>null,'occurred_at'=>$row->spent_at?->toISOString(),'detail'=>'Same expense category, amount and currency were submitted again within 10 minutes.']); $prev=$row; } }
+
         return [
             'period' => [$fromDate, $toDate],
             'flags' => $flags,
@@ -78,7 +88,9 @@ class AlertService
                 'open_visit_flags' => $openFlagCount,
                 'reviewed_visit_flags' => $reviewedFlagCount,
                 'mock_location_points' => $mockPointCount,
+                'derived_anomaly_signals' => $signals->count(),
             ],
+            'derived_signals' => $signals->sortByDesc('occurred_at')->take(150)->values(),
         ];
     }
 

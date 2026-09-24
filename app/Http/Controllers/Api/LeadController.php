@@ -69,7 +69,6 @@ class LeadController extends Controller
         $existing = Lead::where('uuid', $validated['offline_uuid'])->first();
         if ($existing) {
             abort_unless((int) $existing->assigned_salesman_id === (int) $salesman->id, 409);
-
             return ApiResponse::success($this->payload($existing->load(['convertedCustomer', 'territory'])));
         }
 
@@ -144,12 +143,10 @@ class LeadController extends Controller
         $existing = LeadActivity::where('uuid', $validated['offline_uuid'])->first();
         if ($existing) {
             abort_unless((int) $existing->lead_id === (int) $lead->id, 409);
-
             return ApiResponse::success($this->activityPayload($existing));
         }
 
         $activity = $pipeline->activity($lead, $user, $validated['type'], $validated['notes'], [], $validated['offline_uuid']);
-
         return ApiResponse::success($this->activityPayload($activity), 201);
     }
 
@@ -168,7 +165,6 @@ class LeadController extends Controller
         abort_unless($request->user()->hasPermission($permission), 403);
         $user = $request->user()->load(['salesman', 'tenant']);
         abort_unless($user->salesman?->is_active, 403);
-
         return [$user, $user->salesman];
     }
 
