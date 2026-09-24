@@ -190,8 +190,8 @@ class AiInsightsTest extends TestCase
             return $request->url() === 'https://ai.example.test/answer'
                 && $payload['model'] === 'fieldpulse-test'
                 && isset($payload['snapshot']['active_customers'])
-                && !isset($payload['snapshot']['customer_names'])
-                && ! str_contains(json_encode($payload), 'Portal Customer');
+                && array_key_exists('customer_names', $payload['snapshot']) === false
+                && str_contains(json_encode($payload), 'Portal Customer') === false;
         });
     }
 
