@@ -203,6 +203,7 @@ class DailyRoutePlannerService
                 'source_sequence' => $candidate['source_sequence'],
                 'recommended_order' => null,
                 'planned_visit_minutes' => $candidate['planned_visit_minutes'],
+                'is_opportunity' => (bool) ($candidate['is_opportunity'] ?? false),
                 'visited_today' => $visited,
                 'last_visited_at' => $lastVisited?->toISOString(),
                 'priority_score' => $score,
@@ -225,7 +226,6 @@ class DailyRoutePlannerService
             ];
         });
 
-        $startLocation = $this->normalizeStartLocation($startLocation);
         [$orderedStops, $totalDistance] = $this->sequenceStops(
             $stops,
             $startLocation,
@@ -238,6 +238,16 @@ class DailyRoutePlannerService
             'summary' => $this->summary($orderedStops),
             'start_location' => $startLocation,
             'stops' => $orderedStops,
+            'nearby_opportunities' => $nearbyOpportunities,
+            'dynamic_route' => [
+                'generated_at' => now()->toISOString(),
+                'rerouted_from_current_position' => $startLocation !== null,
+                'included_opportunity_ids' => $includedCustomers
+                    ->pluck('uuid')
+                    ->values()
+                    ->all(),
+                'nearby_radius_km' => max(0.5, min(25.0, $nearbyRadiusKm)),
+            ],
             'approximate_air_distance_km' => round($totalDistance, 2),
             'distance_method' => self::DISTANCE_METHOD,
             'warnings' => $this->warnings($route, $localDate, $candidates),
