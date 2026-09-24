@@ -62,7 +62,7 @@ class AiInsightToolService
                 'Get the current manager morning briefing with yesterday sales/collections/visits, today attendance, pending approvals, exceptions, and ranked priorities.',
                 [
                     'type' => 'object',
-                    'properties' => new \stdClass(),
+                    'properties' => new \stdClass,
                     'additionalProperties' => false,
                 ],
             ),
