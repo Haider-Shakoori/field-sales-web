@@ -17,7 +17,7 @@
     <main class="min-w-0">
 <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
     <div>
-        <h1 class="text-2xl font-bold">{{ __('AI insights') }}</h1>
+        <h1 class="text-2xl font-bold tracking-tight">{{ __('AI insights') }}</h1>
         <p class="mt-1 text-sm text-slate-400">{{ __('Grounded recommendations and manager Q&A from FieldPulse operational data.') }}</p>
     </div>
     <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $providerEnabled ? 'bg-emerald-500/10 text-emerald-300' : 'bg-slate-800 text-slate-300' }}">
