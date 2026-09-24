@@ -191,7 +191,7 @@ class AiInsightsTest extends TestCase
                 && $payload['model'] === 'fieldpulse-test'
                 && isset($payload['snapshot']['active_customers'])
                 && !isset($payload['snapshot']['customer_names'])
-                && !str_contains(json_encode($payload), 'Portal Customer');
+                && ! str_contains(json_encode($payload), 'Portal Customer');
         });
     }
 
