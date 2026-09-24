@@ -17,6 +17,18 @@ class AiInsightsAgentService
         User $user,
         string $question,
         array $snapshot,
+    ): ?string {
+        $result = $this->answerDetailed($user, $question, $snapshot);
+
+        return ($result['ok'] ?? false)
+            ? (string) $result['answer']
+            : null;
+    }
+
+    public function answerDetailed(
+        User $user,
+        string $question,
+        array $snapshot,
         array $history = [],
     ): array {
         $startedAt = microtime(true);
