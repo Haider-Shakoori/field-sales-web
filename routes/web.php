@@ -22,7 +22,6 @@ use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\ExpenseController;
 use App\Http\Controllers\Web\LiveMapController;
 use App\Http\Controllers\Web\LeadController;
-use App\Http\Controllers\Web\LeadController;
 use App\Http\Controllers\Web\LocaleController;
 use App\Http\Controllers\Web\MileageController;
 use App\Http\Controllers\Web\NotificationController;
