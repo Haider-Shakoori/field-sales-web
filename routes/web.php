@@ -2,8 +2,8 @@
 
 use App\Http\Controllers\ReadinessController;
 use App\Http\Controllers\Web\AiInsightsController;
-use App\Http\Controllers\Web\AppointmentController;
 use App\Http\Controllers\Web\AlertController;
+use App\Http\Controllers\Web\AppointmentController;
 use App\Http\Controllers\Web\AttendanceController;
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
@@ -93,7 +93,6 @@ Route::middleware('auth')->group(function () {
         Route::patch('/appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])
             ->middleware('permission:appointments:manage')
             ->name('appointments.status');
-
 
         Route::get('/notifications', [NotificationController::class, 'index'])
             ->name('notifications.index');
