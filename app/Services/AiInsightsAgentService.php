@@ -226,6 +226,75 @@ class AiInsightsAgentService
         );
     }
 
+    public function health(): array
+    {
+        $startedAt = hrtime(true);
+        $provider = (string) config('ai.provider', 'generic');
+        $model = trim((string) config('ai.model'));
+        $baseUrl = $this->baseUrl();
+        $apiKey = trim((string) config('ai.api_key'));
+
+        if (! config('ai.enabled', false)) {
+            return [
+                'ok' => false,
+                'status' => 'disabled',
+                'provider' => $provider,
+                'model' => $model,
+                'message' => 'External AI is disabled.',
+                'latency_ms' => 0,
+            ];
+        }
+
+        if ($baseUrl === '' || $apiKey === '' || $model === '') {
+            return [
+                'ok' => false,
+                'status' => 'not_configured',
+                'provider' => $provider,
+                'model' => $model,
+                'message' => 'External AI is not fully configured.',
+                'latency_ms' => 0,
+            ];
+        }
+
+        try {
+            $response = Http::timeout(
+                max(5, min(15, (int) config('ai.timeout_seconds', 20))),
+            )
+                ->acceptJson()
+                ->withToken($apiKey)
+                ->get($baseUrl.'/models');
+
+            if (! $response->successful()) {
+                return [
+                    'ok' => false,
+                    'status' => 'http_'.$response->status(),
+                    'provider' => $provider,
+                    'model' => $model,
+                    'message' => $this->providerErrorMessage($response->status()),
+                    'latency_ms' => $this->elapsedMs($startedAt),
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'status' => 'connected',
+                'provider' => $provider,
+                'model' => $model,
+                'message' => 'AI provider connection is healthy.',
+                'latency_ms' => $this->elapsedMs($startedAt),
+            ];
+        } catch (Throwable) {
+            return [
+                'ok' => false,
+                'status' => 'connection_failed',
+                'provider' => $provider,
+                'model' => $model,
+                'message' => 'The AI provider could not be reached.',
+                'latency_ms' => $this->elapsedMs($startedAt),
+            ];
+        }
+    }
+
     private function systemPrompt(User $user, array $snapshot): string
     {
         $tenant = $user->loadMissing('tenant')->tenant;
