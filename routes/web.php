@@ -93,6 +93,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/ai-insights', [AiInsightsController::class, 'index'])
             ->middleware('permission:reports:view')
             ->name('ai-insights.index');
+        Route::get('/ai-insights/briefing', [AiInsightsController::class, 'briefing'])
+            ->middleware('permission:reports:view')
+            ->name('ai-insights.briefing');
         Route::post('/ai-insights/ask', [AiInsightsController::class, 'ask'])
             ->middleware('permission:reports:view')
             ->name('ai-insights.ask');
