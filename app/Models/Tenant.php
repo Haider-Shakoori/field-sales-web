@@ -42,4 +42,9 @@ class Tenant extends Model
     {
         return $this->hasMany(AuditLog::class);
     }
+
+    public function aiConversations(): HasMany
+    {
+        return $this->hasMany(AiConversation::class);
+    }
 }
