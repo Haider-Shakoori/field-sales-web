@@ -609,5 +609,19 @@
     "Fuel cost": "د سون لګښت",
     "No mileage records were found for this period.": "د دې مودې لپاره د واټن هېڅ ریکارډ ونه موندل شو.",
     "GPS distance ignores mock locations, points worse than 50 m accuracy, and implausible segments above 200 km/h. When both odometer readings exist, odometer distance is used for fuel-efficiency calculations and GPS remains the reconciliation baseline.": "د GPS واټن جعلي موقعیتونه، له ۵۰ مترو بد دقت لرونکي ټکي او له ۲۰۰ کیلومتره/ساعت څخه لوړ نامعقول حرکتونه نه شمېري. که د اوډومیټر دواړه لوستنې موجودې وي، د اوډومیټر واټن د سون موثریت لپاره کارول کېږي او GPS د پرتله کولو بنسټ پاتې کېږي.",
-    "Fuel unit price": "د سون د واحد بیه"
+    "Fuel unit price": "د سون د واحد بیه",
+    "Leads": "د پلور مخکښان",
+    "Leads & sales pipeline": "د پلور مخکښان او پایپ‌لاین",
+    "Capture lead": "مخکښ ثبت کړئ",
+    "Create lead": "مخکښ جوړ کړئ",
+    "Open leads": "پرانیستي مخکښان",
+    "Won leads": "بریالي مخکښان",
+    "Lost leads": "له لاسه وتلي مخکښان",
+    "Activity timeline": "د فعالیتونو تاریخ",
+    "Convert to customer": "پېرېدونکي ته اړول",
+    "Convert lead": "مخکښ واړوئ",
+    "Lead created.": "مخکښ جوړ شو.",
+    "Lead updated.": "مخکښ تازه شو.",
+    "Lead activity added.": "د مخکښ فعالیت اضافه شو.",
+    "Lead converted to customer.": "مخکښ پېرېدونکي ته واوښت."
 }
