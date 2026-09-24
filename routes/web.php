@@ -20,6 +20,7 @@ use App\Http\Controllers\Web\DailyRoutePlannerController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\ExpenseController;
+use App\Http\Controllers\Web\LeadController;
 use App\Http\Controllers\Web\LiveMapController;
 use App\Http\Controllers\Web\LocaleController;
 use App\Http\Controllers\Web\MileageController;
@@ -246,6 +247,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/call-activities', [CallActivityController::class, 'index'])
             ->middleware('permission:customers:view')
             ->name('call-activities.index');
+
+        Route::get('/leads', [LeadController::class, 'index'])->middleware('permission:leads:view')->name('leads.index');
+        Route::post('/leads', [LeadController::class, 'store'])->middleware('permission:leads:manage')->name('leads.store');
+        Route::get('/leads/{lead}', [LeadController::class, 'show'])->middleware('permission:leads:view')->name('leads.show');
+        Route::put('/leads/{lead}', [LeadController::class, 'update'])->middleware('permission:leads:manage')->name('leads.update');
+        Route::post('/leads/{lead}/activities', [LeadController::class, 'activity'])->middleware('permission:leads:manage')->name('leads.activities.store');
+        Route::post('/leads/{lead}/convert', [LeadController::class, 'convert'])->middleware('permission:leads:manage')->name('leads.convert');
 
         Route::get('/follow-ups', [CustomerFollowUpController::class, 'index'])
             ->middleware('permission:customers:view')

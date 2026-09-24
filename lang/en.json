@@ -609,5 +609,19 @@
     "Fuel cost": "Fuel cost",
     "No mileage records were found for this period.": "No mileage records were found for this period.",
     "GPS distance ignores mock locations, points worse than 50 m accuracy, and implausible segments above 200 km/h. When both odometer readings exist, odometer distance is used for fuel-efficiency calculations and GPS remains the reconciliation baseline.": "GPS distance ignores mock locations, points worse than 50 m accuracy, and implausible segments above 200 km/h. When both odometer readings exist, odometer distance is used for fuel-efficiency calculations and GPS remains the reconciliation baseline.",
-    "Fuel unit price": "Fuel unit price"
+    "Fuel unit price": "Fuel unit price",
+    "Activity timeline": "Activity timeline",
+    "Capture lead": "Capture lead",
+    "Convert lead": "Convert lead",
+    "Convert to customer": "Convert to customer",
+    "Create lead": "Create lead",
+    "Lead activity added.": "Lead activity added.",
+    "Lead converted to customer.": "Lead converted to customer.",
+    "Lead created.": "Lead created.",
+    "Lead updated.": "Lead updated.",
+    "Leads": "Leads",
+    "Leads & sales pipeline": "Leads & sales pipeline",
+    "Lost leads": "Lost leads",
+    "Open leads": "Open leads",
+    "Won leads": "Won leads"
 }
