@@ -72,7 +72,7 @@ class CustomerController extends Controller
         $timezone = $user->tenant?->timezone ?: config('app.timezone', 'UTC');
 
         return view('admin.customers.show', [
-            'customer' => $customer->load(['branch', 'territory', 'priceList', 'creator', 'routeMemberships.route', 'callActivities.user', 'followUps.assignedSalesman', 'communicationDeliveries.creator']),
+            'customer' => $customer->load(['branch', 'territory', 'priceList', 'creator', 'routeMemberships.route', 'callActivities.user', 'followUps.assignedSalesman', 'communicationDeliveries.creator', 'portalAccesses.creator']),
             'creditSnapshot' => $balances->snapshot($customer, $customer->credit_currency ?? 'AFN'),
             'aging' => $balances->aging($customer),
             'salesmen' => Salesman::active()->orderBy('employee_code')->get(),
