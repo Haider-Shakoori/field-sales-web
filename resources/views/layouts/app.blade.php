@@ -209,6 +209,8 @@
                 'label' => 'CRM',
                 'links' => [
                     ['route' => 'admin.customers.index', 'match' => 'admin.customers.*', 'label' => 'Customers', 'icon' => 'briefcase', 'can' => 'customers:view'],
+                    ['route' => 'admin.leads.index', 'match' => 'admin.leads.*', 'label' => 'Leads', 'icon' => 'flag', 'can' => 'leads:view'],
+                    ['route' => 'admin.leads.index', 'match' => 'admin.leads.*', 'label' => 'Leads', 'icon' => 'flag', 'can' => 'leads:view'],
                     ['route' => 'admin.territories.index', 'match' => 'admin.territories.*', 'label' => 'Territories', 'icon' => 'map', 'can' => 'customers:view'],
                     ['route' => 'admin.routes.index', 'match' => 'admin.routes.*', 'label' => 'Routes', 'icon' => 'map-pin', 'can' => 'customers:view'],
                     ['route' => 'admin.daily-planner.index', 'match' => 'admin.daily-planner.*', 'label' => 'Daily planner', 'icon' => 'calendar-check', 'can' => 'sales-team:view'],
