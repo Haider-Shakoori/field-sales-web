@@ -4,11 +4,11 @@ namespace App\Services;
 
 use App\Models\Collection;
 use App\Models\Customer;
-use App\Models\CustomerVisit;
+use App\Models\CustomerFollowUp;
 use App\Models\Expense;
 use App\Models\Order;
-use App\Models\SalesReturn;
 use App\Models\Salesman;
+use App\Models\SalesReturn;
 use App\Models\User;
 use App\Models\VisitSuspiciousFlag;
 use App\Models\WorkSession;
@@ -196,7 +196,7 @@ class AiRecommendationService
             return;
         }
 
-        $overdue = \App\Models\CustomerFollowUp::query()
+        $overdue = CustomerFollowUp::query()
             ->where('status', 'pending')
             ->where('due_at', '<', now())
             ->count();
@@ -217,7 +217,7 @@ class AiRecommendationService
             ));
         }
 
-        $highPriority = \App\Models\CustomerFollowUp::query()
+        $highPriority = CustomerFollowUp::query()
             ->where('status', 'pending')
             ->where('priority', 'high')
             ->count();
