@@ -37,6 +37,16 @@ class Salesman extends Model
         return $this->hasMany(SalesmanAssignment::class);
     }
 
+    public function leads(): HasMany
+    {
+        return $this->hasMany(Lead::class, 'assigned_salesman_id');
+    }
+
+    public function leads(): HasMany
+    {
+        return $this->hasMany(Lead::class, 'assigned_salesman_id');
+    }
+
     public function collections(): HasMany
     {
         return $this->hasMany(Collection::class)->latest('collected_at');
