@@ -56,6 +56,11 @@ class User extends Authenticatable
         return $this->hasMany(OperationalNotification::class);
     }
 
+    public function aiConversations(): HasMany
+    {
+        return $this->hasMany(AiConversation::class);
+    }
+
     public function notificationPreference(): HasOne
     {
         return $this->hasOne(NotificationPreference::class);
