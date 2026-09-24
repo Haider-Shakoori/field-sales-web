@@ -1,4 +1,20 @@
 <x-layouts.app>
+<div class="grid gap-6 xl:grid-cols-[290px_minmax(0,1fr)]">
+    <aside class="xl:sticky xl:top-6 xl:self-start">
+        <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-400 font-black text-white">F</span>
+                <div>
+                    <p class="font-semibold text-white">{{ __('Ask FieldPulse') }}</p>
+                    <p class="text-xs text-slate-500">{{ __('Conversation history') }}</p>
+                </div>
+            </div>
+            <a href="{{ route('admin.ai-insights.index') }}" class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400">
+                <span class="text-lg">＋</span> {{ __('New chat') }}
+            </a>
+        </div>
+    </aside>
+    <main class="min-w-0">
 <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold">{{ __('AI insights') }}</h1>
@@ -109,6 +125,9 @@
         </div>
     </div>
 </section>
+    </main>
+</div>
+
 <script>
 (() => {
     const form = document.getElementById('ask-fieldpulse-form');
