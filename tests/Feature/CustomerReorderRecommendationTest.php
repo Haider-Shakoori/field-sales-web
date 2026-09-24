@@ -156,6 +156,7 @@ class CustomerReorderRecommendationTest extends TestCase
             $product = Product::create(['sku' => 'SKU-R-1', 'name' => 'Repeat Product', 'unit' => 'pcs', 'base_price' => 100, 'currency' => 'AFN', 'is_active' => true]);
             $device = Device::create(['user_id' => $salesmanUser->id, 'salesman_id' => $salesman->id, 'device_uuid' => 'reorder-device', 'installation_uuid' => 'reorder-install', 'is_active' => true]);
             $this->token = $salesmanUser->createToken('mobile-'.$device->uuid)->plainTextToken;
+
             return compact('tenant', 'branch', 'admin', 'salesmanUser', 'salesman', 'customer', 'product', 'device');
         });
     }
