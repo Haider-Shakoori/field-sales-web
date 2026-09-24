@@ -26,6 +26,7 @@ class AiInsightToolService
         private readonly ManagerBriefingService $briefing,
         private readonly MileageService $mileage,
         private readonly CustomerReorderRecommendationService $reorders,
+        private readonly TerritoryHeatMapService $territoryHeatMap,
         private readonly TenantClock $clock,
         private readonly AiPolicyService $policy,
     ) {}
@@ -193,6 +194,22 @@ class AiInsightToolService
             );
         }
 
+        $tools[] = $this->tool(
+            'get_territory_performance',
+            'Compare territory customer coverage, completed visits, approved sales or verified collections for a date range. Monetary metrics remain separated by currency.',
+            [
+                'type' => 'object',
+                'properties' => [
+                    'date_from' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                    'date_to' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                    'metric' => ['type' => 'string', 'enum' => ['coverage', 'visits', 'sales', 'collections']],
+                    'currency' => ['type' => 'string', 'description' => 'Three-letter currency code for sales or collections.'],
+                ],
+                'required' => ['date_from', 'date_to', 'metric'],
+                'additionalProperties' => false,
+            ],
+        );
+
         if (
             $this->policy->customerDataEnabled($user)
             && $user->hasPermission('customers:view')
@@ -295,6 +312,7 @@ class AiInsightToolService
             'get_returns' => $this->returns($user, $arguments),
             'get_scorecards' => $this->scorecards($user, $arguments),
             'get_mileage_summary' => $this->mileageSummary($user, $arguments),
+            'get_territory_performance' => $this->territoryPerformance($user, $arguments),
             'get_customer_reorder_recommendations' => $this->customerReorders($user, $arguments),
             'get_order_details' => $this->orderDetails($user, $arguments),
             'search_customers' => $this->customerSearch($user, $arguments),
@@ -747,6 +765,34 @@ class AiInsightToolService
         ];
     }
 
+    private function territoryPerformance(User $user, array $arguments): array
+    {
+        abort_unless($user->hasPermission('reports:view'), 403);
+        $payload = $this->territoryHeatMap->build($user, [
+            'date_from' => $arguments['date_from'] ?? null,
+            'date_to' => $arguments['date_to'] ?? null,
+            'metric' => $arguments['metric'] ?? 'coverage',
+            'currency' => $arguments['currency'] ?? null,
+        ]);
+
+        return [
+            'filters' => $payload['filters'],
+            'summary' => $payload['summary'],
+            'territories' => collect($payload['territories'])->map(fn (array $row) => [
+                'territory' => $row['name'],
+                'code' => $row['code'],
+                'customers' => $row['customers'],
+                'visited_customers' => $row['visited_customers'],
+                'coverage_percent' => $row['coverage_percent'],
+                'visits' => $row['visits'],
+                'sales' => $row['sales'],
+                'collections' => $row['collections'],
+                'currency' => $row['currency'],
+                'metric_value' => $row['metric_value'],
+            ])->all(),
+        ];
+    }
+
     private function orderDetails(User $user, array $arguments): array
     {
         $this->authorizeCustomerData($user);
@@ -952,14 +998,3 @@ class AiInsightToolService
             )->startOfDay();
         } catch (\Throwable) {
             throw new InvalidArgumentException('Dates must use YYYY-MM-DD.');
-        }
-    }
-
-    private function tool(string $name, string $description, array $parameters): array
-    {
-        return [
-            'type' => 'function',
-            'function' => compact('name', 'description', 'parameters'),
-        ];
-    }
-}
