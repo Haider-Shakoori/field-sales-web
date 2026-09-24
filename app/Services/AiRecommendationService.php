@@ -19,6 +19,7 @@ class AiRecommendationService
 {
     public function __construct(
         private readonly CustomerBalanceService $balances,
+        private readonly SupervisorScorecardService $scorecards,
         private readonly TenantClock $clock,
     ) {}
 
@@ -31,7 +32,10 @@ class AiRecommendationService
 
         $this->approvalRecommendations($user, $recommendations);
         $this->attendanceRecommendations($user, $recommendations, $now);
+        $this->followUpRecommendations($user, $recommendations);
         $this->visitRiskRecommendations($user, $recommendations, $now);
+        $this->performanceRecommendations($user, $recommendations, $now);
+        $this->activitySpikeRecommendations($user, $recommendations, $now);
         $this->customerRecommendations($user, $recommendations, $now);
 
         return $recommendations
@@ -167,6 +171,266 @@ class AiRecommendationService
                     'not_started_today' => $notStarted,
                 ],
             ));
+        }
+    }
+
+    private function followUpRecommendations(
+        User $user,
+        SupportCollection $items,
+    ): void {
+        if (! $user->hasPermission('customers:view')) {
+            return;
+        }
+
+        $overdue = \App\Models\CustomerFollowUp::query()
+            ->where('status', 'pending')
+            ->where('due_at', '<', now())
+            ->count();
+
+        if ($overdue > 0) {
+            $items->push($this->item(
+                'overdue_followups',
+                'followups',
+                'high',
+                86,
+                'Clear overdue follow-ups',
+                ':count customer follow-up(s) are already overdue.',
+                ['count' => $overdue],
+                'Open Follow-ups and assign or complete overdue items.',
+                [
+                    'overdue_followups' => $overdue,
+                ],
+            ));
+        }
+
+        $highPriority = \App\Models\CustomerFollowUp::query()
+            ->where('status', 'pending')
+            ->where('priority', 'high')
+            ->count();
+
+        if ($highPriority > 0) {
+            $items->push($this->item(
+                'high_priority_followups',
+                'followups',
+                'medium',
+                72,
+                'Protect high-priority opportunities',
+                ':count high-priority follow-up(s) remain open.',
+                ['count' => $highPriority],
+                'Schedule these follow-ups into today\'s customer plan.',
+                [
+                    'high_priority_followups' => $highPriority,
+                ],
+            ));
+        }
+    }
+
+    private function performanceRecommendations(
+        User $user,
+        SupportCollection $items,
+        CarbonImmutable $now,
+    ): void {
+        if (! $user->hasPermission('reports:view')) {
+            return;
+        }
+
+        $from = $now->subDays(13)->toDateString();
+        $to = $now->toDateString();
+        $payload = $this->scorecards->build($user, $from, $to);
+
+        collect($payload['rows'] ?? [])
+            ->map(function (array $row): ?array {
+                $completed = (int) data_get($row, 'visits.completed', 0);
+                $productive = (int) data_get($row, 'visits.productive', 0);
+                $productivity = $completed > 0
+                    ? ($productive / $completed) * 100
+                    : null;
+                $target = data_get($row, 'target_average_percent');
+                $flags = (int) data_get($row, 'unresolved_flags', 0);
+                $overdue = (int) data_get($row, 'follow_ups.overdue', 0);
+
+                $signals = [];
+                $score = 0;
+
+                if ($target !== null && (float) $target < 70) {
+                    $signals[] = 'target';
+                    $score += 35;
+                }
+
+                if ($completed >= 5 && $productivity !== null && $productivity < 30) {
+                    $signals[] = 'productivity';
+                    $score += 30;
+                }
+
+                if ($flags > 0) {
+                    $signals[] = 'flags';
+                    $score += 30;
+                }
+
+                if ($overdue > 0) {
+                    $signals[] = 'followups';
+                    $score += 15;
+                }
+
+                if ($signals === []) {
+                    return null;
+                }
+
+                return [
+                    'row' => $row,
+                    'signals' => $signals,
+                    'score' => min(95, 55 + $score),
+                    'productivity' => $productivity,
+                ];
+            })
+            ->filter()
+            ->sortByDesc('score')
+            ->take(3)
+            ->each(function (array $signal) use ($items): void {
+                $row = $signal['row'];
+                $salesman = $row['salesman'];
+
+                $items->push($this->item(
+                    'salesman_attention_'.$salesman->uuid,
+                    'performance',
+                    $signal['score'] >= 85 ? 'high' : 'medium',
+                    (int) $signal['score'],
+                    'Review salesman performance',
+                    ':salesman has multiple performance signals that need supervisor review.',
+                    ['salesman' => $salesman->full_name],
+                    'Open the supervisor scorecard and review targets, productivity, flags, and follow-ups.',
+                    [
+                        'salesman_uuid' => $salesman->uuid,
+                        'salesman' => $salesman->full_name,
+                        'employee_code' => $salesman->employee_code,
+                        'signals' => $signal['signals'],
+                        'target_average_percent' => data_get(
+                            $row,
+                            'target_average_percent',
+                        ),
+                        'completed_visits' => (int) data_get(
+                            $row,
+                            'visits.completed',
+                            0,
+                        ),
+                        'productive_visits' => (int) data_get(
+                            $row,
+                            'visits.productive',
+                            0,
+                        ),
+                        'productive_visit_percent' => $signal['productivity'] === null
+                            ? null
+                            : round((float) $signal['productivity'], 2),
+                        'unresolved_flags' => (int) data_get(
+                            $row,
+                            'unresolved_flags',
+                            0,
+                        ),
+                        'overdue_followups' => (int) data_get(
+                            $row,
+                            'follow_ups.overdue',
+                            0,
+                        ),
+                    ],
+                ));
+            });
+    }
+
+    private function activitySpikeRecommendations(
+        User $user,
+        SupportCollection $items,
+        CarbonImmutable $now,
+    ): void {
+        $currentStart = $now->subDays(6)->startOfDay()->utc();
+        $currentEnd = $now->endOfDay()->utc();
+        $previousStart = $now->subDays(13)->startOfDay()->utc();
+        $previousEnd = $now->subDays(7)->endOfDay()->utc();
+
+        if ($user->hasPermission('returns:view')) {
+            $currentReturns = SalesReturn::query()
+                ->whereBetween('returned_at', [$currentStart, $currentEnd])
+                ->count();
+            $previousReturns = SalesReturn::query()
+                ->whereBetween('returned_at', [$previousStart, $previousEnd])
+                ->count();
+
+            if (
+                $currentReturns >= 3
+                && (
+                    $previousReturns === 0
+                    || $currentReturns >= ($previousReturns * 2)
+                )
+            ) {
+                $items->push($this->item(
+                    'returns_spike',
+                    'returns',
+                    'high',
+                    77,
+                    'Investigate return activity spike',
+                    'Returns increased to :current in the last 7 days versus :previous in the prior 7 days.',
+                    [
+                        'current' => $currentReturns,
+                        'previous' => $previousReturns,
+                    ],
+                    'Review affected products, customers, and return reasons for a common cause.',
+                    [
+                        'current_7d_returns' => $currentReturns,
+                        'previous_7d_returns' => $previousReturns,
+                    ],
+                ));
+            }
+        }
+
+        if ($user->hasPermission('expenses:view')) {
+            $currentExpenses = Expense::query()
+                ->where('status', 'approved')
+                ->whereBetween('spent_at', [$currentStart, $currentEnd])
+                ->selectRaw('currency, SUM(amount) as total')
+                ->groupBy('currency')
+                ->pluck('total', 'currency')
+                ->map(fn ($value) => (float) $value);
+
+            $previousExpenses = Expense::query()
+                ->where('status', 'approved')
+                ->whereBetween('spent_at', [$previousStart, $previousEnd])
+                ->selectRaw('currency, SUM(amount) as total')
+                ->groupBy('currency')
+                ->pluck('total', 'currency')
+                ->map(fn ($value) => (float) $value);
+
+            foreach ($currentExpenses as $currency => $currentTotal) {
+                $previousTotal = (float) ($previousExpenses[$currency] ?? 0);
+
+                if (
+                    $currentTotal <= 0
+                    || $previousTotal <= 0
+                    || $currentTotal < ($previousTotal * 1.5)
+                ) {
+                    continue;
+                }
+
+                $increase = (($currentTotal - $previousTotal) / $previousTotal) * 100;
+
+                $items->push($this->item(
+                    'expense_spike_'.$currency,
+                    'expenses',
+                    'medium',
+                    64,
+                    'Review expense increase',
+                    'Approved :currency expenses increased :percent% versus the prior 7-day period.',
+                    [
+                        'currency' => $currency,
+                        'percent' => number_format($increase, 0),
+                    ],
+                    'Review expense categories and salesman-level activity for the increase.',
+                    [
+                        'currency' => $currency,
+                        'current_7d_total' => round($currentTotal, 4),
+                        'previous_7d_total' => round($previousTotal, 4),
+                        'increase_percent' => round($increase, 2),
+                    ],
+                ));
+            }
         }
     }
 
