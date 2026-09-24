@@ -118,5 +118,5 @@
             @endswitch
         </svg>
     @endif
-    <span class="truncate">{{ $slot }}</span>
+    <span class="fp-nav-label truncate">{{ $slot }}</span>
 </a>
