@@ -50,7 +50,7 @@
                             <p class="mt-1 text-sm text-slate-200">{{ __($recommendation['message'], $recommendation['message_params'] ?? []) }}</p>
                             <p class="mt-2 text-sm text-slate-400">{{ __($recommendation['action']) }}</p>
                         </div>
-                        <span class="rounded-full bg-black/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide">{{ __($recommendation['severity']) }}</span>
+                        <span class="rounded-full bg-black/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide">{{ __(str($recommendation['severity'])->title()->toString()) }}</span>
                     </div>
                 </article>
             @endforeach
