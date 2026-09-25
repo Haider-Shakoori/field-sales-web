@@ -722,5 +722,12 @@
     "Commission controls": "د کمېشن کنټرولونه",
     "Approved orders and verified collections are the only monetary transaction sources.": "یوازې تایید شوي فرمایشونه او تایید شوې راټولونې د مالي معاملو سرچینې دي.",
     "Percentage commissions never convert or combine currencies; AFN, USD, and other currencies stay separate.": "سلنه کمېشنونه هېڅکله اسعار نه بدلوي یا نه ګډوي؛ افغانۍ، ډالر او نور اسعار جلا پاتې کېږي.",
-    "Matching rules can stack. Approved periods are locked and overlapping approved periods are blocked.": "برابر قواعد یوځای حسابېدای شي. تایید شوې دورې قفل دي او د تایید شوو دورو هم‌پوشاني بندېږي."
+    "Matching rules can stack. Approved periods are locked and overlapping approved periods are blocked.": "برابر قواعد یوځای حسابېدای شي. تایید شوې دورې قفل دي او د تایید شوو دورو هم‌پوشاني بندېږي.",
+    "Voice notes": "غږیز یادښتونه",
+    "Recorded voice note": "ثبت شوی غږیز یادښت",
+    "Transcript": "لیکل شوی متن",
+    "Structured visit notes": "جوړښتي د لیدنې یادښتونه",
+    "Follow-up": "تعقیب",
+    "External transcription is blocked by the current customer-data AI policy.": "بهرنۍ غږ-متن بدلون د پیرودونکي د معلوماتو د اوسني AI تګلارې له مخې بند دی.",
+    "No voice notes attached.": "هېڅ غږیز یادښت نه دی نښلول شوی."
 }
