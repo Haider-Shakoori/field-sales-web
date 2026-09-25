@@ -210,7 +210,6 @@
                 'links' => [
                     ['route' => 'admin.customers.index', 'match' => 'admin.customers.*', 'label' => 'Customers', 'icon' => 'briefcase', 'can' => 'customers:view'],
                     ['route' => 'admin.leads.index', 'match' => 'admin.leads.*', 'label' => 'Leads', 'icon' => 'flag', 'can' => 'leads:view'],
-                    ['route' => 'admin.leads.index', 'match' => 'admin.leads.*', 'label' => 'Leads', 'icon' => 'flag', 'can' => 'leads:view'],
                     ['route' => 'admin.territories.index', 'match' => 'admin.territories.*', 'label' => 'Territories', 'icon' => 'map', 'can' => 'customers:view'],
                     ['route' => 'admin.routes.index', 'match' => 'admin.routes.*', 'label' => 'Routes', 'icon' => 'map-pin', 'can' => 'customers:view'],
                     ['route' => 'admin.daily-planner.index', 'match' => 'admin.daily-planner.*', 'label' => 'Daily planner', 'icon' => 'calendar-check', 'can' => 'sales-team:view'],
@@ -370,8 +369,23 @@
     @endunless
 
     @if($fullscreen)
-        <div id="fullscreen-nav-modal" class="fixed inset-0 z-[2000] hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm" aria-hidden="true">
-            <div class="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl shadow-black/40">
+        <style>
+            #fullscreen-nav-modal {
+                width: min(72rem, calc(100vw - 2rem));
+                max-width: none;
+                padding: 0;
+                border: 0;
+                background: transparent;
+                color: inherit;
+            }
+
+            #fullscreen-nav-modal::backdrop {
+                background: rgba(2, 6, 23, .82);
+                backdrop-filter: blur(8px);
+            }
+        </style>
+        <dialog id="fullscreen-nav-modal" class="rounded-3xl">
+            <div class="flex max-h-[88vh] w-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl shadow-black/40">
                 <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
                     <div>
                         <p class="text-base font-bold">{{ __('FieldPulse menu') }}</p>
@@ -410,7 +424,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </dialog>
     @endif
 @endif
 
@@ -493,29 +507,29 @@
 
     const fullscreenMenu = document.getElementById('fullscreen-nav-modal');
     const openFullscreenMenu = () => {
-        if (!fullscreenMenu) return;
-        fullscreenMenu.classList.remove('hidden');
-        fullscreenMenu.classList.add('flex');
-        fullscreenMenu.setAttribute('aria-hidden', 'false');
+        if (!(fullscreenMenu instanceof HTMLDialogElement) || fullscreenMenu.open) return;
+        fullscreenMenu.showModal();
     };
     const closeFullscreenMenu = () => {
-        if (!fullscreenMenu) return;
-        fullscreenMenu.classList.add('hidden');
-        fullscreenMenu.classList.remove('flex');
-        fullscreenMenu.setAttribute('aria-hidden', 'true');
+        if (!(fullscreenMenu instanceof HTMLDialogElement) || !fullscreenMenu.open) return;
+        fullscreenMenu.close();
     };
 
-    document.querySelectorAll('[data-fullscreen-menu-open]').forEach((button) => {
-        button.addEventListener('click', openFullscreenMenu);
+    document.addEventListener('click', (event) => {
+        if (event.target.closest('[data-fullscreen-menu-open]')) {
+            event.preventDefault();
+            openFullscreenMenu();
+            return;
+        }
+
+        if (event.target.closest('[data-fullscreen-menu-close]')) {
+            event.preventDefault();
+            closeFullscreenMenu();
+        }
     });
-    document.querySelectorAll('[data-fullscreen-menu-close]').forEach((button) => {
-        button.addEventListener('click', closeFullscreenMenu);
-    });
+
     fullscreenMenu?.addEventListener('click', (event) => {
         if (event.target === fullscreenMenu) closeFullscreenMenu();
-    });
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') closeFullscreenMenu();
     });
 })();
 </script>

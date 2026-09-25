@@ -35,33 +35,33 @@ class ShahabDemoSeeder extends Seeder
     private const ZONES = [
         'EAST' => [
             'name' => 'Kabul East Zone',
-            'manager' => 'Mohammad Naim Rahimi',
+            'manager' => 'Naim Rahimi',
             'manager_email' => 'eastmgr@shahab.com',
-            'supervisor' => 'Wali Mohammad Ahmadi',
+            'supervisor' => 'Wali Ahmadi',
             'supervisor_email' => 'eastsup@shahab.com',
             'districts' => [8, 9, 12, 16, 21, 22],
         ],
         'NORTH' => [
             'name' => 'Kabul North Zone',
-            'manager' => 'Ahmad Farid Safi',
+            'manager' => 'Farid Safi',
             'manager_email' => 'northmgr@shahab.com',
-            'supervisor' => 'Sayed Jamal Hashimi',
+            'supervisor' => 'Jamal Hashimi',
             'supervisor_email' => 'northsup@shahab.com',
             'districts' => [4, 10, 11, 15, 17, 19],
         ],
         'WEST' => [
             'name' => 'Kabul West Zone',
-            'manager' => 'Abdul Wahid Azizi',
+            'manager' => 'Wahid Azizi',
             'manager_email' => 'westmgr@shahab.com',
-            'supervisor' => 'Noor Agha Mohammadi',
+            'supervisor' => 'Noor Mohammadi',
             'supervisor_email' => 'westsup@shahab.com',
             'districts' => [3, 5, 13, 14, 18],
         ],
         'SOUTH' => [
             'name' => 'Kabul South & Central Zone',
-            'manager' => 'Hamidullah Noori',
+            'manager' => 'Hamid Noori',
             'manager_email' => 'southmgr@shahab.com',
-            'supervisor' => 'Hekmatullah Stanikzai',
+            'supervisor' => 'Hekmat Stanikzai',
             'supervisor_email' => 'southsup@shahab.com',
             'districts' => [1, 2, 6, 7, 20],
         ],
@@ -466,7 +466,6 @@ class ShahabDemoSeeder extends Seeder
                     $zoneIndex % count($salesmenByZone[$zoneCode])
                 ];
                 $contact = $this->personName($customerCounter + 5000);
-                $storeType = $this->storeType($customerCounter);
                 [$latitude, $longitude] = $this->customerPointInsideGeometry(
                     $districtGeofences[$districtNo],
                     $sequence,
@@ -483,7 +482,7 @@ class ShahabDemoSeeder extends Seeder
                         'territory_id' => $territory->id,
                         'assigned_salesman_id' => $salesman->id,
                         'price_list_id' => $priceList->id,
-                        'name' => $contact.' '.$storeType,
+                        'name' => $contact,
                         'contact_person' => $contact,
                         // Deliberately synthetic Afghan-format demo number; never a scraped/private contact.
                         'phone' => $this->demoPhone($customerCounter + 100),
@@ -662,8 +661,7 @@ class ShahabDemoSeeder extends Seeder
         $role
     ): User {
         $user = User::where('tenant_id', $tenant->id)
-            ->where('name', $name)
-            ->where('role', $roleSlug)
+            ->where('email', $email)
             ->first();
 
         $user ??= new User([
@@ -836,16 +834,16 @@ class ShahabDemoSeeder extends Seeder
     private function personName(int $index): string
     {
         $first = [
-            'Ahmad', 'Mohammad', 'Abdul Rahman', 'Abdul Wahid', 'Abdul Qadir',
-            'Farid', 'Hamidullah', 'Naim', 'Wali Mohammad', 'Sayed Jamal',
-            'Noor Agha', 'Hekmatullah', 'Zabihullah', 'Najibullah', 'Habibullah',
-            'Samiullah', 'Rafiullah', 'Fazal Ahmad', 'Ajmal', 'Zubair',
-            'Feroz', 'Sohail', 'Nasir Ahmad', 'Jawad', 'Matiullah',
-            'Obaidullah', 'Ehsanullah', 'Aziz Ahmad', 'Bashir Ahmad', 'Latif',
+            'Ahmad', 'Mohammad', 'Rahman', 'Wahid', 'Qadir',
+            'Farid', 'Hamidullah', 'Naim', 'Wali', 'Jamal',
+            'Noor', 'Hekmatullah', 'Zabihullah', 'Najibullah', 'Habibullah',
+            'Samiullah', 'Rafiullah', 'Fazal', 'Ajmal', 'Zubair',
+            'Feroz', 'Sohail', 'Nasir', 'Jawad', 'Matiullah',
+            'Obaidullah', 'Ehsanullah', 'Aziz', 'Bashir', 'Latif',
             'Haroon', 'Saber', 'Shafiq', 'Waheed', 'Zahir',
-            'Faisal', 'Mustafa', 'Jamaluddin', 'Shamsuddin', 'Aminullah',
+            'Faisal', 'Mustafa', 'Jalal', 'Shamsuddin', 'Aminullah',
             'Khalid', 'Aref', 'Yasin', 'Ismail', 'Ibrahim',
-            'Rashid', 'Nabi', 'Ghulam Nabi', 'Shah Mahmood', 'Nematullah',
+            'Rashid', 'Nabi', 'Mahmood', 'Nematullah', 'Daud',
         ];
 
         $family = [
@@ -857,32 +855,15 @@ class ShahabDemoSeeder extends Seeder
         ];
 
         $firstName = $first[$index % count($first)];
-        $secondName = $first[(intdiv($index, count($first)) + 7) % count($first)];
-        $familyName = $family[intdiv($index, count($first) * count($first)) % count($family)];
+        $familyName = $family[($index * 7 + intdiv($index, count($first))) % count($family)];
 
-        return $firstName.' '.$secondName.' '.$familyName;
+        return $firstName.' '.$familyName;
     }
 
     private function demoPhone(int $index): string
     {
         // Afghanistan-format placeholder generated solely for demo data.
         return sprintf('+93 70 000 %04d', $index % 10000);
-    }
-
-    private function storeType(int $index): string
-    {
-        $types = [
-            'General Store',
-            'Supermarket',
-            'Mini Market',
-            'Grocery',
-            'Wholesale Shop',
-            'Family Market',
-            'Trading Store',
-            'Retail Shop',
-        ];
-
-        return $types[$index % count($types)];
     }
 
     private function uuid(string $key): string

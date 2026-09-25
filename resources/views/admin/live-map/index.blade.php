@@ -238,7 +238,7 @@
                 </button>
                 <button id="fit-all" type="button" class="fp-live-map-control">{{ __('Fit all') }}</button>
                 <button id="route-toggle" type="button" class="fp-live-map-control">{{ __('Hide routes') }}</button>
-                <button type="button" data-fullscreen-menu-open class="fp-live-map-control">
+                <button id="fullscreen-menu-button" type="button" data-fullscreen-menu-open class="fp-live-map-control" aria-haspopup="dialog" aria-controls="fullscreen-nav-modal">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
