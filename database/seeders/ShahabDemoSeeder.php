@@ -466,7 +466,7 @@ class ShahabDemoSeeder extends Seeder
                 $salesman = $salesmenByZone[$zoneCode][
                     $zoneIndex % count($salesmenByZone[$zoneCode])
                 ];
-                $contact = $this->personName($customerCounter + 5000);
+                $contact = $this->customerName($customerCounter);
                 [$latitude, $longitude] = $this->customerPointInsideGeometry(
                     $districtGeofences[$districtNo],
                     $sequence,
@@ -830,6 +830,39 @@ class ShahabDemoSeeder extends Seeder
         }
 
         return $inside;
+    }
+
+    private function customerName(int $index): string
+    {
+        $first = [
+            'Ahmad', 'Mohammad', 'Rahman', 'Wahid', 'Qadir', 'Farid', 'Hamid', 'Naim',
+            'Wali', 'Jamal', 'Noor', 'Hekmat', 'Zabih', 'Najib', 'Habib', 'Sami',
+            'Rafi', 'Fazal', 'Ajmal', 'Zubair', 'Feroz', 'Sohail', 'Nasir', 'Jawad',
+            'Mati', 'Obaid', 'Ehsan', 'Aziz', 'Bashir', 'Latif', 'Haroon', 'Saber',
+            'Shafiq', 'Waheed', 'Zahir', 'Faisal', 'Mustafa', 'Jalal', 'Shams', 'Amin',
+            'Khalid', 'Aref', 'Yasin', 'Ismail', 'Ibrahim', 'Rashid', 'Nabi', 'Mahmood',
+            'Nemat', 'Daud', 'Omid', 'Akram', 'Asad', 'Bilal', 'Basir', 'Farooq',
+            'Gulab', 'Hameed', 'Idris', 'Kamal', 'Karim', 'Lutfullah', 'Masood', 'Nadir',
+            'Qasim', 'Rauf', 'Sadiq', 'Tariq', 'Umar', 'Yousuf', 'Zaman', 'Adil',
+            'Bakhtiar', 'Emal', 'Farhad', 'Hashmat', 'Kawsar', 'Mirwais', 'Najeeb', 'Sulaiman',
+        ];
+
+        $family = [
+            'Ahmadi', 'Rahimi', 'Safi', 'Azizi', 'Noori', 'Hashimi', 'Mohammadi', 'Stanikzai',
+            'Popal', 'Wardak', 'Hotak', 'Shinwari', 'Kohistani', 'Andar', 'Sultani', 'Rasooli',
+            'Karimi', 'Nazari', 'Haidari', 'Akbari', 'Omid', 'Naderi', 'Samadi', 'Jalali',
+            'Mansoori', 'Yousufi', 'Arifi', 'Rahmani', 'Siddiqi', 'Hakimi', 'Atal', 'Bahrami',
+            'Barakzai', 'Durrani', 'Farhadi', 'Ghafari', 'Ghafoori', 'Hassani', 'Ibrahimi', 'Kabiri',
+            'Kakar', 'Khalili', 'Khan', 'Mahmoodi', 'Musavi', 'Niazi', 'Nuristani', 'Pajhwok',
+            'Qaderi', 'Rabbani', 'Saberi', 'Salimi', 'Shah', 'Sharifi', 'Tanha', 'Usmani',
+            'Wafa', 'Waziri', 'Zadran', 'Zazai',
+        ];
+
+        $position = max(0, $index - 1);
+        $firstName = $first[$position % count($first)];
+        $familyName = $family[intdiv($position, count($first)) % count($family)];
+
+        return $firstName.' '.$familyName;
     }
 
     private function personName(int $index): string
