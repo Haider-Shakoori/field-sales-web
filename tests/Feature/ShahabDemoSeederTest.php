@@ -200,7 +200,7 @@ class ShahabDemoSeederTest extends TestCase
         $this->assertTrue($managerNames->every(fn ($name) => str_word_count($name) <= 2));
         $this->assertTrue($salesmanNames->every(fn ($name) => str_word_count($name) <= 2));
         $this->assertTrue($customerNames->every(fn ($name) => str_word_count($name) <= 2));
-        $this->assertSame('Naim Rahimi', $managerNames->firstWhere(fn ($name) => $name === 'Naim Rahimi'));
+        $this->assertTrue($managerNames->contains('Naim Rahimi'));
     }
 
     private function districtGeoJsonFixture(): array
