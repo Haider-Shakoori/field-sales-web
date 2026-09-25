@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
@@ -43,11 +44,21 @@ final class ProductionReadiness
             // Fail closed. Readiness callers receive only aggregate status.
         }
 
+        $schedulerHeartbeat = true;
+
+        if ((bool) config('operations.monitoring.require_scheduler_heartbeat')) {
+            $heartbeat = Cache::get('field-sales:scheduler-heartbeat');
+            $maxAge = max(30, (int) config('operations.monitoring.scheduler_heartbeat_max_age_seconds', 180));
+            $schedulerHeartbeat = is_numeric($heartbeat)
+                && now()->getTimestamp() - (int) $heartbeat <= $maxAge;
+        }
+
         return [
             'database_connection' => $database,
             'infrastructure_tables' => $infrastructureTables,
             'storage_is_writable' => is_writable(storage_path()),
             'bootstrap_cache_is_writable' => is_writable(base_path('bootstrap/cache')),
+            'scheduler_heartbeat_is_fresh' => $schedulerHeartbeat,
         ];
     }
 
