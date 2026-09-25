@@ -722,5 +722,21 @@
     "Commission controls": "Commission controls",
     "Approved orders and verified collections are the only monetary transaction sources.": "Approved orders and verified collections are the only monetary transaction sources.",
     "Percentage commissions never convert or combine currencies; AFN, USD, and other currencies stay separate.": "Percentage commissions never convert or combine currencies; AFN, USD, and other currencies stay separate.",
-    "Matching rules can stack. Approved periods are locked and overlapping approved periods are blocked.": "Matching rules can stack. Approved periods are locked and overlapping approved periods are blocked."
+    "Matching rules can stack. Approved periods are locked and overlapping approved periods are blocked.": "Matching rules can stack. Approved periods are locked and overlapping approved periods are blocked.",
+    "Voice visit notes": "Voice visit notes",
+    "Audio is stored privately. Transcription only runs when external customer-data AI is explicitly allowed.": "Audio is stored privately. Transcription only runs when external customer-data AI is explicitly allowed.",
+    "notes": "notes",
+    "Voice note": "Voice note",
+    "Transcript": "Transcript",
+    "Summary": "Summary",
+    "Customer requests": "Customer requests",
+    "Next actions": "Next actions",
+    "Objections": "Objections",
+    "Product mentions": "Product mentions",
+    "Transcription is blocked because external customer-data AI is disabled for this environment or organization.": "Transcription is blocked because external customer-data AI is disabled for this environment or organization.",
+    "No voice notes attached.": "No voice notes attached.",
+    "Disabled": "Disabled",
+    "Blocked Policy": "Blocked Policy",
+    "Queued": "Queued",
+    "Processing": "Processing"
 }
