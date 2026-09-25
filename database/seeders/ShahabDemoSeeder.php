@@ -447,7 +447,7 @@ class ShahabDemoSeeder extends Seeder
             $zoneCode = $this->zoneForDistrict($districtNo);
             $branch = $branches[$zoneCode];
 
-            $territory = \App\Models\Territory::updateOrCreate(
+            $territory = Territory::updateOrCreate(
                 ['tenant_id' => $tenant->id, 'code' => sprintf('KBL-D%02d', $districtNo)],
                 [
                     'uuid' => $this->uuid('district:'.$districtNo),
@@ -660,7 +660,7 @@ class ShahabDemoSeeder extends Seeder
             }
         }
 
-        throw new \RuntimeException('No Shahab zone configured for Kabul district '.$district);
+        throw new RuntimeException('No Shahab zone configured for Kabul district '.$district);
     }
 
     private function districtPolygon(float $lat, float $lng): array
