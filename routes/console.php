@@ -93,7 +93,6 @@ Schedule::command('queue:prune-failed --hours=168')
     ->dailyAt('03:30')
     ->withoutOverlapping();
 
-
 Schedule::call(function (): void {
     Cache::put(
         'field-sales:scheduler-heartbeat',
