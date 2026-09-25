@@ -111,6 +111,12 @@
     }).addTo(map);
 
     let marker = null;
+    const locationIcon = L.divIcon({
+        className: '',
+        html: '<div style="width:22px;height:22px;border-radius:9999px;background:#6366f1;border:4px solid white;box-shadow:0 4px 14px rgba(15,23,42,.45)"></div>',
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+    });
 
     const updateLocation = (latlng) => {
         const lat = Number(latlng.lat.toFixed(7));
@@ -121,7 +127,7 @@
         status.textContent = 'Selected: ' + lat.toFixed(7) + ', ' + lng.toFixed(7);
 
         if (!marker) {
-            marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+            marker = L.marker([lat, lng], {draggable: true, icon: locationIcon}).addTo(map);
             marker.on('dragend', () => updateLocation(marker.getLatLng()));
         } else {
             marker.setLatLng([lat, lng]);
