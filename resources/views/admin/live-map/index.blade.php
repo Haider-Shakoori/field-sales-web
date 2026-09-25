@@ -1,49 +1,303 @@
-<x-layouts.app>
+<x-layouts.app :fullscreen="true">
     <link rel="stylesheet" href="{{ asset('vendor/leaflet/leaflet.css') }}">
+    <style>
+        .fp-live-map-shell {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            background: #020617;
+        }
 
-    <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold">Live map</h1>
-            <p class="mt-1 text-sm text-slate-400">Every visible salesman, their current position and today's traveled route from the work-session start point.</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 text-xs">
-            <span class="rounded-full bg-emerald-500/15 px-2.5 py-1 text-emerald-300">Online <span id="count-online">0</span></span>
-            <span class="rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-300">Idle <span id="count-idle">0</span></span>
-            <span class="rounded-full bg-slate-700 px-2.5 py-1 text-slate-300">Offline <span id="count-offline">0</span></span>
-        </div>
-    </div>
+        #live-map {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: #020617;
+        }
 
-    <div class="grid gap-4 lg:grid-cols-[380px,minmax(0,1fr)]">
-        <section class="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
-            <div class="space-y-3 border-b border-white/10 p-4">
-                <input id="map-search" placeholder="Search salesman or code" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-2.5 text-sm">
-                <div class="flex flex-wrap items-center gap-3 text-sm">
+        .fp-live-map-toolbar {
+            position: absolute;
+            inset-inline: 12px;
+            top: 12px;
+            z-index: 1100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 18px;
+            background: rgba(15, 23, 42, .9);
+            box-shadow: 0 18px 45px rgba(2, 6, 23, .34);
+            backdrop-filter: blur(18px);
+        }
+
+        .fp-live-map-panel {
+            position: absolute;
+            inset-inline-start: 12px;
+            top: 88px;
+            bottom: 12px;
+            z-index: 1000;
+            display: flex;
+            width: min(360px, calc(100vw - 24px));
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 20px;
+            background: rgba(15, 23, 42, .94);
+            box-shadow: 0 22px 55px rgba(2, 6, 23, .42);
+            backdrop-filter: blur(20px);
+            transform: translateX(calc(-100% - 24px));
+            transition: transform .22s ease;
+        }
+
+        html[dir="rtl"] .fp-live-map-panel {
+            transform: translateX(calc(100% + 24px));
+        }
+
+        .fp-live-map-panel.is-open,
+        html[dir="rtl"] .fp-live-map-panel.is-open {
+            transform: translateX(0);
+        }
+
+        .fp-live-map-toolbar-actions {
+            display: flex;
+            min-width: 0;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .fp-live-map-control {
+            display: inline-flex;
+            min-height: 38px;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .08);
+            padding: 8px 11px;
+            color: #e2e8f0;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: background .15s ease, border-color .15s ease;
+        }
+
+        .fp-live-map-control:hover {
+            border-color: rgba(129, 140, 248, .4);
+            background: rgba(99, 102, 241, .18);
+        }
+
+        .fp-live-map-statuses {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .fp-live-map-panel-list {
+            min-height: 0;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .fp-live-map-mobile-label {
+            display: none;
+        }
+
+        .leaflet-control-zoom {
+            border: 1px solid rgba(255,255,255,.12) !important;
+            box-shadow: 0 12px 30px rgba(2,6,23,.25) !important;
+        }
+
+        @media (max-width: 767px) {
+            .fp-live-map-toolbar {
+                align-items: flex-start;
+                padding: 9px;
+            }
+
+            .fp-live-map-toolbar-copy p {
+                display: none;
+            }
+
+            .fp-live-map-toolbar-actions {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 2px;
+                scrollbar-width: none;
+            }
+
+            .fp-live-map-toolbar-actions::-webkit-scrollbar {
+                display: none;
+            }
+
+            .fp-live-map-statuses {
+                display: none;
+            }
+
+            .fp-live-map-panel {
+                inset-inline: 8px;
+                top: auto;
+                bottom: 8px;
+                width: auto;
+                height: min(58vh, 560px);
+                transform: translateY(calc(100% + 18px));
+            }
+
+            html[dir="rtl"] .fp-live-map-panel {
+                transform: translateY(calc(100% + 18px));
+            }
+
+            .fp-live-map-panel.is-open,
+            html[dir="rtl"] .fp-live-map-panel.is-open {
+                transform: translateY(0);
+            }
+
+            .fp-live-map-mobile-label {
+                display: inline;
+            }
+
+            .fp-live-map-desktop-label {
+                display: none;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .fp-live-map-panel {
+                transform: translateX(0);
+            }
+
+            html[dir="rtl"] .fp-live-map-panel {
+                transform: translateX(0);
+            }
+
+            .fp-live-map-panel:not(.is-open) {
+                transform: translateX(calc(-100% - 24px));
+            }
+
+            html[dir="rtl"] .fp-live-map-panel:not(.is-open) {
+                transform: translateX(calc(100% + 24px));
+            }
+        }
+
+        html[data-theme="light"] .fp-live-map-toolbar,
+        html[data-theme="light"] .fp-live-map-panel {
+            border-color: rgba(148, 163, 184, .3);
+            background: rgba(255, 255, 255, .93);
+            box-shadow: 0 18px 45px rgba(15, 23, 42, .13);
+        }
+
+        html[data-theme="light"] .fp-live-map-control {
+            border-color: #dbe4ee;
+            background: #f1f5f9;
+            color: #334155;
+        }
+    </style>
+
+    <div class="fp-live-map-shell">
+        <div id="live-map"></div>
+
+        <header class="fp-live-map-toolbar">
+            <div class="fp-live-map-toolbar-copy min-w-0">
+                <div class="flex min-w-0 items-center gap-3">
+                    <button type="button" onclick="history.back()" class="fp-live-map-control shrink-0" aria-label="{{ __('Go back') }}">
+                        <svg class="fp-directional-icon h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m15 18-6-6 6-6"/>
+                        </svg>
+                        <span class="fp-live-map-desktop-label">{{ __('Back') }}</span>
+                    </button>
+                    <div class="min-w-0">
+                        <h1 class="truncate text-base font-bold sm:text-lg">{{ __('Live map') }}</h1>
+                        <p id="map-status-text" class="mt-0.5 truncate text-xs text-slate-400">{{ __('Loading salesmen…') }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fp-live-map-statuses text-xs">
+                <span class="rounded-full bg-emerald-500/15 px-2.5 py-1 text-emerald-300">{{ __('Online') }} <span id="count-online">0</span></span>
+                <span class="rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-300">{{ __('Idle') }} <span id="count-idle">0</span></span>
+                <span class="rounded-full bg-slate-700 px-2.5 py-1 text-slate-300">{{ __('Offline') }} <span id="count-offline">0</span></span>
+            </div>
+
+            <div class="fp-live-map-toolbar-actions">
+                <button id="panel-toggle" type="button" class="fp-live-map-control" aria-expanded="true" aria-controls="salesman-panel">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path stroke-linecap="round" d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <span class="fp-live-map-desktop-label">{{ __('Salesmen') }}</span>
+                    <span class="fp-live-map-mobile-label">{{ __('Team') }}</span>
+                </button>
+                <button id="fit-all" type="button" class="fp-live-map-control">{{ __('Fit all') }}</button>
+                <button id="route-toggle" type="button" class="fp-live-map-control">{{ __('Hide routes') }}</button>
+                <button type="button" data-fullscreen-menu-open class="fp-live-map-control">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                    <span>{{ __('Menu') }}</span>
+                </button>
+            </div>
+        </header>
+
+        <aside id="salesman-panel" class="fp-live-map-panel is-open" aria-label="{{ __('Salesmen') }}">
+            <div class="border-b border-white/10 p-4">
+                <div class="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-semibold">{{ __('Sales team') }}</p>
+                        <p class="mt-0.5 text-xs text-slate-500">{{ __('Select a salesman to focus their location and route.') }}</p>
+                    </div>
+                    <button id="panel-close" type="button" class="fp-live-map-control !min-h-0 !px-2.5 !py-2 md:hidden" aria-label="{{ __('Close salesmen panel') }}">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <input id="map-search" placeholder="{{ __('Search salesman or code') }}" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-2.5 text-sm">
+
+                <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
                     <select id="map-status-filter" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm">
-                        <option value="all">All statuses</option>
-                        <option value="online">Online</option>
-                        <option value="idle">Idle</option>
-                        <option value="offline">Offline</option>
+                        <option value="all">{{ __('All statuses') }}</option>
+                        <option value="online">{{ __('Online') }}</option>
+                        <option value="idle">{{ __('Idle') }}</option>
+                        <option value="offline">{{ __('Offline') }}</option>
                     </select>
                     <label class="flex items-center gap-2 text-slate-300">
                         <input id="map-on-duty" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-slate-950">
-                        On duty only
+                        {{ __('On duty only') }}
                     </label>
                 </div>
             </div>
-            <div id="salesman-list" class="max-h-[560px] flex-1 divide-y divide-white/5 overflow-y-auto"></div>
-        </section>
-
-        <section class="overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-                <div id="map-status-text" class="text-xs text-slate-400">Loading salesmen…</div>
-                <div class="flex gap-2">
-                    <button id="fit-all" type="button" class="rounded-lg bg-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/20">Fit all</button>
-                    <button id="route-toggle" type="button" class="rounded-lg bg-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/20">Hide routes</button>
-                </div>
-            </div>
-            <div id="live-map" class="h-[640px] bg-slate-950"></div>
-        </section>
+            <div id="salesman-list" class="fp-live-map-panel-list divide-y divide-white/5"></div>
+        </aside>
     </div>
+
+    <script>
+        (() => {
+            const panel = document.getElementById('salesman-panel');
+            const toggle = document.getElementById('panel-toggle');
+            const close = document.getElementById('panel-close');
+            const desktop = window.matchMedia('(min-width: 768px)');
+
+            const setOpen = (open) => {
+                panel?.classList.toggle('is-open', open);
+                toggle?.setAttribute('aria-expanded', open ? 'true' : 'false');
+            };
+
+            setOpen(desktop.matches);
+            toggle?.addEventListener('click', () => setOpen(!panel?.classList.contains('is-open')));
+            close?.addEventListener('click', () => setOpen(false));
+            desktop.addEventListener?.('change', (event) => setOpen(event.matches));
+        })();
+    </script>
 
     <script src="{{ asset('vendor/leaflet/leaflet.js') }}"></script>
     <script>
@@ -59,9 +313,11 @@
             const fitAllButton = document.getElementById('fit-all');
 
             const map = L.map('live-map', {
-                zoomControl: true,
+                zoomControl: false,
                 attributionControl: true,
             }).setView([34.5553, 69.2075], 11);
+
+            L.control.zoom({position: 'bottomright'}).addTo(map);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
