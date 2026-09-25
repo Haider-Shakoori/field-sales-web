@@ -162,7 +162,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100">
+<body class="min-h-screen bg-slate-950 text-slate-100 {{ $fullscreen ? 'overflow-hidden' : '' }}">
 @php
     $webGuardName = auth()->guard()->getName();
     $context = app(\App\Tenancy\TenantContext::class);
@@ -263,6 +263,7 @@
         ];
     @endphp
 
+    @unless($fullscreen)
     <input id="sidebar-toggle" type="checkbox" class="peer sr-only">
 
     <header class="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-slate-950/80 px-4 py-3 backdrop-blur lg:hidden">
@@ -366,9 +367,54 @@
             </div>
         @endif
     </aside>
+    @endunless
+
+    @if($fullscreen)
+        <div id="fullscreen-nav-modal" class="fixed inset-0 z-[2000] hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm" aria-hidden="true">
+            <div class="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl shadow-black/40">
+                <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                    <div>
+                        <p class="text-base font-bold">{{ __('FieldPulse menu') }}</p>
+                        <p class="mt-1 text-xs text-slate-400">{{ $tenantName ?? __('Operations Console') }}</p>
+                    </div>
+                    <button type="button" data-fullscreen-menu-close class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-slate-200 hover:bg-white/20" aria-label="{{ __('Close menu') }}">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="overflow-y-auto p-5">
+                    <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                        @foreach($navGroups as $group)
+                            @php
+                                $groupLinks = collect($group['links'])->filter(
+                                    fn (array $link) => $link['can'] === null || $currentUser->hasPermission($link['can'])
+                                );
+                            @endphp
+                            @if($groupLinks->isNotEmpty())
+                                <section class="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
+                                    <p class="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ __($group['label']) }}</p>
+                                    <div class="grid gap-1">
+                                        @foreach($groupLinks as $link)
+                                            <a href="{{ route($link['route']) }}" class="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm text-slate-200 hover:bg-white/10">
+                                                <span>{{ __($link['label']) }}</span>
+                                                <svg class="fp-directional-icon h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="m9 18 6-6-6-6"/>
+                                                </svg>
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                </section>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 @endif
 
-<div class="{{ $currentUser ? 'fp-shell-auth' : '' }}">
+<div class="{{ $currentUser ? ($fullscreen ? 'fp-shell-fullscreen' : 'fp-shell-auth') : '' }}">
     @unless($currentUser)
         <nav class="border-b border-white/10 bg-slate-900/80 backdrop-blur">
             <div class="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
@@ -383,7 +429,7 @@
         </nav>
     @endunless
 
-    <main class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+    <main class="{{ $fullscreen ? 'h-screen w-screen overflow-hidden p-0' : 'mx-auto max-w-7xl p-4 sm:p-6 lg:p-8' }}">
         @if(session('status'))
             <div class="mb-5 flex items-start gap-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-emerald-200">
                 <svg class="mt-0.5 h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
@@ -443,6 +489,33 @@
         try {
             localStorage.setItem('fieldpulse-sidebar-collapsed', next ? 'true' : 'false');
         } catch (_) {}
+    });
+
+    const fullscreenMenu = document.getElementById('fullscreen-nav-modal');
+    const openFullscreenMenu = () => {
+        if (!fullscreenMenu) return;
+        fullscreenMenu.classList.remove('hidden');
+        fullscreenMenu.classList.add('flex');
+        fullscreenMenu.setAttribute('aria-hidden', 'false');
+    };
+    const closeFullscreenMenu = () => {
+        if (!fullscreenMenu) return;
+        fullscreenMenu.classList.add('hidden');
+        fullscreenMenu.classList.remove('flex');
+        fullscreenMenu.setAttribute('aria-hidden', 'true');
+    };
+
+    document.querySelectorAll('[data-fullscreen-menu-open]').forEach((button) => {
+        button.addEventListener('click', openFullscreenMenu);
+    });
+    document.querySelectorAll('[data-fullscreen-menu-close]').forEach((button) => {
+        button.addEventListener('click', closeFullscreenMenu);
+    });
+    fullscreenMenu?.addEventListener('click', (event) => {
+        if (event.target === fullscreenMenu) closeFullscreenMenu();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeFullscreenMenu();
     });
 })();
 </script>
