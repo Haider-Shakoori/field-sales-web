@@ -1,6 +1,193 @@
 <x-layouts.app>
 @php($currentConversationUuid = $conversation?->uuid)
 
+<style>
+    .ai-response-card {
+        position: relative;
+        overflow: hidden;
+        border-color: rgba(129, 140, 248, .18) !important;
+        background:
+            radial-gradient(36rem 14rem at 0% 0%, rgba(99, 102, 241, .12), transparent 58%),
+            linear-gradient(145deg, rgba(15, 23, 42, .96), rgba(2, 6, 23, .86));
+        box-shadow: 0 18px 42px rgba(2, 6, 23, .2);
+    }
+
+    .ai-response-card::before {
+        content: "";
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        width: 3px;
+        background: linear-gradient(to bottom, #818cf8, #22d3ee, #34d399);
+    }
+
+    .ai-response-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        margin-bottom: .8rem;
+        padding-bottom: .65rem;
+        border-bottom: 1px solid rgba(255, 255, 255, .06);
+    }
+
+    .ai-answer-body {
+        color: #cbd5e1;
+        line-height: 1.75;
+    }
+
+    .ai-answer-body > * + * {
+        margin-top: .7rem;
+    }
+
+    .ai-answer-body h1,
+    .ai-answer-body h2,
+    .ai-answer-body h3,
+    .ai-answer-body h4 {
+        color: #f8fafc;
+        font-weight: 750;
+        line-height: 1.35;
+        letter-spacing: -.012em;
+    }
+
+    .ai-answer-body h1,
+    .ai-answer-body h2 {
+        margin-top: 1.15rem;
+        padding-inline-start: .7rem;
+        border-inline-start: 3px solid rgba(129, 140, 248, .8);
+    }
+
+    .ai-answer-body h3,
+    .ai-answer-body h4 {
+        margin-top: 1rem;
+        color: #e0e7ff;
+    }
+
+    .ai-answer-body strong {
+        color: #f8fafc;
+        font-weight: 700;
+    }
+
+    .ai-answer-body ul,
+    .ai-answer-body ol {
+        display: grid;
+        gap: .45rem;
+        padding-inline-start: 1.25rem;
+    }
+
+    .ai-answer-body ul {
+        list-style: disc;
+    }
+
+    .ai-answer-body ol {
+        list-style: decimal;
+    }
+
+    .ai-answer-body li::marker {
+        color: #818cf8;
+        font-weight: 700;
+    }
+
+    .ai-answer-body blockquote {
+        margin-block: .9rem;
+        border-inline-start: 3px solid #22d3ee;
+        border-radius: 0 .75rem .75rem 0;
+        background: rgba(34, 211, 238, .06);
+        padding: .8rem 1rem;
+        color: #bae6fd;
+    }
+
+    .ai-answer-body table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, .09);
+        border-radius: .9rem;
+        font-size: .78rem;
+    }
+
+    .ai-answer-body th {
+        background: rgba(99, 102, 241, .11);
+        color: #e0e7ff;
+        font-weight: 700;
+    }
+
+    .ai-answer-body th,
+    .ai-answer-body td {
+        padding: .65rem .75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, .06);
+        text-align: start;
+        vertical-align: top;
+    }
+
+    .ai-answer-body tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .ai-answer-body code {
+        border: 1px solid rgba(34, 211, 238, .12);
+        border-radius: .4rem;
+        background: rgba(15, 23, 42, .9);
+        padding: .1rem .35rem;
+        color: #a5f3fc;
+        font-size: .9em;
+    }
+
+    .ai-answer-body pre {
+        overflow-x: auto;
+        border: 1px solid rgba(255, 255, 255, .09);
+        border-radius: .9rem;
+        background: rgba(2, 6, 23, .8);
+        padding: .9rem 1rem;
+    }
+
+    .ai-answer-body pre code {
+        border: 0;
+        background: transparent;
+        padding: 0;
+    }
+
+    .ai-answer-body hr {
+        margin-block: 1rem;
+        border: 0;
+        border-top: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    html[data-theme="light"] .ai-response-card {
+        border-color: rgba(99, 102, 241, .16) !important;
+        background:
+            radial-gradient(36rem 14rem at 0% 0%, rgba(99, 102, 241, .08), transparent 58%),
+            linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(248, 250, 252, .97));
+        box-shadow: 0 16px 38px rgba(15, 23, 42, .08);
+    }
+
+    html[data-theme="light"] .ai-response-header {
+        border-bottom-color: #e2e8f0;
+    }
+
+    html[data-theme="light"] .ai-answer-body {
+        color: #334155;
+    }
+
+    html[data-theme="light"] .ai-answer-body h1,
+    html[data-theme="light"] .ai-answer-body h2,
+    html[data-theme="light"] .ai-answer-body h3,
+    html[data-theme="light"] .ai-answer-body h4,
+    html[data-theme="light"] .ai-answer-body strong {
+        color: #0f172a;
+    }
+
+    html[data-theme="light"] .ai-answer-body th,
+    html[data-theme="light"] .ai-answer-body td {
+        border-bottom-color: #e2e8f0;
+    }
+
+    html[data-theme="light"] .ai-answer-body table {
+        border-color: #dbe4ee;
+    }
+</style>
+
 <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
     <div class="flex items-center gap-3">
         <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-lg font-black shadow-lg shadow-indigo-950/30">AI</div>
@@ -143,11 +330,21 @@
                             <article class="flex items-start gap-3" data-message-id="{{ $message->uuid }}">
                                 <div class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-black shadow-lg shadow-indigo-950/20">AI</div>
                                 <div class="min-w-0 max-w-[94%]">
-                                    <div class="rounded-2xl rounded-tl-md border border-white/10 bg-slate-950/70 px-4 py-3 text-sm leading-6 text-slate-200">
-                                        <div class="ai-answer-body space-y-2 break-words">
+                                    <div class="ai-response-card rounded-2xl rounded-tl-md border px-4 py-4 text-sm text-slate-200 sm:px-5">
+                                        <div class="ai-response-header">
+                                            <div class="flex items-center gap-2">
+                                                <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/15 text-xs text-indigo-200 ring-1 ring-indigo-400/20">✦</span>
+                                                <div>
+                                                    <p class="text-xs font-semibold text-slate-200">{{ __('FieldPulse AI') }}</p>
+                                                    <p class="text-[10px] text-slate-500">{{ __('Grounded business response') }}</p>
+                                                </div>
+                                            </div>
+                                            <span class="text-[10px] text-slate-600">{{ $message->created_at?->format('H:i') }}</span>
+                                        </div>
+                                        <div class="ai-answer-body break-words">
                                             {!! \Illuminate\Support\Str::markdown($message->content, ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}
                                         </div>
-                                        <div class="mt-3 flex flex-wrap gap-3 border-t border-white/5 pt-2">
+                                        <div class="mt-4 flex flex-wrap gap-3 border-t border-white/5 pt-3">
                                             <button type="button" data-copy-answer class="text-[11px] font-medium text-slate-500 hover:text-slate-300">{{ __('Copy answer') }}</button>
                                             @if($lastUserQuestion)
                                                 <button type="button" data-ask-again="{{ $lastUserQuestion }}" class="text-[11px] font-medium text-slate-500 hover:text-indigo-300">{{ __('Ask again') }}</button>
@@ -331,25 +528,29 @@
                     i++;
                 }
                 i--;
-                html.push('<div class="my-3 overflow-x-auto"><table class="min-w-full overflow-hidden rounded-xl border border-white/10 text-left text-xs"><thead class="bg-white/5"><tr>' +
-                    headers.map(cell => '<th class="px-3 py-2 font-semibold text-slate-300">' + inlineMarkdown(cell) + '</th>').join('') +
-                    '</tr></thead><tbody class="divide-y divide-white/5">' +
-                    rows.map(row => '<tr>' + row.map(cell => '<td class="px-3 py-2 text-slate-400">' + inlineMarkdown(cell) + '</td>').join('') + '</tr>').join('') +
+                html.push('<div class="my-4 overflow-x-auto rounded-xl"><table><thead><tr>' +
+                    headers.map(cell => '<th>' + inlineMarkdown(cell) + '</th>').join('') +
+                    '</tr></thead><tbody>' +
+                    rows.map(row => '<tr>' + row.map(cell => '<td>' + inlineMarkdown(cell) + '</td>').join('') + '</tr>').join('') +
                     '</tbody></table></div>');
                 continue;
             }
 
             if (/^###\s+/.test(line)) {
-                html.push('<h4 class="mt-4 font-semibold text-slate-100">' + inlineMarkdown(line.replace(/^###\s+/, '')) + '</h4>');
+                html.push('<h4>' + inlineMarkdown(line.replace(/^###\s+/, '')) + '</h4>');
             } else if (/^##\s+/.test(line)) {
-                html.push('<h3 class="mt-4 text-base font-semibold text-slate-100">' + inlineMarkdown(line.replace(/^##\s+/, '')) + '</h3>');
+                html.push('<h3>' + inlineMarkdown(line.replace(/^##\s+/, '')) + '</h3>');
             } else if (/^#\s+/.test(line)) {
-                html.push('<h2 class="mt-4 text-lg font-bold text-slate-100">' + inlineMarkdown(line.replace(/^#\s+/, '')) + '</h2>');
+                html.push('<h2>' + inlineMarkdown(line.replace(/^#\s+/, '')) + '</h2>');
+            } else if (/^>\s?/.test(line)) {
+                html.push('<blockquote>' + inlineMarkdown(line.replace(/^>\s?/, '')) + '</blockquote>');
+            } else if (/^\s*---+\s*$/.test(line)) {
+                html.push('<hr>');
             } else if (/^[-*]\s+/.test(line)) {
-                html.push('<div class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400"></span><p>' + inlineMarkdown(line.replace(/^[-*]\s+/, '')) + '</p></div>');
+                html.push('<div class="flex gap-3 rounded-xl border border-white/5 bg-white/[.025] px-3 py-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400"></span><p>' + inlineMarkdown(line.replace(/^[-*]\s+/, '')) + '</p></div>');
             } else if (/^\d+\.\s+/.test(line)) {
                 const match = line.match(/^(\d+)\.\s+(.*)$/);
-                html.push('<div class="flex gap-2"><span class="min-w-5 font-semibold text-indigo-300">' + match[1] + '.</span><p>' + inlineMarkdown(match[2]) + '</p></div>');
+                html.push('<div class="flex gap-3 rounded-xl border border-white/5 bg-white/[.025] px-3 py-2"><span class="flex h-6 min-w-6 items-center justify-center rounded-lg bg-indigo-500/15 text-[11px] font-bold text-indigo-200">' + match[1] + '</span><p>' + inlineMarkdown(match[2]) + '</p></div>');
             } else if (line.trim() === '') {
                 html.push('<div class="h-1"></div>');
             } else {
@@ -404,10 +605,20 @@
         const body = document.createElement('div');
         body.className = 'min-w-0 max-w-[94%]';
         const bubble = document.createElement('div');
-        bubble.className = 'rounded-2xl rounded-tl-md border border-white/10 bg-slate-950/70 px-4 py-3 text-sm leading-6 text-slate-200';
+        bubble.className = 'ai-response-card rounded-2xl rounded-tl-md border px-4 py-4 text-sm text-slate-200 sm:px-5';
+
+        const responseHeader = document.createElement('div');
+        responseHeader.className = 'ai-response-header';
+        responseHeader.innerHTML = '<div class="flex items-center gap-2"><span class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/15 text-xs text-indigo-200 ring-1 ring-indigo-400/20">✦</span><div><p class="text-xs font-semibold text-slate-200">' +
+            escapeHtml(@json(__('FieldPulse AI'))) +
+            '</p><p class="text-[10px] text-slate-500">' +
+            escapeHtml(@json(__('Grounded business response'))) +
+            '</p></div></div><span class="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-medium text-emerald-300">' +
+            escapeHtml(@json(__('Live insight'))) +
+            '</span>';
 
         const answer = document.createElement('div');
-        answer.className = 'ai-answer-body space-y-2 break-words';
+        answer.className = 'ai-answer-body break-words';
         answer.innerHTML = renderSafeMarkdown(payload.answer || '');
 
         const actions = document.createElement('div');
@@ -434,7 +645,7 @@
         });
 
         actions.append(copy, again);
-        bubble.append(answer, actions);
+        bubble.append(responseHeader, answer, actions);
 
         const meta = document.createElement('div');
         meta.className = 'mt-2 flex flex-wrap items-center gap-2 text-[10px] text-slate-500';
