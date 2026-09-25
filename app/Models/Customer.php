@@ -37,6 +37,11 @@ class Customer extends Model
         return $this->belongsTo(Territory::class);
     }
 
+    public function assignedSalesman(): BelongsTo
+    {
+        return $this->belongsTo(Salesman::class, 'assigned_salesman_id');
+    }
+
     public function priceList(): BelongsTo
     {
         return $this->belongsTo(PriceList::class);

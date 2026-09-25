@@ -16,6 +16,7 @@
                     <th class="px-5 py-3">Branch</th>
                     <th class="px-5 py-3">Code</th>
                     <th class="px-5 py-3">Users</th>
+                    <th class="px-5 py-3">Geofence</th>
                     <th class="px-5 py-3">Status</th>
                     <th class="px-5 py-3 text-right">Actions</th>
                 </tr>
@@ -26,6 +27,7 @@
                         <td class="px-5 py-4 font-medium">{{ $branch->name }}</td>
                         <td class="px-5 py-4 text-slate-300">{{ $branch->code }}</td>
                         <td class="px-5 py-4">{{ $branch->users_count }}</td>
+                        <td class="px-5 py-4">{{ $branch->geofence_polygon ? 'Configured' : '—' }}</td>
                         <td class="px-5 py-4">{{ $branch->is_active ? 'Active' : 'Inactive' }}</td>
                         <td class="px-5 py-4">
                             @if(auth()->user()->hasPermission('branches:manage'))
@@ -44,7 +46,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-5 py-10 text-center text-slate-400">No branches found.</td>
+                        <td colspan="6" class="px-5 py-10 text-center text-slate-400">No branches found.</td>
                     </tr>
                 @endforelse
             </tbody>

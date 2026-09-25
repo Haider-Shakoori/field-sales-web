@@ -17,6 +17,7 @@ class Branch extends Model
     {
         return [
             'is_active' => 'boolean',
+            'geofence_polygon' => 'array',
         ];
     }
 
