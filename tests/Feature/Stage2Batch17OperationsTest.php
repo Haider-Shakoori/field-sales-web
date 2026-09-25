@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Support\ProductionReadiness;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -106,6 +107,35 @@ class Stage2Batch17OperationsTest extends TestCase
 
         $this->assertNotFalse($nginx);
         $this->assertStringContainsString('fastcgi_param HTTPS on;', $nginx);
+    }
+
+    public function test_scheduler_heartbeat_can_be_required_for_shared_hosting(): void
+    {
+        config()->set('operations.monitoring.require_scheduler_heartbeat', true);
+        config()->set('operations.monitoring.scheduler_heartbeat_max_age_seconds', 180);
+
+        cache()->forget('field-sales:scheduler-heartbeat');
+        $this->assertFalse(
+            app(ProductionReadiness::class)->serviceChecks()['scheduler_heartbeat_is_fresh'],
+        );
+
+        cache()->put('field-sales:scheduler-heartbeat', now()->getTimestamp(), now()->addMinutes(10));
+        $this->assertTrue(
+            app(ProductionReadiness::class)->serviceChecks()['scheduler_heartbeat_is_fresh'],
+        );
+    }
+
+    public function test_cpanel_shared_hosting_artifacts_are_present(): void
+    {
+        $this->assertFileExists(base_path('ops/CPANEL_PRODUCTION.md'));
+        $this->assertFileExists(base_path('ops/scripts/deploy-cpanel.sh'));
+
+        $script = file_get_contents(base_path('ops/scripts/deploy-cpanel.sh'));
+        $this->assertNotFalse($script);
+        $this->assertStringContainsString('git pull --ff-only', $script);
+        $this->assertStringContainsString('field-sales:backup --label=pre-deploy --database-only', $script);
+        $this->assertStringContainsString('field-sales:production-check --services', $script);
+        $this->assertStringContainsString('field-sales:ops-check', $script);
     }
 
     public function test_production_operations_artifacts_are_present(): void
