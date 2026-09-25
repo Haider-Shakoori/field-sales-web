@@ -231,6 +231,7 @@
                     ['route' => 'admin.expenses.index', 'match' => 'admin.expenses.*', 'label' => 'Expenses', 'icon' => 'receipt', 'can' => 'expenses:view'],
                     ['route' => 'admin.mileage.index', 'match' => 'admin.mileage.*', 'label' => 'Mileage & Fuel', 'icon' => 'map', 'can' => 'reports:view'],
                     ['route' => 'admin.targets.index', 'match' => 'admin.targets.*', 'label' => 'Targets', 'icon' => 'flag', 'can' => 'targets:view'],
+                    ['route' => 'admin.commissions.index', 'match' => 'admin.commissions.*', 'label' => 'Commissions', 'icon' => 'banknotes', 'can' => 'commissions:view'],
                 ],
             ],
             [
