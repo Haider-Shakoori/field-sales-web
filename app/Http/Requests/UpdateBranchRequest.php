@@ -32,6 +32,7 @@ class UpdateBranchRequest extends FormRequest
                     ->where('tenant_id', $tenantId)
                     ->ignore($branch->id),
             ],
+            'geofence_polygon' => ['nullable', 'json'],
             'is_active' => ['required', 'boolean'],
         ];
     }
