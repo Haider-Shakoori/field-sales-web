@@ -50,7 +50,31 @@
         <script>
         (() => {
             const mapElement = document.getElementById('territory-detail-map');
-            const geometry = @json($territory->polygon);
+            const rawGeometry = @json($territory->polygon);
+
+            const normalizeGeometry = (geometry) => {
+                if (!geometry) return null;
+                if (geometry.type && geometry.coordinates) return geometry;
+
+                if (Array.isArray(geometry) && geometry.length >= 3) {
+                    const ring = geometry
+                        .filter((point) => Array.isArray(point) && point.length >= 2)
+                        .map((point) => [Number(point[1]), Number(point[0])])
+                        .filter((point) => Number.isFinite(point[0]) && Number.isFinite(point[1]));
+
+                    if (ring.length >= 3) {
+                        if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) {
+                            ring.push([...ring[0]]);
+                        }
+
+                        return {type: 'Polygon', coordinates: [ring]};
+                    }
+                }
+
+                return null;
+            };
+
+            const geometry = normalizeGeometry(rawGeometry);
 
             if (!mapElement || !geometry || typeof L === 'undefined') return;
 
