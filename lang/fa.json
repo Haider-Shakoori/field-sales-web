@@ -722,5 +722,21 @@
     "Commission controls": "کنترل‌های کمیسیون",
     "Approved orders and verified collections are the only monetary transaction sources.": "فقط سفارش‌های تأییدشده و وصولی‌های تأییدشده منبع تراکنش مالی هستند.",
     "Percentage commissions never convert or combine currencies; AFN, USD, and other currencies stay separate.": "کمیسیون‌های درصدی هرگز ارزها را تبدیل یا ترکیب نمی‌کنند؛ افغانی، دالر و سایر ارزها جدا می‌مانند.",
-    "Matching rules can stack. Approved periods are locked and overlapping approved periods are blocked.": "قواعد منطبق می‌توانند باهم جمع شوند. دوره‌های تأییدشده قفل اند و هم‌پوشانی دوره‌های تأییدشده مسدود می‌شود."
+    "Matching rules can stack. Approved periods are locked and overlapping approved periods are blocked.": "قواعد منطبق می‌توانند باهم جمع شوند. دوره‌های تأییدشده قفل اند و هم‌پوشانی دوره‌های تأییدشده مسدود می‌شود.",
+    "Voice visit notes": "یادداشت‌های صوتی بازدید",
+    "Audio is stored privately. Transcription only runs when external customer-data AI is explicitly allowed.": "صدا به‌صورت خصوصی ذخیره می‌شود. رونویسی فقط زمانی انجام می‌شود که استفاده از هوش مصنوعی خارجی برای داده‌های مشتری صریحاً مجاز باشد.",
+    "notes": "یادداشت",
+    "Voice note": "یادداشت صوتی",
+    "Transcript": "رونویسی",
+    "Summary": "خلاصه",
+    "Customer requests": "درخواست‌های مشتری",
+    "Next actions": "اقدامات بعدی",
+    "Objections": "اعتراض‌ها",
+    "Product mentions": "محصولات ذکرشده",
+    "Transcription is blocked because external customer-data AI is disabled for this environment or organization.": "رونویسی مسدود است زیرا هوش مصنوعی خارجی برای داده‌های مشتری در این محیط یا سازمان غیرفعال است.",
+    "No voice notes attached.": "هیچ یادداشت صوتی پیوست نشده است.",
+    "Disabled": "غیرفعال",
+    "Blocked Policy": "مسدود توسط سیاست",
+    "Queued": "در صف",
+    "Processing": "در حال پردازش"
 }
