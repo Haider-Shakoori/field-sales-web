@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Support\ProductionReadiness;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -108,14 +109,15 @@ class Stage2Batch17OperationsTest extends TestCase
         $this->assertStringContainsString('fastcgi_param HTTPS on;', $nginx);
     }
 
-
     public function test_scheduler_heartbeat_can_be_required_for_shared_hosting(): void
     {
         config()->set('operations.monitoring.require_scheduler_heartbeat', true);
         config()->set('operations.monitoring.scheduler_heartbeat_max_age_seconds', 180);
 
         cache()->forget('field-sales:scheduler-heartbeat');
-        $this->assertFalse(app(\App\Support\ProductionReadiness::class)->serviceChecks()['scheduler_heartbeat_is_fresh']);
+        $this->assertFalse(
+            app(ProductionReadiness::class)->serviceChecks()['scheduler_heartbeat_is_fresh'],
+        );
 
         cache()->put('field-sales:scheduler-heartbeat', now()->getTimestamp(), now()->addMinutes(10));
         $this->assertTrue(app(\App\Support\ProductionReadiness::class)->serviceChecks()['scheduler_heartbeat_is_fresh']);
