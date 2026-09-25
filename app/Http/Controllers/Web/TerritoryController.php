@@ -24,6 +24,10 @@ class TerritoryController extends Controller
                 ->withCount(['customers', 'routes'])
                 ->orderBy('name')
                 ->paginate(30),
+            'mapTerritories' => Territory::with('branch')
+                ->whereNotNull('polygon')
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
