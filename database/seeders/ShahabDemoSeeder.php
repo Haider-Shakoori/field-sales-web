@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\Customer;
-use App\Models\CustomerVisit;
 use App\Models\Device;
 use App\Models\PriceList;
 use App\Models\PriceListItem;
@@ -15,6 +14,7 @@ use App\Models\SalesRoute;
 use App\Models\Supervisor;
 use App\Models\SupervisorAssignment;
 use App\Models\Tenant;
+use App\Models\Territory;
 use App\Models\User;
 use App\Services\TenantProvisioningService;
 use App\Tenancy\TenantContext;
@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Ramsey\Uuid\Uuid;
+use RuntimeException;
 
 class ShahabDemoSeeder extends Seeder
 {
