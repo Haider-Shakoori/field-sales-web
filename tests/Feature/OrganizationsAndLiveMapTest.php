@@ -178,7 +178,11 @@ class OrganizationsAndLiveMapTest extends TestCase
             ->get(route('admin.live-map'))
             ->assertOk()
             ->assertSee('Live map')
-            ->assertSee('Mapped Salesman');
+            ->assertSee('Mapped Salesman')
+            ->assertSee('fp-live-map-shell', false)
+            ->assertSee('fullscreen-nav-modal', false)
+            ->assertSee('panel-toggle', false)
+            ->assertDontSee('id="sidebar-toggle"', false);
 
         [, $reportsOnly] = $this->tenantUser(
             'map-auditor@example.test',
