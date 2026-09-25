@@ -131,6 +131,12 @@
     let existingLayer = null;
     let drawingLayer = null;
     let vertexMarkers = [];
+    const vertexIcon = L.divIcon({
+        className: '',
+        html: '<div style="width:18px;height:18px;border-radius:9999px;background:#818cf8;border:3px solid white;box-shadow:0 3px 10px rgba(15,23,42,.4)"></div>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+    });
     let points = [];
     let drawing = !initialGeometry;
 
@@ -194,7 +200,7 @@
             : L.polyline(latlngs, {color: '#818cf8', weight: 3}).addTo(map);
 
         vertexMarkers = points.map((point, index) => {
-            const marker = L.marker([point.lat, point.lng], {draggable: true}).addTo(map);
+            const marker = L.marker([point.lat, point.lng], {draggable: true, icon: vertexIcon}).addTo(map);
 
             marker.bindTooltip('Point ' + (index + 1), {
                 permanent: false,
