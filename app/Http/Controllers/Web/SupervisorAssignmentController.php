@@ -9,6 +9,7 @@ use App\Models\Branch;
 use App\Models\Supervisor;
 use App\Models\SupervisorAssignment;
 use App\Models\Territory;
+use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -22,7 +23,7 @@ class SupervisorAssignmentController extends Controller
         Gate::authorize('viewAny', SupervisorAssignment::class);
 
         return view('admin.supervisor-assignments.index', [
-            'assignments' => SupervisorAssignment::with(['supervisor', 'branch', 'territory'])
+            'assignments' => SupervisorAssignment::with(['supervisor', 'salesManager', 'branch', 'territory'])
                 ->latest('effective_from')
                 ->paginate(30),
         ]);
@@ -69,7 +70,7 @@ class SupervisorAssignmentController extends Controller
         Gate::authorize('view', $assignment);
 
         return view('admin.supervisor-assignments.show', [
-            'assignment' => $assignment->load(['supervisor.user', 'branch', 'territory', 'creator']),
+            'assignment' => $assignment->load(['supervisor.user', 'salesManager', 'branch', 'territory', 'creator']),
         ]);
     }
 
@@ -156,6 +157,11 @@ class SupervisorAssignmentController extends Controller
     {
         return [
             'supervisors' => Supervisor::active()->orderBy('employee_code')->get(),
+            'salesManagers' => User::query()
+                ->where('role', 'sales_manager')
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(),
             'branches' => Branch::active()->orderBy('name')->get(),
             'territories' => Territory::active()->orderBy('name')->get(),
         ];
@@ -165,6 +171,7 @@ class SupervisorAssignmentController extends Controller
     {
         return [
             'supervisor_id' => $assignment->supervisor_id,
+            'sales_manager_id' => $assignment->sales_manager_id,
             'branch_id' => $assignment->branch_id,
             'territory_id' => $assignment->territory_id,
             'effective_from' => $assignment->effective_from?->toDateString(),
