@@ -47,6 +47,8 @@ class UserController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'latitude' => $validated['latitude'] ?? null,
+            'longitude' => $validated['longitude'] ?? null,
             'role' => $role->slug,
             'is_active' => (bool) $validated['is_active'],
         ]);
@@ -91,6 +93,8 @@ class UserController extends Controller
             'branch_id' => $validated['branch_id'] ?? null,
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'latitude' => $validated['latitude'] ?? null,
+            'longitude' => $validated['longitude'] ?? null,
             'is_active' => (bool) $validated['is_active'],
         ];
 
@@ -144,6 +148,8 @@ class UserController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'branch_id' => $user->branch_id,
+            'latitude' => $user->latitude,
+            'longitude' => $user->longitude,
             'role' => $role?->slug,
             'is_active' => $user->is_active,
         ];

@@ -64,6 +64,12 @@ class Batch4CustomersTerritoriesRoutesTest extends TestCase
         });
 
         $this->actingAs($admin)
+            ->get(route('admin.territories.create'))
+            ->assertOk()
+            ->assertSee('territory-boundary-map', false)
+            ->assertSee('Start new boundary');
+
+        $this->actingAs($admin)
             ->post(route('admin.territories.store'), [
                 'branch_id' => $branch->id,
                 'code' => 'kbl-c',
@@ -117,9 +123,16 @@ class Batch4CustomersTerritoriesRoutesTest extends TestCase
             fn () => SalesRoute::where('code', 'KBL-R1')->firstOrFail()
         );
 
+        $this->actingAs($admin)
+            ->get(route('admin.territories.index'))
+            ->assertOk()
+            ->assertSee('territories-map', false)
+            ->assertSee('Kabul Central');
+
         $this->actingAs($admin)->get(route('admin.territories.show', $territory))
             ->assertOk()
-            ->assertSee('Kabul Central');
+            ->assertSee('Kabul Central')
+            ->assertSee('territory-detail-map', false);
         $this->actingAs($admin)->get(route('admin.customers.show', $customer))
             ->assertOk()
             ->assertSee('Demo Shop');

@@ -70,6 +70,14 @@ class ShahabDemoSeederTest extends TestCase
             DB::table('customers')->where('tenant_id', $tenant->id)->count()
         );
 
+        $this->assertSame(
+            4400,
+            DB::table('customers')
+                ->where('tenant_id', $tenant->id)
+                ->distinct()
+                ->count('name')
+        );
+
         foreach (range(1, 22) as $districtNo) {
             $territoryId = DB::table('territories')
                 ->where('tenant_id', $tenant->id)

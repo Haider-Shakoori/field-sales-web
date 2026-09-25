@@ -28,6 +28,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'is_platform_admin' => 'boolean',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 
