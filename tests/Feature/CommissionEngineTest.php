@@ -203,9 +203,11 @@ class CommissionEngineTest extends TestCase
             ->post(route('admin.commissions.runs.approve', $run))
             ->assertRedirect();
 
-        $run->refresh();
-        $this->assertSame('approved', $run->state);
-        $this->assertNotNull($run->approved_at);
+        app(TenantContext::class)->withTenant($f['tenant'], function () use ($run): void {
+            $run->refresh();
+            $this->assertSame('approved', $run->state);
+            $this->assertNotNull($run->approved_at);
+        });
 
         app(TenantContext::class)->withTenant($f['tenant'], function () use ($f): void {
             try {
