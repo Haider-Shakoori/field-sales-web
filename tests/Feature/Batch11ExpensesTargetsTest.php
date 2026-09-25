@@ -18,6 +18,7 @@ use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -122,6 +123,42 @@ class Batch11ExpensesTargetsTest extends TestCase
         $this->assertDatabaseHas('expenses', [
             'id' => $expense->id,
             'status' => 'approved',
+        ]);
+    }
+
+    public function test_expense_approval_does_not_500_when_notification_storage_fails(): void
+    {
+        $actor = $this->salesmanActor();
+
+        $this->postJson('/api/v1/expenses', [
+            'offline_uuid' => (string) Str::uuid(),
+            'spent_at' => '2026-09-19T07:25:00Z',
+            'category' => 'meals',
+            'currency' => 'AFN',
+            'amount' => 175,
+            'latitude' => 34.5553,
+            'longitude' => 69.2075,
+            'accuracy' => 7,
+        ], $this->headers())->assertCreated();
+
+        $expense = app(TenantContext::class)->withTenant(
+            $actor['tenant'],
+            fn () => Expense::firstOrFail()
+        );
+        $admin = $this->admin($actor['tenant']);
+
+        Schema::drop('notification_preferences');
+
+        $this->actingAs($admin)
+            ->patch('/admin/expenses/'.$expense->id.'/status', [
+                'status' => 'approved',
+            ])
+            ->assertRedirect(route('admin.expenses.show', $expense));
+
+        $this->assertDatabaseHas('expenses', [
+            'id' => $expense->id,
+            'status' => 'approved',
+            'reviewed_by' => $admin->id,
         ]);
     }
 
