@@ -182,6 +182,25 @@ class ShahabDemoSeederTest extends TestCase
         $this->assertTrue($users->every(fn ($user) => str_ends_with($user->email, '@shahab.com')));
         $this->assertTrue($users->every(fn ($user) => $user->phone !== null));
         $this->assertTrue($users->every(fn ($user) => Hash::check('password', $user->password)));
+
+        $managerNames = DB::table('users')
+            ->where('tenant_id', $tenant->id)
+            ->where('role', 'sales_manager')
+            ->pluck('name');
+
+        $salesmanNames = DB::table('users')
+            ->where('tenant_id', $tenant->id)
+            ->where('role', 'salesman')
+            ->pluck('name');
+
+        $customerNames = DB::table('customers')
+            ->where('tenant_id', $tenant->id)
+            ->pluck('name');
+
+        $this->assertTrue($managerNames->every(fn ($name) => str_word_count($name) <= 2));
+        $this->assertTrue($salesmanNames->every(fn ($name) => str_word_count($name) <= 2));
+        $this->assertTrue($customerNames->every(fn ($name) => str_word_count($name) <= 2));
+        $this->assertSame('Naim Rahimi', $managerNames->firstWhere(fn ($name) => $name === 'Naim Rahimi'));
     }
 
     private function districtGeoJsonFixture(): array
