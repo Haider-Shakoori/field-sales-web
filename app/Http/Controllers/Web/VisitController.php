@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\CustomerVisit;
+use App\Models\VisitVoiceNote;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class VisitController extends Controller
@@ -35,9 +38,26 @@ class VisitController extends Controller
                 'route',
                 'workSession',
                 'photos',
+                'voiceNotes',
                 'suspiciousFlags.reviewer',
                 'formSubmissions.answers',
             ]),
         ]);
     }
+    public function voiceNoteAudio(
+        CustomerVisit $visit,
+        VisitVoiceNote $voiceNote,
+    ): StreamedResponse {
+        abort_unless((int) $voiceNote->visit_id === (int) $visit->id, 404);
+
+        return Storage::disk($voiceNote->disk)->response(
+            $voiceNote->path,
+            'visit-voice-note-'.$voiceNote->uuid.'.m4a',
+            [
+                'Content-Type' => $voiceNote->mime_type ?: 'audio/mp4',
+                'Cache-Control' => 'private, no-store',
+            ],
+        );
+    }
+
 }
