@@ -1,0 +1,22 @@
+name: Debug Shahab Pint
+
+on:
+  push:
+    branches:
+      - feat/shahab-real-district-geofences
+
+jobs:
+  debug-pint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer
+      - run: composer install --no-interaction --prefer-dist
+      - name: Show Pint diff
+        run: |
+          vendor/bin/pint database/seeders/ShahabDemoSeeder.php tests/Feature/ShahabDemoSeederTest.php
+          git diff -- database/seeders/ShahabDemoSeeder.php tests/Feature/ShahabDemoSeederTest.php
+          exit 1
