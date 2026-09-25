@@ -120,7 +120,9 @@ class Stage2Batch17OperationsTest extends TestCase
         );
 
         cache()->put('field-sales:scheduler-heartbeat', now()->getTimestamp(), now()->addMinutes(10));
-        $this->assertTrue(app(\App\Support\ProductionReadiness::class)->serviceChecks()['scheduler_heartbeat_is_fresh']);
+        $this->assertTrue(
+            app(ProductionReadiness::class)->serviceChecks()['scheduler_heartbeat_is_fresh'],
+        );
     }
 
     public function test_cpanel_shared_hosting_artifacts_are_present(): void
