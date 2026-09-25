@@ -342,6 +342,9 @@ Route::middleware('auth')->group(function () {
         Route::resource('visits', VisitController::class)
             ->only(['index', 'show'])
             ->middleware('permission:visits:view');
+        Route::get('/visits/{visit}/voice-notes/{voiceNote:uuid}/audio', [VisitController::class, 'voiceNoteAudio'])
+            ->middleware('permission:visits:view')
+            ->name('visits.voice-notes.audio');
 
         Route::get('/audit-logs', [AuditLogController::class, 'index'])
             ->middleware('permission:audit:view')
