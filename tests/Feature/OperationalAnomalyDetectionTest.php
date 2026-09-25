@@ -102,7 +102,7 @@ class OperationalAnomalyDetectionTest extends TestCase
                 'date_to' => '2026-09-25',
             ]))
             ->assertOk()
-            ->assertSee('Operational alerts & anomalies')
+            ->assertSeeText('Operational alerts & anomalies')
             ->assertSee('Collection exceeds available balance')
             ->assertSee('Expense is unusually high for its peer history')
             ->assertSee('Order value is unusually high for this customer');
