@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\OperationalAnomaly;
+use App\Models\SalesmanAssignment;
 use App\Models\VisitSuspiciousFlag;
 use App\Services\AlertService;
 use App\Services\AuditLogger;
@@ -22,6 +24,7 @@ class AlertController extends Controller
             'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'severity' => ['nullable', Rule::in(['low', 'medium', 'high'])],
             'state' => ['nullable', Rule::in(['open', 'reviewed'])],
+            'type' => ['nullable', Rule::in(['visit', 'gps', 'collection', 'expense', 'order'])],
         ]);
 
         if (
@@ -71,5 +74,53 @@ class AlertController extends Controller
         ]);
 
         return back()->with('status', 'Suspicious visit alert reviewed.');
+    }
+
+    public function reviewAnomaly(
+        Request $request,
+        OperationalAnomaly $anomaly,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        abort_unless($request->user()->hasPermission('visits:manage'), 403);
+        $user = $request->user()->loadMissing(['tenant', 'supervisor']);
+
+        if ($user->hasAnyRole(['supervisor'])) {
+            abort_unless($user->supervisor, 404);
+            $visible = SalesmanAssignment::query()
+                ->where('supervisor_id', $user->supervisor->id)
+                ->where('salesman_id', $anomaly->salesman_id)
+                ->current(now($user->tenant->timezone)->toDateString())
+                ->exists();
+            abort_unless($visible, 404);
+        }
+
+        $validated = $request->validate([
+            'review_notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        if ($anomaly->state === 'reviewed') {
+            return back()->with('status', 'Operational anomaly was already reviewed.');
+        }
+
+        $before = [
+            'state' => $anomaly->state,
+            'reviewed_at' => $anomaly->reviewed_at?->toISOString(),
+            'review_notes' => $anomaly->review_notes,
+        ];
+
+        $anomaly->update([
+            'state' => 'reviewed',
+            'reviewed_by' => $user->id,
+            'reviewed_at' => now(),
+            'review_notes' => $validated['review_notes'] ?? null,
+        ]);
+
+        $audit->record('operational_anomaly.reviewed', $anomaly, $before, [
+            'state' => $anomaly->state,
+            'reviewed_at' => $anomaly->reviewed_at?->toISOString(),
+            'review_notes' => $anomaly->review_notes,
+        ]);
+
+        return back()->with('status', 'Operational anomaly reviewed.');
     }
 }

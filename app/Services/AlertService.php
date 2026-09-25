@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\LocationHistory;
+use App\Models\OperationalAnomaly;
 use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
 use App\Models\User;
@@ -12,12 +13,47 @@ use Illuminate\Support\Collection;
 
 class AlertService
 {
-    public function __construct(private readonly TenantClock $clock) {}
+    public function __construct(
+        private readonly TenantClock $clock,
+        private readonly OperationalAnomalyDetector $detector,
+    ) {}
 
     public function build(User $actor, array $filters): array
     {
         [$start, $end, $fromDate, $toDate] = $this->window($actor, $filters);
         $salesmanIds = $this->visibleSalesmanIds($actor, $toDate);
+        $this->detector->detect($salesmanIds, $start, $end);
+        $type = $filters['type'] ?? null;
+
+        $anomalyQuery = OperationalAnomaly::query()
+            ->with(['salesman', 'reviewer'])
+            ->whereIn('salesman_id', $salesmanIds)
+            ->where('occurred_at', '>=', $start)
+            ->where('occurred_at', '<', $end)
+            ->when(
+                $filters['severity'] ?? null,
+                fn ($query, $severity) => $query->where('severity', $severity),
+            )
+            ->when(
+                $filters['state'] ?? null,
+                fn ($query, $state) => $query->where('state', $state),
+            )
+            ->when(
+                in_array($type, OperationalAnomaly::TYPES, true) ? $type : null,
+                fn ($query, $entityType) => $query->where('entity_type', $entityType),
+            )
+            ->when(
+                $type && ! in_array($type, OperationalAnomaly::TYPES, true),
+                fn ($query) => $query->whereRaw('1 = 0'),
+            );
+
+        $openAnomalyCount = (clone $anomalyQuery)->where('state', 'open')->count();
+        $reviewedAnomalyCount = (clone $anomalyQuery)->where('state', 'reviewed')->count();
+        $highAnomalyCount = (clone $anomalyQuery)->where('severity', 'high')->count();
+        $anomalies = (clone $anomalyQuery)
+            ->latest('occurred_at')
+            ->limit(150)
+            ->get();
 
         $flagQuery = VisitSuspiciousFlag::query()
             ->whereHas(
@@ -25,6 +61,7 @@ class AlertService
                 fn ($visit) => $visit->whereIn('salesman_id', $salesmanIds),
             )
             ->where('created_at', '>=', $start)
+            ->when($type && $type !== 'visit', fn ($query) => $query->whereRaw('1 = 0'))
             ->where('created_at', '<', $end)
             ->when(
                 $filters['severity'] ?? null,
@@ -55,6 +92,7 @@ class AlertService
         $mockQuery = LocationHistory::query()
             ->whereIn('salesman_id', $salesmanIds)
             ->where('is_mock_location', true)
+            ->when($type && $type !== 'gps', fn ($query) => $query->whereRaw('1 = 0'))
             ->where('recorded_at', '>=', $start)
             ->where('recorded_at', '<', $end);
 
@@ -71,6 +109,7 @@ class AlertService
 
         return [
             'period' => [$fromDate, $toDate],
+            'anomalies' => $anomalies,
             'flags' => $flags,
             'mock_points' => $mockPoints,
             'mock_salesmen' => $salesmen,
@@ -78,6 +117,9 @@ class AlertService
                 'open_visit_flags' => $openFlagCount,
                 'reviewed_visit_flags' => $reviewedFlagCount,
                 'mock_location_points' => $mockPointCount,
+                'open_anomalies' => $openAnomalyCount,
+                'reviewed_anomalies' => $reviewedAnomalyCount,
+                'high_anomalies' => $highAnomalyCount,
             ],
         ];
     }

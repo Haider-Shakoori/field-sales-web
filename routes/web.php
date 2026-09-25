@@ -140,6 +140,9 @@ Route::middleware('auth')->group(function () {
         Route::patch('/alerts/{flag}/review', [AlertController::class, 'review'])
             ->middleware('permission:visits:manage')
             ->name('alerts.review');
+        Route::patch('/alerts/anomalies/{anomaly}/review', [AlertController::class, 'reviewAnomaly'])
+            ->middleware('permission:visits:manage')
+            ->name('alerts.anomalies.review');
 
         Route::get('/reports', [ReportController::class, 'index'])
             ->middleware('permission:reports:view')
