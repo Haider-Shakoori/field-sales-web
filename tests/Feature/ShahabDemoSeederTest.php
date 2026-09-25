@@ -7,6 +7,7 @@ use Database\Seeders\ShahabDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ShahabDemoSeederTest extends TestCase
@@ -15,18 +16,49 @@ class ShahabDemoSeederTest extends TestCase
 
     public function test_shahab_demo_company_is_seeded_with_kabul_sales_structure(): void
     {
+        Http::fake([
+            'services7.arcgis.com/*' => Http::response($this->districtGeoJsonFixture()),
+        ]);
+
         $this->seed(ShahabDemoSeeder::class);
 
         $tenant = Tenant::where('slug', 'shahab-demo')->firstOrFail();
 
         $this->assertSame('Shahab Group - Kabul Demo', $tenant->name);
 
+        $this->assertDatabaseHas('users', [
+            'tenant_id' => $tenant->id,
+            'email' => 'owner@shahab.com',
+            'role' => 'owner',
+        ]);
+
+        foreach (['eastmgr', 'northmgr', 'westmgr', 'southmgr'] as $managerLogin) {
+            $this->assertDatabaseHas('users', [
+                'tenant_id' => $tenant->id,
+                'email' => $managerLogin.'@shahab.com',
+                'role' => 'sales_manager',
+            ]);
+        }
+
+        foreach (['eastsup', 'northsup', 'westsup', 'southsup'] as $supervisorLogin) {
+            $this->assertDatabaseHas('users', [
+                'tenant_id' => $tenant->id,
+                'email' => $supervisorLogin.'@shahab.com',
+                'role' => 'supervisor',
+            ]);
+        }
+
         $branches = DB::table('branches')
             ->where('tenant_id', $tenant->id)
             ->get();
 
         $this->assertCount(4, $branches);
-        $this->assertTrue($branches->every(fn ($branch) => $branch->geofence_polygon !== null));
+        $this->assertTrue($branches->every(function ($branch): bool {
+            $geofence = json_decode($branch->geofence_polygon, true);
+
+            return ($geofence['type'] ?? null) === 'MultiPolygon'
+                && count($geofence['coordinates'] ?? []) > 0;
+        }));
 
         $this->assertSame(
             22,
@@ -45,6 +77,15 @@ class ShahabDemoSeederTest extends TestCase
                 ->value('id');
 
             $this->assertNotNull($territoryId);
+
+            $polygon = json_decode(
+                DB::table('territories')->where('id', $territoryId)->value('polygon'),
+                true
+            );
+
+            $this->assertContains($polygon['type'] ?? null, ['Polygon', 'MultiPolygon']);
+            $this->assertNotEmpty($polygon['coordinates'] ?? []);
+
             $this->assertSame(
                 200,
                 DB::table('customers')->where('territory_id', $territoryId)->count()
@@ -66,6 +107,16 @@ class ShahabDemoSeederTest extends TestCase
             52,
             DB::table('salesmen')->where('tenant_id', $tenant->id)->count()
         );
+
+        foreach (['east', 'north', 'west', 'south'] as $zoneLogin) {
+            foreach (range(1, 13) as $number) {
+                $this->assertDatabaseHas('users', [
+                    'tenant_id' => $tenant->id,
+                    'email' => $zoneLogin.sprintf('%02d', $number).'@shahab.com',
+                    'role' => 'salesman',
+                ]);
+            }
+        }
         $this->assertSame(
             8,
             DB::table('routes')->where('tenant_id', $tenant->id)->count()
@@ -124,12 +175,42 @@ class ShahabDemoSeederTest extends TestCase
 
         $users = DB::table('users')
             ->where('tenant_id', $tenant->id)
-            ->whereIn('role', ['sales_manager', 'supervisor', 'salesman'])
+            ->whereIn('role', ['owner', 'sales_manager', 'supervisor', 'salesman'])
             ->get();
 
-        $this->assertCount(60, $users);
+        $this->assertCount(61, $users);
         $this->assertTrue($users->every(fn ($user) => str_ends_with($user->email, '@shahab.com')));
         $this->assertTrue($users->every(fn ($user) => $user->phone !== null));
         $this->assertTrue($users->every(fn ($user) => Hash::check('password', $user->password)));
+    }
+
+    private function districtGeoJsonFixture(): array
+    {
+        $features = [];
+
+        foreach (range(1, 22) as $district) {
+            $lng = 69.0 + ($district * 0.01);
+            $lat = 34.4 + ($district * 0.005);
+
+            $features[] = [
+                'type' => 'Feature',
+                'properties' => ['DistrictName' => $district],
+                'geometry' => [
+                    'type' => 'Polygon',
+                    'coordinates' => [[
+                        [$lng, $lat],
+                        [$lng + 0.008, $lat],
+                        [$lng + 0.008, $lat + 0.008],
+                        [$lng, $lat + 0.008],
+                        [$lng, $lat],
+                    ]],
+                ],
+            ];
+        }
+
+        return [
+            'type' => 'FeatureCollection',
+            'features' => $features,
+        ];
     }
 }

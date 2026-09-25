@@ -21,6 +21,7 @@ use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
@@ -29,61 +30,47 @@ class ShahabDemoSeeder extends Seeder
 {
     private const PASSWORD = 'password';
 
+    private const KABUL_DISTRICT_GEOJSON_URL = 'https://services7.arcgis.com/bArMqVntXvGojzII/arcgis/rest/services/Gi_HotSpot/FeatureServer/2/query?where=1%3D1&outFields=DistrictName&returnGeometry=true&outSR=4326&f=geojson';
+
     private const ZONES = [
         'EAST' => [
             'name' => 'Kabul East Zone',
             'manager' => 'Mohammad Naim Rahimi',
+            'manager_email' => 'eastmgr@shahab.com',
             'supervisor' => 'Wali Mohammad Ahmadi',
+            'supervisor_email' => 'eastsup@shahab.com',
             'districts' => [8, 9, 12, 16, 21, 22],
-            'polygon' => [
-                [34.4650, 69.1950],
-                [34.5950, 69.1950],
-                [34.5950, 69.3650],
-                [34.4650, 69.3650],
-            ],
         ],
         'NORTH' => [
             'name' => 'Kabul North Zone',
             'manager' => 'Ahmad Farid Safi',
+            'manager_email' => 'northmgr@shahab.com',
             'supervisor' => 'Sayed Jamal Hashimi',
+            'supervisor_email' => 'northsup@shahab.com',
             'districts' => [4, 10, 11, 15, 17, 19],
-            'polygon' => [
-                [34.5350, 69.0750],
-                [34.6550, 69.0750],
-                [34.6550, 69.2450],
-                [34.5350, 69.2450],
-            ],
         ],
         'WEST' => [
             'name' => 'Kabul West Zone',
             'manager' => 'Abdul Wahid Azizi',
+            'manager_email' => 'westmgr@shahab.com',
             'supervisor' => 'Noor Agha Mohammadi',
+            'supervisor_email' => 'westsup@shahab.com',
             'districts' => [3, 5, 13, 14, 18],
-            'polygon' => [
-                [34.4550, 69.0150],
-                [34.5950, 69.0150],
-                [34.5950, 69.1650],
-                [34.4550, 69.1650],
-            ],
         ],
         'SOUTH' => [
             'name' => 'Kabul South & Central Zone',
             'manager' => 'Hamidullah Noori',
+            'manager_email' => 'southmgr@shahab.com',
             'supervisor' => 'Hekmatullah Stanikzai',
+            'supervisor_email' => 'southsup@shahab.com',
             'districts' => [1, 2, 6, 7, 20],
-            'polygon' => [
-                [34.4250, 69.1050],
-                [34.5500, 69.1050],
-                [34.5500, 69.2250],
-                [34.4250, 69.2250],
-            ],
         ],
     ];
 
     /**
-     * Approximate public-area reference points for demo data generation.
-     * They keep synthetic shops geographically relevant to each Kabul district;
-     * they are not intended to represent private homes or official GIS boundaries.
+     * Public-area reference points are used only as a defensive fallback when
+     * placing synthetic customers. Territory and zone geofences come from the
+     * Kabul municipal district GeoJSON source.
      */
     private const DISTRICTS = [
         1 => ['area' => 'Old City / Mandawi', 'lat' => 34.5146, 'lng' => 69.1836],
@@ -135,14 +122,17 @@ class ShahabDemoSeeder extends Seeder
 
     public function run(): void
     {
-        app(TenantContext::class)->withPlatformScope(function (): void {
-            DB::transaction(function (): void {
+        $districtGeofences = $this->loadDistrictGeofences();
+
+        app(TenantContext::class)->withPlatformScope(function () use ($districtGeofences): void {
+            DB::transaction(function () use ($districtGeofences): void {
                 $tenant = Tenant::updateOrCreate(
                     ['slug' => 'shahab-demo'],
                     [
                         'uuid' => $this->uuid('tenant'),
                         'name' => 'Shahab Group - Kabul Demo',
                         'timezone' => 'Asia/Kabul',
+                        'contact_email' => 'owner@shahab.com',
                         'subscription_status' => 'active',
                     ]
                 );
@@ -151,9 +141,12 @@ class ShahabDemoSeeder extends Seeder
                 $roles = $provisioning->provisionRbac($tenant);
                 $provisioning->seedTrackingDefaults($tenant);
 
+                $this->seedOwner($tenant, $roles['owner']);
+
                 [$branches, $managers, $supervisors] = $this->seedLeadership(
                     $tenant,
-                    $roles
+                    $roles,
+                    $districtGeofences
                 );
 
                 [$salesmenByZone, $routeBySalesman, $routesByZone, $devices] =
@@ -174,7 +167,8 @@ class ShahabDemoSeeder extends Seeder
                     $salesmenByZone,
                     $routeBySalesman,
                     $routesByZone,
-                    $priceList
+                    $priceList,
+                    $districtGeofences
                 );
 
                 $this->seedWeeklyVisits(
@@ -188,8 +182,11 @@ class ShahabDemoSeeder extends Seeder
         });
     }
 
-    private function seedLeadership(Tenant $tenant, array $roles): array
-    {
+    private function seedLeadership(
+        Tenant $tenant,
+        array $roles,
+        array $districtGeofences
+    ): array {
         $branches = [];
         $managers = [];
         $supervisors = [];
@@ -202,7 +199,7 @@ class ShahabDemoSeeder extends Seeder
                     'uuid' => $this->uuid('branch:'.$zoneCode),
                     'name' => $zone['name'],
                     'is_active' => true,
-                    'geofence_polygon' => $zone['polygon'],
+                    'geofence_polygon' => $this->zoneGeometry($zone['districts'], $districtGeofences),
                 ]
             );
             $branches[$zoneCode] = $branch;
@@ -211,6 +208,7 @@ class ShahabDemoSeeder extends Seeder
                 $tenant,
                 $branch,
                 $zone['manager'],
+                $zone['manager_email'],
                 $userCounter++,
                 'sales_manager',
                 $roles['sales_manager']
@@ -221,6 +219,7 @@ class ShahabDemoSeeder extends Seeder
                 $tenant,
                 $branch,
                 $zone['supervisor'],
+                $zone['supervisor_email'],
                 $userCounter++,
                 'supervisor',
                 $roles['supervisor']
@@ -296,6 +295,7 @@ class ShahabDemoSeeder extends Seeder
                     $tenant,
                     $branch,
                     $name,
+                    strtolower($zoneCode).sprintf('%02d', $index + 1).'@shahab.com',
                     $personIndex + 1000,
                     'salesman',
                     $roles['salesman']
@@ -427,7 +427,8 @@ class ShahabDemoSeeder extends Seeder
         array $salesmenByZone,
         array $routeBySalesman,
         array $routesByZone,
-        PriceList $priceList
+        PriceList $priceList,
+        array $districtGeofences
     ): array {
         $customersBySalesman = [];
         $customerModels = [];
@@ -453,8 +454,8 @@ class ShahabDemoSeeder extends Seeder
                     'uuid' => $this->uuid('district:'.$districtNo),
                     'branch_id' => $branch->id,
                     'name' => 'Kabul District '.$districtNo,
-                    'description' => $district['area'].' - synthetic Shahab demo territory.',
-                    'polygon' => $this->districtPolygon($district['lat'], $district['lng']),
+                    'description' => $district['area'].' - Shahab demo territory using the public Kabul district boundary layer.',
+                    'polygon' => $districtGeofences[$districtNo],
                     'is_active' => true,
                 ]
             );
@@ -466,10 +467,11 @@ class ShahabDemoSeeder extends Seeder
                 ];
                 $contact = $this->personName($customerCounter + 5000);
                 $storeType = $this->storeType($customerCounter);
-                [$latitude, $longitude] = $this->jitter(
+                [$latitude, $longitude] = $this->customerPointInsideGeometry(
+                    $districtGeofences[$districtNo],
+                    $sequence,
                     $district['lat'],
-                    $district['lng'],
-                    $sequence
+                    $district['lng']
                 );
                 $code = sprintf('SH-KBL-D%02d-%03d', $districtNo, $sequence);
 
@@ -624,28 +626,60 @@ class ShahabDemoSeeder extends Seeder
         }
     }
 
+    private function seedOwner(Tenant $tenant, $role): User
+    {
+        $user = User::where('tenant_id', $tenant->id)
+            ->where('role', 'owner')
+            ->first();
+
+        $user ??= new User([
+            'uuid' => $this->uuid('user:owner'),
+            'tenant_id' => $tenant->id,
+        ]);
+
+        $user->fill([
+            'branch_id' => null,
+            'name' => 'Shahab Demo Owner',
+            'email' => 'owner@shahab.com',
+            'phone' => $this->demoPhone(1),
+            'password' => Hash::make(self::PASSWORD),
+            'role' => 'owner',
+            'is_active' => true,
+        ])->save();
+
+        $user->syncPrimaryRole($role);
+
+        return $user;
+    }
+
     private function upsertUser(
         Tenant $tenant,
         Branch $branch,
         string $name,
-        int $index,
+        string $email,
+        int $phoneIndex,
         string $roleSlug,
         $role
     ): User {
-        $email = $this->emailFor($name, $index);
+        $user = User::where('tenant_id', $tenant->id)
+            ->where('name', $name)
+            ->where('role', $roleSlug)
+            ->first();
 
-        $user = User::updateOrCreate(
-            ['tenant_id' => $tenant->id, 'email' => $email],
-            [
-                'uuid' => $this->uuid('user:'.$email),
-                'branch_id' => $branch->id,
-                'name' => $name,
-                'phone' => $this->demoPhone($index),
-                'password' => Hash::make(self::PASSWORD),
-                'role' => $roleSlug,
-                'is_active' => true,
-            ]
-        );
+        $user ??= new User([
+            'uuid' => $this->uuid('user:'.$roleSlug.':'.$email),
+            'tenant_id' => $tenant->id,
+        ]);
+
+        $user->fill([
+            'branch_id' => $branch->id,
+            'name' => $name,
+            'email' => $email,
+            'phone' => $this->demoPhone($phoneIndex),
+            'password' => Hash::make(self::PASSWORD),
+            'role' => $roleSlug,
+            'is_active' => true,
+        ])->save();
 
         $user->syncPrimaryRole($role);
 
@@ -663,27 +697,140 @@ class ShahabDemoSeeder extends Seeder
         throw new RuntimeException('No Shahab zone configured for Kabul district '.$district);
     }
 
-    private function districtPolygon(float $lat, float $lng): array
+    private function loadDistrictGeofences(): array
     {
-        $delta = 0.012;
+        $response = Http::acceptJson()
+            ->timeout(20)
+            ->retry(2, 300)
+            ->get(self::KABUL_DISTRICT_GEOJSON_URL);
+
+        if (! $response->successful()) {
+            throw new RuntimeException(
+                'Unable to download the Kabul municipal district GeoJSON boundary layer.'
+            );
+        }
+
+        $features = collect($response->json('features', []));
+        $geofences = [];
+
+        foreach ($features as $feature) {
+            $district = (int) data_get($feature, 'properties.DistrictName');
+            $geometry = data_get($feature, 'geometry');
+
+            if ($district < 1 || $district > 22 || ! is_array($geometry)) {
+                continue;
+            }
+
+            if (! in_array($geometry['type'] ?? null, ['Polygon', 'MultiPolygon'], true)) {
+                continue;
+            }
+
+            $geofences[$district] = $geometry;
+        }
+
+        ksort($geofences);
+
+        if (array_keys($geofences) !== range(1, 22)) {
+            throw new RuntimeException(
+                'The Kabul district boundary source did not return all 22 municipal districts.'
+            );
+        }
+
+        return $geofences;
+    }
+
+    private function zoneGeometry(array $districts, array $districtGeofences): array
+    {
+        $polygons = [];
+
+        foreach ($districts as $district) {
+            $geometry = $districtGeofences[$district];
+
+            if ($geometry['type'] === 'Polygon') {
+                $polygons[] = $geometry['coordinates'];
+
+                continue;
+            }
+
+            foreach ($geometry['coordinates'] as $polygon) {
+                $polygons[] = $polygon;
+            }
+        }
 
         return [
-            [$lat - $delta, $lng - $delta],
-            [$lat + $delta, $lng - $delta],
-            [$lat + $delta, $lng + $delta],
-            [$lat - $delta, $lng + $delta],
+            'type' => 'MultiPolygon',
+            'coordinates' => $polygons,
         ];
     }
 
-    private function jitter(float $lat, float $lng, int $index): array
-    {
-        $angle = deg2rad(fmod($index * 137.508, 360));
-        $radius = 0.0015 + (($index % 17) / 17) * 0.0065;
+    private function customerPointInsideGeometry(
+        array $geometry,
+        int $index,
+        float $fallbackLat,
+        float $fallbackLng
+    ): array {
+        $polygons = $geometry['type'] === 'Polygon'
+            ? [$geometry['coordinates']]
+            : $geometry['coordinates'];
 
-        return [
-            round($lat + cos($angle) * $radius, 7),
-            round($lng + sin($angle) * $radius, 7),
-        ];
+        $polygon = $polygons[$index % count($polygons)];
+        $outerRing = $polygon[0] ?? [];
+
+        if (count($outerRing) < 4) {
+            return [$fallbackLat, $fallbackLng];
+        }
+
+        $longitudes = array_column($outerRing, 0);
+        $latitudes = array_column($outerRing, 1);
+        $minLng = min($longitudes);
+        $maxLng = max($longitudes);
+        $minLat = min($latitudes);
+        $maxLat = max($latitudes);
+
+        for ($attempt = 0; $attempt < 300; $attempt++) {
+            $seed = $index * 997 + $attempt * 313;
+            $lngRatio = (($seed * 37) % 10000) / 10000;
+            $latRatio = (($seed * 91 + 17) % 10000) / 10000;
+            $lng = $minLng + (($maxLng - $minLng) * $lngRatio);
+            $lat = $minLat + (($maxLat - $minLat) * $latRatio);
+
+            if ($this->pointInRing($lng, $lat, $outerRing)) {
+                $insideHole = false;
+
+                foreach (array_slice($polygon, 1) as $hole) {
+                    if ($this->pointInRing($lng, $lat, $hole)) {
+                        $insideHole = true;
+                        break;
+                    }
+                }
+
+                if (! $insideHole) {
+                    return [round($lat, 7), round($lng, 7)];
+                }
+            }
+        }
+
+        return [$fallbackLat, $fallbackLng];
+    }
+
+    private function pointInRing(float $lng, float $lat, array $ring): bool
+    {
+        $inside = false;
+        $count = count($ring);
+
+        for ($i = 0, $j = $count - 1; $i < $count; $j = $i++) {
+            [$xi, $yi] = $ring[$i];
+            [$xj, $yj] = $ring[$j];
+
+            $intersects = (($yi > $lat) !== ($yj > $lat))
+                && ($lng < (($xj - $xi) * ($lat - $yi) / (($yj - $yi) ?: 1.0e-12)) + $xi);
+
+            if ($intersects) {
+                $inside = ! $inside;
+            }
+        }
+
+        return $inside;
     }
 
     private function personName(int $index): string
@@ -714,11 +861,6 @@ class ShahabDemoSeeder extends Seeder
         $familyName = $family[intdiv($index, count($first) * count($first)) % count($family)];
 
         return $firstName.' '.$secondName.' '.$familyName;
-    }
-
-    private function emailFor(string $name, int $index): string
-    {
-        return Str::slug($name, '.').'.'.$index.'@shahab.com';
     }
 
     private function demoPhone(int $index): string
