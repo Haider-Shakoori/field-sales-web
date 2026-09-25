@@ -18,6 +18,7 @@ use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -131,6 +132,44 @@ class Batch9OrdersTest extends TestCase
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'order.status_changed',
             'subject_id' => $order->id,
+        ]);
+    }
+
+    public function test_order_approval_does_not_500_when_notification_storage_fails(): void
+    {
+        $actor = $this->salesmanActor();
+        [$customer, $product] = $this->catalog($actor);
+
+        $this->postJson('/api/v1/orders', [
+            'offline_uuid' => (string) Str::uuid(),
+            'customer_id' => $customer->uuid,
+            'ordered_at' => '2026-09-19T06:25:00Z',
+            'payment_type' => 'cash',
+            'items' => [[
+                'product_id' => $product->uuid,
+                'quantity' => 1,
+                'discount_percent' => 0,
+            ]],
+        ], $this->headers())->assertCreated();
+
+        $order = app(TenantContext::class)->withTenant(
+            $actor['tenant'],
+            fn () => Order::firstOrFail()
+        );
+        $admin = $this->admin($actor['tenant']);
+
+        Schema::drop('notification_preferences');
+
+        $this->actingAs($admin)
+            ->patch('/admin/orders/'.$order->id.'/status', [
+                'status' => 'approved',
+            ])
+            ->assertRedirect(route('admin.orders.show', $order));
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'approved',
+            'status_changed_by' => $admin->id,
         ]);
     }
 
