@@ -44,6 +44,7 @@ use App\Http\Controllers\Web\SupervisorAssignmentController;
 use App\Http\Controllers\Web\SupervisorController;
 use App\Http\Controllers\Web\SupervisorScorecardController;
 use App\Http\Controllers\Web\TerritoryController;
+use App\Http\Controllers\Web\TerritoryHeatMapController;
 use App\Http\Controllers\Web\TrackingSettingsController;
 use App\Http\Controllers\Web\UserController;
 use App\Http\Controllers\Web\VisitController;
@@ -75,6 +76,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/live-map', [LiveMapController::class, 'index'])
             ->middleware('permission:tracking:view')
             ->name('live-map');
+        Route::get('/territory-heat-map', TerritoryHeatMapController::class)
+            ->middleware('permission:reports:view')
+            ->name('territory-heat-map');
 
         Route::get('/attendance', [AttendanceController::class, 'index'])
             ->middleware('permission:sales-team:view')

@@ -633,5 +633,20 @@
     "Due today": "Due today",
     "Due soon": "Due soon",
     "Available salesman stock": "Available salesman stock",
-    "No repeat-purchase recommendation is due yet. FieldPulse needs at least two approved purchases of a product before predicting its reorder cycle.": "No repeat-purchase recommendation is due yet. FieldPulse needs at least two approved purchases of a product before predicting its reorder cycle."
+    "No repeat-purchase recommendation is due yet. FieldPulse needs at least two approved purchases of a product before predicting its reorder cycle.": "No repeat-purchase recommendation is due yet. FieldPulse needs at least two approved purchases of a product before predicting its reorder cycle.",
+    "Territory heat maps": "Territory heat maps",
+    "See where customer coverage, visits, sales and collections are strong or falling behind.": "See where customer coverage, visits, sales and collections are strong or falling behind.",
+    "Coverage attention": "Coverage attention",
+    "Territories with the lowest customer visit coverage in the selected period.": "Territories with the lowest customer visit coverage in the selected period.",
+    "Map reading": "Map reading",
+    "customers visited": "customers visited",
+    "Mapped customers": "Mapped customers",
+    "Completed visits": "Completed visits",
+    "heat map": "heat map",
+    "Metric": "Metric",
+    "Territory shading is normalized within the selected period and metric.": "Territory shading is normalized within the selected period and metric.",
+    "Customer circles use the same metric at customer level; larger circles indicate stronger activity.": "Customer circles use the same metric at customer level; larger circles indicate stronger activity.",
+    "Coverage counts a customer once when at least one completed visit exists in the selected period.": "Coverage counts a customer once when at least one completed visit exists in the selected period.",
+    "Sales and collections never combine currencies; choose a currency before comparing monetary performance.": "Sales and collections never combine currencies; choose a currency before comparing monetary performance.",
+    "No territory coverage data is available.": "No territory coverage data is available."
 }
