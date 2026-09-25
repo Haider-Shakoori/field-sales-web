@@ -79,6 +79,12 @@ class CustomerVisit extends Model
         return $this->hasMany(VisitPhoto::class, 'visit_id');
     }
 
+    public function voiceNotes(): HasMany
+    {
+        return $this->hasMany(VisitVoiceNote::class, 'visit_id')
+            ->orderBy('recorded_at');
+    }
+
     public function suspiciousFlags(): HasMany
     {
         return $this->hasMany(VisitSuspiciousFlag::class, 'visit_id');
