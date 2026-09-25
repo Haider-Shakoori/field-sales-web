@@ -9,6 +9,7 @@ use App\Services\CustomerBalanceService;
 use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -76,18 +77,6 @@ class CollectionController extends Controller
             'status_note' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        $allowed = match ($collection->status) {
-            'pending' => ['verified', 'rejected', 'cancelled'],
-            default => [],
-        };
-
-        if (! in_array($validated['status'], $allowed, true)) {
-            throw ValidationException::withMessages([
-                'status' => 'This collection cannot transition from '
-                    .$collection->status.' to '.$validated['status'].'.',
-            ]);
-        }
-
         if (
             in_array($validated['status'], ['rejected', 'cancelled'], true)
             && trim((string) ($validated['status_note'] ?? '')) === ''
@@ -97,40 +86,73 @@ class CollectionController extends Controller
             ]);
         }
 
-        if ($validated['status'] === 'verified') {
-            $collection->loadMissing('customer');
-            $outstanding = $balances->outstanding(
-                $collection->customer,
-                $collection->currency,
-            );
+        DB::transaction(function () use (
+            $request,
+            $collection,
+            $validated,
+            $balances,
+            $audit,
+        ): void {
+            $locked = Collection::query()
+                ->whereKey($collection->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            if ((float) $collection->amount > $outstanding + 0.0001) {
+            $allowed = match ($locked->status) {
+                'pending' => ['verified', 'rejected', 'cancelled'],
+                default => [],
+            };
+
+            if (! in_array($validated['status'], $allowed, true)) {
                 throw ValidationException::withMessages([
-                    'status' => 'The collection exceeds the current outstanding balance and cannot be verified.',
+                    'status' => 'This collection cannot transition from '
+                        .$locked->status.' to '.$validated['status'].'.',
                 ]);
             }
-        }
 
-        $before = [
-            'status' => $collection->status,
-            'status_note' => $collection->status_note,
-        ];
+            if ($validated['status'] === 'verified') {
+                $locked->loadMissing('customer');
 
-        $collection->update([
-            'status' => $validated['status'],
-            'status_note' => $validated['status_note'] ?? null,
-            'status_changed_by' => $request->user()->id,
-            'status_changed_at' => now(),
-        ]);
+                if (! $locked->customer) {
+                    throw ValidationException::withMessages([
+                        'status' => 'The customer linked to this collection is no longer available.',
+                    ]);
+                }
 
-        $audit->record('collection.status_changed', $collection, $before, [
-            'status' => $collection->status,
-            'status_note' => $collection->status_note,
-        ]);
+                $outstanding = $balances->outstanding(
+                    $locked->customer,
+                    $locked->currency,
+                );
 
-        $collection->loadMissing('salesman.user');
+                if ((float) $locked->amount > $outstanding + 0.0001) {
+                    throw ValidationException::withMessages([
+                        'status' => 'The collection exceeds the current outstanding balance and cannot be verified.',
+                    ]);
+                }
+            }
+
+            $before = [
+                'status' => $locked->status,
+                'status_note' => $locked->status_note,
+            ];
+
+            $locked->update([
+                'status' => $validated['status'],
+                'status_note' => $validated['status_note'] ?? null,
+                'status_changed_by' => $request->user()->id,
+                'status_changed_at' => now(),
+            ]);
+
+            $audit->record('collection.status_changed', $locked, $before, [
+                'status' => $locked->status,
+                'status_note' => $locked->status_note,
+            ]);
+        });
+
+        $collection->refresh()->loadMissing('salesman.user');
+
         if ($collection->salesman?->user) {
-            $notifications->notify(
+            $notifications->notifySafely(
                 $collection->salesman->user,
                 'collection.status_changed',
                 'collection_updates',
