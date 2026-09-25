@@ -12,6 +12,7 @@
     <section class="rounded-2xl border border-white/10 bg-slate-900 p-5">
         <dl class="grid gap-4 sm:grid-cols-2">
             <div><dt class="text-sm text-slate-400">Supervisor</dt><dd class="mt-1">{{ $assignment->supervisor?->employee_code }} — {{ $assignment->supervisor?->full_name }}</dd></div>
+            <div><dt class="text-sm text-slate-400">Reports to sales manager</dt><dd class="mt-1">{{ $assignment->salesManager?->name ?? 'Unassigned manager' }}</dd></div>
             <div><dt class="text-sm text-slate-400">Branch</dt><dd class="mt-1">{{ $assignment->branch?->name ?? 'Company-wide' }}</dd></div>
             <div><dt class="text-sm text-slate-400">Territory</dt><dd class="mt-1">{{ $assignment->territory?->name ?? 'All territories / unassigned' }}</dd></div>
             <div><dt class="text-sm text-slate-400">Effective from</dt><dd class="mt-1">{{ $assignment->effective_from->toDateString() }}</dd></div>
