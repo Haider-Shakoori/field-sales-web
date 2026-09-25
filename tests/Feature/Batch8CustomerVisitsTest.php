@@ -18,7 +18,9 @@ use App\Models\WorkSession;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -220,6 +222,59 @@ class Batch8CustomerVisitsTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.is_planned', true)
             ->assertJsonPath('data.route_id', null);
+    }
+
+    public function test_visit_voice_note_upload_is_idempotent_and_respects_ai_customer_data_policy(): void
+    {
+        Storage::fake('local');
+        config()->set('ai.enabled', true);
+        config()->set('ai.allow_customer_data', false);
+        config()->set('ai.transcription_enabled', true);
+        config()->set('ai.api_key', 'test-key');
+        config()->set('ai.transcription_model', 'whisper-large-v3-turbo');
+
+        $actor = $this->actor();
+        $customer = $this->customer($actor);
+        $this->createWorkSession($actor);
+        $visitUuid = (string) Str::uuid();
+        $voiceUuid = (string) Str::uuid();
+
+        $this->postJson('/api/v1/visits/check-in', [
+            'offline_uuid' => $visitUuid,
+            'customer_id' => $customer->uuid,
+            'latitude' => 34.50001,
+            'longitude' => 69.20001,
+            'accuracy' => 8,
+            'checked_in_at' => '2026-09-19T05:00:00Z',
+        ], $this->headers())->assertCreated();
+
+        $this->post('/api/v1/visits/'.$visitUuid.'/voice-notes', [
+            'client_uuid' => $voiceUuid,
+            'voice_note' => UploadedFile::fake()->create(
+                'visit-note.m4a',
+                64,
+                'audio/mp4',
+            ),
+            'duration_seconds' => 42,
+            'recorded_at' => '2026-09-19T05:08:00Z',
+            'language' => 'fa',
+        ], $this->headers())
+            ->assertCreated()
+            ->assertJsonPath('data.id', $voiceUuid)
+            ->assertJsonPath('data.duration_seconds', 42)
+            ->assertJsonPath('data.transcription_status', 'blocked_policy');
+
+        $this->post('/api/v1/visits/'.$visitUuid.'/voice-notes', [
+            'client_uuid' => $voiceUuid,
+        ], $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.id', $voiceUuid);
+
+        $this->assertDatabaseCount('visit_voice_notes', 1);
+        $this->assertDatabaseHas('visit_voice_notes', [
+            'uuid' => $voiceUuid,
+            'transcription_status' => 'blocked_policy',
+        ]);
     }
 
     private function actor(): array
