@@ -834,16 +834,16 @@ class ShahabDemoSeeder extends Seeder
     private function personName(int $index): string
     {
         $first = [
-            'Ahmad', 'Mohammad', 'Abdul Rahman', 'Abdul Wahid', 'Abdul Qadir',
-            'Farid', 'Hamidullah', 'Naim', 'Wali Mohammad', 'Sayed Jamal',
-            'Noor Agha', 'Hekmatullah', 'Zabihullah', 'Najibullah', 'Habibullah',
-            'Samiullah', 'Rafiullah', 'Fazal Ahmad', 'Ajmal', 'Zubair',
-            'Feroz', 'Sohail', 'Nasir Ahmad', 'Jawad', 'Matiullah',
-            'Obaidullah', 'Ehsanullah', 'Aziz Ahmad', 'Bashir Ahmad', 'Latif',
+            'Ahmad', 'Mohammad', 'Rahman', 'Wahid', 'Qadir',
+            'Farid', 'Hamidullah', 'Naim', 'Wali', 'Jamal',
+            'Noor', 'Hekmatullah', 'Zabihullah', 'Najibullah', 'Habibullah',
+            'Samiullah', 'Rafiullah', 'Fazal', 'Ajmal', 'Zubair',
+            'Feroz', 'Sohail', 'Nasir', 'Jawad', 'Matiullah',
+            'Obaidullah', 'Ehsanullah', 'Aziz', 'Bashir', 'Latif',
             'Haroon', 'Saber', 'Shafiq', 'Waheed', 'Zahir',
-            'Faisal', 'Mustafa', 'Jamaluddin', 'Shamsuddin', 'Aminullah',
+            'Faisal', 'Mustafa', 'Jalal', 'Shamsuddin', 'Aminullah',
             'Khalid', 'Aref', 'Yasin', 'Ismail', 'Ibrahim',
-            'Rashid', 'Nabi', 'Ghulam Nabi', 'Shah Mahmood', 'Nematullah',
+            'Rashid', 'Nabi', 'Mahmood', 'Nematullah', 'Daud',
         ];
 
         $family = [
