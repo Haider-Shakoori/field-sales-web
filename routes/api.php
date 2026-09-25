@@ -74,6 +74,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/visits/check-in', [VisitController::class, 'checkIn']);
             Route::post('/visits/{visit:uuid}/check-out', [VisitController::class, 'checkOut']);
             Route::post('/visits/{visit:uuid}/photos', [VisitController::class, 'uploadPhoto']);
+            Route::post('/visits/{visit:uuid}/voice-notes', [VisitController::class, 'uploadVoiceNote']);
             Route::post('/visits/{visit:uuid}/form-submissions', [VisitFormController::class, 'store']);
 
             Route::get('/call-activities/history', [CallActivityController::class, 'history']);

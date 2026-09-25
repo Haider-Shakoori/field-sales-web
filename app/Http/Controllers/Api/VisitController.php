@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\TranscribeVisitVoiceNote;
 use App\Models\Customer;
 use App\Models\CustomerVisit;
 use App\Models\VisitPhoto;
 use App\Models\VisitSuspiciousFlag;
+use App\Models\VisitVoiceNote;
 use App\Models\WorkSession;
 use App\Services\DailyRoutePlannerService;
 use App\Services\GeofenceService;
 use App\Services\NotificationService;
 use App\Services\VisitFormService;
+use App\Services\VisitVoiceTranscriptionService;
 use App\Support\ApiResponse;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -323,6 +326,65 @@ class VisitController extends Controller
         return ApiResponse::success($this->photoPayload($photo), 201);
     }
 
+    public function uploadVoiceNote(
+        Request $request,
+        CustomerVisit $visit,
+        VisitVoiceTranscriptionService $transcription,
+    ): JsonResponse {
+        abort_unless((int) $visit->user_id === (int) $request->user()->id, 404);
+
+        $idempotency = $request->validate([
+            'client_uuid' => ['required', 'uuid'],
+        ]);
+
+        $existing = VisitVoiceNote::where('uuid', $idempotency['client_uuid'])->first();
+
+        if ($existing) {
+            abort_unless(
+                (int) $existing->visit_id === (int) $visit->id
+                && (int) $existing->user_id === (int) $request->user()->id,
+                409,
+            );
+
+            return ApiResponse::success($this->voiceNotePayload($existing));
+        }
+
+        $validated = $request->validate([
+            'voice_note' => ['required', 'file', 'mimes:m4a,aac,mp4,mp3,wav,ogg,webm', 'max:6144'],
+            'duration_seconds' => ['required', 'integer', 'between:1,300'],
+            'recorded_at' => ['nullable', 'date'],
+            'language' => ['nullable', Rule::in(['en', 'fa', 'ps'])],
+        ]);
+
+        $file = $request->file('voice_note');
+        $path = $file->store('visits/'.$visit->uuid.'/voice-notes', 'local');
+        $user = $request->user()->loadMissing('tenant');
+        $status = $transcription->initialStatus($user);
+
+        $voiceNote = VisitVoiceNote::create([
+            'uuid' => $idempotency['client_uuid'],
+            'visit_id' => $visit->id,
+            'user_id' => $user->id,
+            'disk' => 'local',
+            'path' => $path,
+            'mime_type' => $file->getMimeType(),
+            'size_bytes' => $file->getSize(),
+            'duration_seconds' => $validated['duration_seconds'],
+            'recorded_at' => $validated['recorded_at'] ?? now(),
+            'language' => $validated['language'] ?? null,
+            'transcription_status' => $status,
+        ]);
+
+        if ($status === 'pending') {
+            dispatch(new TranscribeVisitVoiceNote(
+                (int) $voiceNote->tenant_id,
+                (int) $voiceNote->id,
+            ));
+        }
+
+        return ApiResponse::success($this->voiceNotePayload($voiceNote), 201);
+    }
+
     private function flag(
         CustomerVisit $visit,
         string $reason,
@@ -357,7 +419,7 @@ class VisitController extends Controller
 
     private function relations(): array
     {
-        return ['customer', 'route', 'photos', 'suspiciousFlags'];
+        return ['customer', 'route', 'photos', 'voiceNotes', 'suspiciousFlags'];
     }
 
     private function payload(CustomerVisit $visit): array
@@ -391,6 +453,9 @@ class VisitController extends Controller
             'photos' => $visit->relationLoaded('photos')
                 ? $visit->photos->map(fn (VisitPhoto $photo) => $this->photoPayload($photo))->values()->all()
                 : [],
+            'voice_notes' => $visit->relationLoaded('voiceNotes')
+                ? $visit->voiceNotes->map(fn (VisitVoiceNote $note) => $this->voiceNotePayload($note))->values()->all()
+                : [],
             'suspicious_flags' => $visit->relationLoaded('suspiciousFlags')
                 ? $visit->suspiciousFlags->map(fn (VisitSuspiciousFlag $flag) => [
                     'id' => $flag->uuid,
@@ -400,6 +465,19 @@ class VisitController extends Controller
                     'reviewed_at' => $flag->reviewed_at?->toISOString(),
                 ])->values()->all()
                 : [],
+        ];
+    }
+
+    private function voiceNotePayload(VisitVoiceNote $note): array
+    {
+        return [
+            'id' => $note->uuid,
+            'duration_seconds' => $note->duration_seconds,
+            'recorded_at' => $note->recorded_at?->toISOString(),
+            'language' => $note->language,
+            'transcription_status' => $note->transcription_status,
+            'transcript' => $note->transcript,
+            'structured_notes' => $note->structured_notes,
         ];
     }
 

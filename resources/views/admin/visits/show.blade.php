@@ -77,6 +77,48 @@
         </section>
 
         <section class="rounded-2xl border border-white/10 bg-slate-900 p-5 lg:col-span-2">
+            <h2 class="font-semibold">{{ __('Voice notes') }}</h2>
+            <div class="mt-4 space-y-4">
+                @forelse($visit->voiceNotes as $voiceNote)
+                    <div class="rounded-xl border border-white/10 bg-slate-950 p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <div class="font-medium">{{ __('Recorded voice note') }}</div>
+                                <div class="mt-1 text-xs text-slate-400">
+                                    {{ $voiceNote->recorded_at?->format('Y-m-d H:i:s') ?? '—' }}
+                                    · {{ $voiceNote->duration_seconds ? $voiceNote->duration_seconds.' sec' : '—' }}
+                                    · {{ str($voiceNote->transcription_status)->replace('_', ' ')->title() }}
+                                </div>
+                            </div>
+                            <audio controls preload="none" class="max-w-full">
+                                <source src="{{ route('admin.visits.voice-notes.audio', [$visit, $voiceNote]) }}" type="{{ $voiceNote->mime_type ?: 'audio/mp4' }}">
+                            </audio>
+                        </div>
+                        @if($voiceNote->transcript)
+                            <div class="mt-4 rounded-lg bg-white/5 p-3">
+                                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Transcript') }}</div>
+                                <p class="mt-2 whitespace-pre-wrap text-sm text-slate-200">{{ $voiceNote->transcript }}</p>
+                            </div>
+                        @endif
+                        @if($voiceNote->structured_notes)
+                            <div class="mt-3 rounded-lg bg-indigo-500/5 p-3">
+                                <div class="text-xs font-semibold uppercase tracking-wide text-indigo-300">{{ __('Structured visit notes') }}</div>
+                                <p class="mt-2 text-sm">{{ data_get($voiceNote->structured_notes, 'summary') }}</p>
+                                @if(data_get($voiceNote->structured_notes, 'follow_up'))
+                                    <p class="mt-2 text-sm"><span class="font-semibold">{{ __('Follow-up') }}:</span> {{ data_get($voiceNote->structured_notes, 'follow_up') }}</p>
+                                @endif
+                            </div>
+                        @elseif($voiceNote->transcription_status === 'blocked_policy')
+                            <p class="mt-3 text-xs text-amber-300">{{ __('External transcription is blocked by the current customer-data AI policy.') }}</p>
+                        @endif
+                    </div>
+                @empty
+                    <p class="text-sm text-slate-400">{{ __('No voice notes attached.') }}</p>
+                @endforelse
+            </div>
+        </section>
+
+        <section class="rounded-2xl border border-white/10 bg-slate-900 p-5 lg:col-span-2">
             <h2 class="font-semibold">Photos</h2>
             <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 @forelse($visit->photos as $photo)
