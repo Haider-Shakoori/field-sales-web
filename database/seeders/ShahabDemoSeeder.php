@@ -748,6 +748,7 @@ class ShahabDemoSeeder extends Seeder
 
             if ($geometry['type'] === 'Polygon') {
                 $polygons[] = $geometry['coordinates'];
+
                 continue;
             }
 
