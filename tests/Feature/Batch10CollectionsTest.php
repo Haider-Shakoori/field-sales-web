@@ -15,6 +15,7 @@ use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -130,6 +131,44 @@ class Batch10CollectionsTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.balances.0.verified_collections', 300)
             ->assertJsonPath('data.0.balances.0.outstanding_balance', 700);
+    }
+
+    public function test_collection_verification_does_not_500_when_notification_storage_fails(): void
+    {
+        $actor = $this->salesmanActor();
+        $customer = $this->customerWithReceivable($actor, 1000);
+
+        $this->postJson('/api/v1/collections', [
+            'offline_uuid' => (string) Str::uuid(),
+            'customer_id' => $customer->uuid,
+            'collected_at' => '2026-09-19T07:15:00Z',
+            'currency' => 'AFN',
+            'amount' => 150,
+            'payment_method' => 'cash',
+            'latitude' => 34.5553,
+            'longitude' => 69.2075,
+            'accuracy' => 8,
+        ], $this->headers())->assertCreated();
+
+        $collection = app(TenantContext::class)->withTenant(
+            $actor['tenant'],
+            fn () => Collection::firstOrFail()
+        );
+        $admin = $this->admin($actor['tenant']);
+
+        Schema::drop('notification_preferences');
+
+        $this->actingAs($admin)
+            ->patch('/admin/collections/'.$collection->id.'/status', [
+                'status' => 'verified',
+            ])
+            ->assertRedirect(route('admin.collections.show', $collection));
+
+        $this->assertDatabaseHas('collections', [
+            'id' => $collection->id,
+            'status' => 'verified',
+            'status_changed_by' => $admin->id,
+        ]);
     }
 
     public function test_overpayment_can_sync_for_review_but_cannot_be_verified(): void
