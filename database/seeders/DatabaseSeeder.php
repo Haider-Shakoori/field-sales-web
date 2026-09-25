@@ -170,5 +170,9 @@ class DatabaseSeeder extends Seeder
 
             app(TenantProvisioningService::class)->seedTrackingDefaults($tenant);
         });
+
+        if (filter_var(env('SEED_SHAHAB_DEMO', false), FILTER_VALIDATE_BOOL)) {
+            $this->call(ShahabDemoSeeder::class);
+        }
     }
 }
