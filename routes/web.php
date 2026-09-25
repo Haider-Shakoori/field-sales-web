@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\BranchController;
 use App\Http\Controllers\Web\CallActivityController;
 use App\Http\Controllers\Web\CollectionController;
+use App\Http\Controllers\Web\CommissionController;
 use App\Http\Controllers\Web\CustomerCommunicationController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\CustomerFollowUpController;
@@ -293,6 +294,16 @@ Route::middleware('auth')->group(function () {
             ->except(['show'])
             ->middlewareFor('index', 'permission:targets:view')
             ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:targets:manage');
+
+        Route::get('/commissions', [CommissionController::class, 'index'])->middleware('permission:commissions:view')->name('commissions.index');
+        Route::get('/commissions/rules/create', [CommissionController::class, 'createRule'])->middleware('permission:commissions:manage')->name('commissions.rules.create');
+        Route::post('/commissions/rules', [CommissionController::class, 'storeRule'])->middleware('permission:commissions:manage')->name('commissions.rules.store');
+        Route::get('/commissions/rules/{rule}/edit', [CommissionController::class, 'editRule'])->middleware('permission:commissions:manage')->name('commissions.rules.edit');
+        Route::put('/commissions/rules/{rule}', [CommissionController::class, 'updateRule'])->middleware('permission:commissions:manage')->name('commissions.rules.update');
+        Route::delete('/commissions/rules/{rule}', [CommissionController::class, 'destroyRule'])->middleware('permission:commissions:manage')->name('commissions.rules.destroy');
+        Route::post('/commissions/runs', [CommissionController::class, 'generate'])->middleware('permission:commissions:manage')->name('commissions.runs.generate');
+        Route::get('/commissions/runs/{run}', [CommissionController::class, 'show'])->middleware('permission:commissions:view')->name('commissions.runs.show');
+        Route::post('/commissions/runs/{run}/approve', [CommissionController::class, 'approve'])->middleware('permission:commissions:manage')->name('commissions.runs.approve');
 
         Route::get('/stock', [StockController::class, 'index'])
             ->middleware('permission:stock:view')
