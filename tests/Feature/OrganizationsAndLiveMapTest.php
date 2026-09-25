@@ -166,7 +166,7 @@ class OrganizationsAndLiveMapTest extends TestCase
     {
         [$tenant, $trackingAdmin] = $this->tenantUser(
             'map-admin@example.test',
-            ['reports:view', 'tracking:view'],
+            ['reports:view', 'tracking:view', 'leads:view'],
             'company_admin',
             'Map Tenant',
             'map-tenant',
@@ -174,15 +174,22 @@ class OrganizationsAndLiveMapTest extends TestCase
 
         $this->salesman($tenant, 'MAP-1', 'Mapped');
 
-        $this->actingAs($trackingAdmin)
+        $response = $this->actingAs($trackingAdmin)
             ->get(route('admin.live-map'))
             ->assertOk()
             ->assertSee('Live map')
             ->assertSee('Mapped Salesman')
             ->assertSee('fp-live-map-shell', false)
-            ->assertSee('fullscreen-nav-modal', false)
+            ->assertSee('<dialog id="fullscreen-nav-modal"', false)
+            ->assertSee('showModal()', false)
             ->assertSee('panel-toggle', false)
             ->assertDontSee('id="sidebar-toggle"', false);
+
+        $this->assertSame(
+            1,
+            substr_count($response->getContent(), route('admin.leads.index')),
+            'The Leads navigation item must only render once.',
+        );
 
         [, $reportsOnly] = $this->tenantUser(
             'map-auditor@example.test',
