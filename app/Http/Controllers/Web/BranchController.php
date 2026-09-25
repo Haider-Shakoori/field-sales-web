@@ -39,12 +39,16 @@ class BranchController extends Controller
         $branch = Branch::create([
             'name' => $validated['name'],
             'code' => strtoupper($validated['code']),
+            'geofence_polygon' => filled($validated['geofence_polygon'] ?? null)
+                ? json_decode($validated['geofence_polygon'], true, flags: JSON_THROW_ON_ERROR)
+                : null,
             'is_active' => (bool) $validated['is_active'],
         ]);
 
         $audit->record('branch.created', $branch, [], $branch->only([
             'name',
             'code',
+            'geofence_polygon',
             'is_active',
         ]));
 
@@ -65,12 +69,15 @@ class BranchController extends Controller
         Branch $branch,
         AuditLogger $audit,
     ): RedirectResponse {
-        $before = $branch->only(['name', 'code', 'is_active']);
+        $before = $branch->only(['name', 'code', 'geofence_polygon', 'is_active']);
         $validated = $request->validated();
 
         $branch->update([
             'name' => $validated['name'],
             'code' => strtoupper($validated['code']),
+            'geofence_polygon' => filled($validated['geofence_polygon'] ?? null)
+                ? json_decode($validated['geofence_polygon'], true, flags: JSON_THROW_ON_ERROR)
+                : null,
             'is_active' => (bool) $validated['is_active'],
         ]);
 
@@ -78,7 +85,7 @@ class BranchController extends Controller
             'branch.updated',
             $branch,
             $before,
-            $branch->only(['name', 'code', 'is_active'])
+            $branch->only(['name', 'code', 'geofence_polygon', 'is_active'])
         );
 
         return redirect()
