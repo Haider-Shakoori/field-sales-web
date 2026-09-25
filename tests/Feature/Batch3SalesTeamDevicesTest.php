@@ -258,10 +258,11 @@ class Batch3SalesTeamDevicesTest extends TestCase
     public function test_supervisor_assignment_rejects_duplicate_overlapping_branch_window(): void
     {
         $tenant = $this->tenant('supervisor-window');
-        [$admin, , $supervisor, $branch] = $this->salesTeamFixture($tenant);
+        [$admin, , $supervisor, $branch, $manager] = $this->salesTeamFixture($tenant);
 
         $this->tenantScope($tenant, fn () => SupervisorAssignment::create([
             'supervisor_id' => $supervisor->id,
+            'sales_manager_id' => $manager->id,
             'branch_id' => $branch->id,
             'effective_from' => '2026-01-01',
             'effective_to' => '2026-12-31',
@@ -271,6 +272,7 @@ class Batch3SalesTeamDevicesTest extends TestCase
         $this->actingAs($admin)
             ->post(route('admin.supervisor-assignments.store'), [
                 'supervisor_id' => $supervisor->id,
+                'sales_manager_id' => $manager->id,
                 'branch_id' => $branch->id,
                 'effective_from' => '2026-06-01',
                 'effective_to' => '2026-06-30',
@@ -283,9 +285,9 @@ class Batch3SalesTeamDevicesTest extends TestCase
     public function test_assignment_pages_cover_index_create_show_and_edit(): void
     {
         $tenant = $this->tenant('assignment-pages');
-        [$admin, $salesman, $supervisor, $branch] = $this->salesTeamFixture($tenant);
+        [$admin, $salesman, $supervisor, $branch, $manager] = $this->salesTeamFixture($tenant);
 
-        [$salesAssignment, $supervisorAssignment] = $this->tenantScope($tenant, function () use ($admin, $salesman, $supervisor, $branch): array {
+        [$salesAssignment, $supervisorAssignment] = $this->tenantScope($tenant, function () use ($admin, $salesman, $supervisor, $branch, $manager): array {
             return [
                 SalesmanAssignment::create([
                     'salesman_id' => $salesman->id,
@@ -296,6 +298,7 @@ class Batch3SalesTeamDevicesTest extends TestCase
                 ]),
                 SupervisorAssignment::create([
                     'supervisor_id' => $supervisor->id,
+                    'sales_manager_id' => $manager->id,
                     'branch_id' => $branch->id,
                     'effective_from' => '2026-01-01',
                     'created_by' => $admin->id,
@@ -475,6 +478,12 @@ class Batch3SalesTeamDevicesTest extends TestCase
 
             $salesUser = $this->plainUser($tenant, 'sales@'.$tenant->slug.'.local');
             $supervisorUser = $this->plainUser($tenant, 'supervisor@'.$tenant->slug.'.local');
+            $manager = $this->userWithRole(
+                $tenant,
+                'manager@'.$tenant->slug.'.local',
+                ['sales-team:view', 'sales-team:manage'],
+                'sales_manager',
+            );
 
             $salesman = Salesman::create([
                 'tenant_id' => $tenant->id,
@@ -494,7 +503,7 @@ class Batch3SalesTeamDevicesTest extends TestCase
                 'is_active' => true,
             ]);
 
-            return [$admin, $salesman, $supervisor, $branch];
+            return [$admin, $salesman, $supervisor, $branch, $manager];
         });
     }
 
