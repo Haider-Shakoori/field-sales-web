@@ -379,7 +379,7 @@ class VisitController extends Controller
         $transcriptionEnabled = (bool) config('ai.transcription_enabled', false);
         $transcriptionAllowed = $transcriptionEnabled
             && $policy->customerDataEnabled($request->user());
-        $transcriptionStatus = ! $transcriptionEnabled
+        $transcriptionStatus = !$transcriptionEnabled
             ? 'disabled'
             : ($transcriptionAllowed ? 'queued' : 'blocked_policy');
 
