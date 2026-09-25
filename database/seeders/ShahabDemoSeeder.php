@@ -246,6 +246,7 @@ class ShahabDemoSeeder extends Seeder
                 ],
                 [
                     'uuid' => $this->uuid('supervisor-assignment:'.$zoneCode),
+                    'sales_manager_id' => $manager->id,
                     'territory_id' => null,
                     'effective_to' => null,
                     'created_by' => $manager->id,
