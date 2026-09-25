@@ -40,12 +40,6 @@ class ShahabDemoSeeder extends Seeder
             'supervisor' => 'Wali Mohammad Ahmadi',
             'supervisor_email' => 'eastsup@shahab.com',
             'districts' => [8, 9, 12, 16, 21, 22],
-            'polygon' => [
-                [34.4650, 69.1950],
-                [34.5950, 69.1950],
-                [34.5950, 69.3650],
-                [34.4650, 69.3650],
-            ],
         ],
         'NORTH' => [
             'name' => 'Kabul North Zone',
@@ -54,12 +48,6 @@ class ShahabDemoSeeder extends Seeder
             'supervisor' => 'Sayed Jamal Hashimi',
             'supervisor_email' => 'northsup@shahab.com',
             'districts' => [4, 10, 11, 15, 17, 19],
-            'polygon' => [
-                [34.5350, 69.0750],
-                [34.6550, 69.0750],
-                [34.6550, 69.2450],
-                [34.5350, 69.2450],
-            ],
         ],
         'WEST' => [
             'name' => 'Kabul West Zone',
@@ -68,12 +56,6 @@ class ShahabDemoSeeder extends Seeder
             'supervisor' => 'Noor Agha Mohammadi',
             'supervisor_email' => 'westsup@shahab.com',
             'districts' => [3, 5, 13, 14, 18],
-            'polygon' => [
-                [34.4550, 69.0150],
-                [34.5950, 69.0150],
-                [34.5950, 69.1650],
-                [34.4550, 69.1650],
-            ],
         ],
         'SOUTH' => [
             'name' => 'Kabul South & Central Zone',
@@ -82,19 +64,13 @@ class ShahabDemoSeeder extends Seeder
             'supervisor' => 'Hekmatullah Stanikzai',
             'supervisor_email' => 'southsup@shahab.com',
             'districts' => [1, 2, 6, 7, 20],
-            'polygon' => [
-                [34.4250, 69.1050],
-                [34.5500, 69.1050],
-                [34.5500, 69.2250],
-                [34.4250, 69.2250],
-            ],
         ],
     ];
 
     /**
-     * Approximate public-area reference points for demo data generation.
-     * They keep synthetic shops geographically relevant to each Kabul district;
-     * they are not intended to represent private homes or official GIS boundaries.
+     * Public-area reference points are used only as a defensive fallback when
+     * placing synthetic customers. Territory and zone geofences come from the
+     * Kabul municipal district GeoJSON source.
      */
     private const DISTRICTS = [
         1 => ['area' => 'Old City / Mandawi', 'lat' => 34.5146, 'lng' => 69.1836],
