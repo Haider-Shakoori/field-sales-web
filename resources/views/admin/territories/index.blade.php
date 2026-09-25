@@ -70,6 +70,12 @@
         const palette = ['#6366f1', '#0ea5e9', '#14b8a6', '#f59e0b', '#ec4899', '#8b5cf6', '#22c55e', '#f97316'];
         const group = L.featureGroup().addTo(map);
 
+        const escapeHtml = (value) => {
+            const div = document.createElement('div');
+            div.textContent = value ?? '';
+            return div.innerHTML;
+        };
+
         territories.forEach((territory, index) => {
             if (!territory.polygon) return;
 
@@ -96,12 +102,6 @@
                 layer.addTo(group);
             } catch (_) {}
         });
-
-        const escapeHtml = (value) => {
-            const div = document.createElement('div');
-            div.textContent = value ?? '';
-            return div.innerHTML;
-        };
 
         const fitAll = () => {
             const bounds = group.getBounds();
