@@ -80,6 +80,7 @@ class MasterDataController extends Controller
             'offline_uuid' => $validated['offline_uuid'],
             'branch_id' => $assignment?->branch_id ?? $user->branch_id,
             'territory_id' => $assignment?->territory_id,
+            'assigned_salesman_id' => $user->salesman?->id,
             'price_list_id' => $priceListId,
             'code' => $code,
             'name' => $validated['name'],
@@ -372,10 +373,12 @@ class MasterDataController extends Controller
             return;
         }
 
+        $user = $request->user()->loadMissing('salesman');
         $assignment = $this->currentSalesmanAssignment($request);
-        $userId = $request->user()->id;
+        $userId = $user->id;
+        $salesmanId = $user->salesman?->id;
 
-        $query->where(function (Builder $scope) use ($assignment, $userId): void {
+        $query->where(function (Builder $scope) use ($assignment, $salesmanId, $userId): void {
             $scope->where('created_by', $userId);
 
             if ($assignment?->route_id) {
@@ -385,14 +388,24 @@ class MasterDataController extends Controller
                 return;
             }
 
+            if ($salesmanId) {
+                $scope->orWhere('assigned_salesman_id', $salesmanId);
+            }
+
             if ($assignment?->territory_id) {
-                $scope->orWhere('territory_id', $assignment->territory_id);
+                $scope->orWhere(function (Builder $legacy) use ($assignment): void {
+                    $legacy->whereNull('assigned_salesman_id')
+                        ->where('territory_id', $assignment->territory_id);
+                });
 
                 return;
             }
 
             if ($assignment?->branch_id) {
-                $scope->orWhere('branch_id', $assignment->branch_id);
+                $scope->orWhere(function (Builder $legacy) use ($assignment): void {
+                    $legacy->whereNull('assigned_salesman_id')
+                        ->where('branch_id', $assignment->branch_id);
+                });
             }
         });
     }
