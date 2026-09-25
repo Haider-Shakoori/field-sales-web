@@ -7,8 +7,8 @@ use App\Models\CustomerVisit;
 use App\Models\VisitVoiceNote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class VisitController extends Controller
 {
@@ -44,6 +44,7 @@ class VisitController extends Controller
             ]),
         ]);
     }
+
     public function voiceNoteAudio(
         CustomerVisit $visit,
         VisitVoiceNote $voiceNote,
@@ -59,5 +60,4 @@ class VisitController extends Controller
             ],
         );
     }
-
 }
