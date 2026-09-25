@@ -160,12 +160,19 @@ class Batch2RbacUserManagementTest extends TestCase
         });
 
         $this->actingAs($admin)
+            ->get(route('admin.users.create'))
+            ->assertOk()
+            ->assertSee('user-location-map', false);
+
+        $this->actingAs($admin)
             ->post(route('admin.users.store'), [
                 'name' => 'New Supervisor',
                 'email' => 'new@create.local',
                 'password' => 'password123',
                 'password_confirmation' => 'password123',
                 'branch_id' => $branch->id,
+                'latitude' => '34.5553000',
+                'longitude' => '69.2075000',
                 'role_id' => $targetRole->id,
                 'is_active' => '1',
             ])
@@ -174,6 +181,8 @@ class Batch2RbacUserManagementTest extends TestCase
         $created = $this->tenantScope($tenant, fn () => User::where('email', 'new@create.local')->firstOrFail());
 
         $this->assertSame($branch->id, $created->branch_id);
+        $this->assertSame(34.5553, $created->latitude);
+        $this->assertSame(69.2075, $created->longitude);
         $this->assertSame('supervisor', $created->role);
         $this->assertTrue($this->tenantScope(
             $tenant,
@@ -217,6 +226,8 @@ class Batch2RbacUserManagementTest extends TestCase
                 'password' => '',
                 'password_confirmation' => '',
                 'branch_id' => '',
+                'latitude' => '34.6001000',
+                'longitude' => '69.1802000',
                 'role_id' => $role->id,
                 'is_active' => '1',
             ])
@@ -225,6 +236,8 @@ class Batch2RbacUserManagementTest extends TestCase
         $fresh = $this->tenantScope($tenant, fn () => User::findOrFail($target->id));
 
         $this->assertSame('Updated User', $fresh->name);
+        $this->assertSame(34.6001, $fresh->latitude);
+        $this->assertSame(69.1802, $fresh->longitude);
         $this->assertSame($oldHash, $fresh->password);
         $this->assertDatabaseHas('audit_logs', [
             'tenant_id' => $tenant->id,
