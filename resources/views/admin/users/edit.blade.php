@@ -1,5 +1,5 @@
 <x-layouts.app>
-    <div class="mx-auto max-w-3xl">
+    <div class="mx-auto max-w-5xl">
         <div class="mb-6">
             <h1 class="text-2xl font-bold">Edit user</h1>
             <p class="mt-1 text-sm text-slate-400">{{ $managedUser->email }}</p>
