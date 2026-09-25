@@ -115,6 +115,9 @@ class TerritoryHeatMapTest extends TestCase
                 'status' => 'verified',
                 'currency' => $currency,
                 'amount' => $amount / 2,
+                'latitude' => 34.55,
+                'longitude' => 69.15,
+                'accuracy' => 8,
             ]);
             if ($visited) {
                 CustomerVisit::create([
@@ -127,6 +130,12 @@ class TerritoryHeatMapTest extends TestCase
                     'is_planned' => true,
                     'checked_in_at' => now()->subDay(),
                     'checked_out_at' => now()->subDay()->addMinutes(15),
+                    'checkin_latitude' => 34.55,
+                    'checkin_longitude' => 69.15,
+                    'checkin_accuracy' => 8,
+                    'checkout_latitude' => 34.55,
+                    'checkout_longitude' => 69.15,
+                    'checkout_accuracy' => 8,
                 ]);
             }
         });
