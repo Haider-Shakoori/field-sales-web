@@ -103,6 +103,17 @@ class ShahabDemoSeederTest extends TestCase
             4,
             DB::table('supervisors')->where('tenant_id', $tenant->id)->count()
         );
+
+        $supervisorReporting = DB::table('supervisor_assignments')
+            ->join('users as managers', 'managers.id', '=', 'supervisor_assignments.sales_manager_id')
+            ->where('supervisor_assignments.tenant_id', $tenant->id)
+            ->where('managers.role', 'sales_manager')
+            ->selectRaw('supervisor_assignments.sales_manager_id, COUNT(*) as total')
+            ->groupBy('supervisor_assignments.sales_manager_id')
+            ->pluck('total');
+
+        $this->assertCount(4, $supervisorReporting);
+        $this->assertTrue($supervisorReporting->every(fn ($total) => (int) $total === 1));
         $this->assertSame(
             52,
             DB::table('salesmen')->where('tenant_id', $tenant->id)->count()

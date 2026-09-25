@@ -13,6 +13,17 @@
     @endunless
 
     <label class="block">
+        <span class="text-sm text-slate-300">Sales manager</span>
+        <select name="sales_manager_id" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3" required>
+            <option value="">Select sales manager</option>
+            @foreach($salesManagers as $manager)
+                <option value="{{ $manager->id }}" @selected((string) old('sales_manager_id', $assignment->sales_manager_id ?? '') === (string) $manager->id)>{{ $manager->name }}</option>
+            @endforeach
+        </select>
+        <span class="mt-1 block text-xs text-slate-500">This supervisor reports directly to the selected sales manager.</span>
+    </label>
+
+    <label class="block">
         <span class="text-sm text-slate-300">Branch</span>
         <select name="branch_id" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
             <option value="">Company-wide / unassigned</option>

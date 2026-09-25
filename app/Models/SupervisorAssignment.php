@@ -27,6 +27,11 @@ class SupervisorAssignment extends Model
         return $this->belongsTo(Supervisor::class);
     }
 
+    public function salesManager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'sales_manager_id');
+    }
+
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);

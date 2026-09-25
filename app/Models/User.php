@@ -51,6 +51,11 @@ class User extends Authenticatable
         return $this->hasOne(Supervisor::class);
     }
 
+    public function managedSupervisorAssignments(): HasMany
+    {
+        return $this->hasMany(SupervisorAssignment::class, 'sales_manager_id');
+    }
+
     public function operationalNotifications(): HasMany
     {
         return $this->hasMany(OperationalNotification::class);

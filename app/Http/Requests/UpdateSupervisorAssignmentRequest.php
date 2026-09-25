@@ -23,6 +23,16 @@ class UpdateSupervisorAssignmentRequest extends FormRequest
         $tenantId = $this->user()->tenant_id;
 
         return [
+            'sales_manager_id' => [
+                'required',
+                'integer',
+                Rule::exists('users', 'id')->where(
+                    fn ($query) => $query
+                        ->where('tenant_id', $tenantId)
+                        ->where('role', 'sales_manager')
+                        ->where('is_active', true)
+                ),
+            ],
             'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('tenant_id', $tenantId)],
             'territory_id' => ['nullable', 'integer', Rule::exists('territories', 'id')->where('tenant_id', $tenantId)],
             'effective_from' => ['required', 'date'],

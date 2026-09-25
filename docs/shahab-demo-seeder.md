@@ -60,8 +60,8 @@ Every salesman has a user account. The addresses are short and zone-based:
 - 4 Shahab operational sales zones in Kabul, each built as a MultiPolygon from its member district boundaries
 - 22 Kabul municipal district territories using the public ArcGIS Kabul Districts GeoJSON layer
 - 4 sales managers
-- 4 supervisors
-- 52 salesmen
+- 4 supervisors, each explicitly assigned to report to one sales manager
+- 52 salesmen, each assigned under the relevant supervisor
   - 11 non-route salesmen per zone
   - 2 routed salesmen per zone
 - 8 sales routes
