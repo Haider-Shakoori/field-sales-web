@@ -70,6 +70,28 @@
         const palette = ['#6366f1', '#0ea5e9', '#14b8a6', '#f59e0b', '#ec4899', '#8b5cf6', '#22c55e', '#f97316'];
         const group = L.featureGroup().addTo(map);
 
+        const normalizeGeometry = (geometry) => {
+            if (!geometry) return null;
+            if (geometry.type && geometry.coordinates) return geometry;
+
+            if (Array.isArray(geometry) && geometry.length >= 3) {
+                const ring = geometry
+                    .filter((point) => Array.isArray(point) && point.length >= 2)
+                    .map((point) => [Number(point[1]), Number(point[0])])
+                    .filter((point) => Number.isFinite(point[0]) && Number.isFinite(point[1]));
+
+                if (ring.length >= 3) {
+                    if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) {
+                        ring.push([...ring[0]]);
+                    }
+
+                    return {type: 'Polygon', coordinates: [ring]};
+                }
+            }
+
+            return null;
+        };
+
         const escapeHtml = (value) => {
             const div = document.createElement('div');
             div.textContent = value ?? '';
@@ -77,11 +99,12 @@
         };
 
         territories.forEach((territory, index) => {
-            if (!territory.polygon) return;
+            const geometry = normalizeGeometry(territory.polygon);
+            if (!geometry) return;
 
             try {
                 const color = palette[index % palette.length];
-                const layer = L.geoJSON(territory.polygon, {
+                const layer = L.geoJSON(geometry, {
                     style: {
                         color,
                         weight: territory.active ? 3 : 2,
