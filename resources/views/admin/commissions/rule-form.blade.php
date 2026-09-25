@@ -75,7 +75,8 @@
                 target.hidden = !targetRule;
                 territory.hidden = targetRule;
                 if (targetRule) reward.value = 'fixed';
-                reward.disabled = targetRule;
+                reward.style.pointerEvents = targetRule ? 'none' : '';
+                reward.setAttribute('aria-disabled', targetRule ? 'true' : 'false');
                 rateLabel.textContent = targetRule || reward.value === 'fixed' ? @json(__('Fixed reward')) : @json(__('Percentage rate'));
             };
             basis.addEventListener('change', sync);
