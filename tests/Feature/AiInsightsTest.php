@@ -64,6 +64,13 @@ class AiInsightsTest extends TestCase
 
         $conversationUuid = $response->json('conversation.uuid');
 
+        $this->actingAs($admin)
+            ->get(route('admin.ai-insights.index', ['conversation' => $conversationUuid]))
+            ->assertOk()
+            ->assertSee('ai-response-card', false)
+            ->assertSee('FieldPulse AI')
+            ->assertSee('Grounded business response');
+
         $this->assertDatabaseHas('ai_conversations', [
             'tenant_id' => $tenant->id,
             'user_id' => $admin->id,
