@@ -35,6 +35,8 @@ class StoreUserRequest extends FormRequest
                 'integer',
                 Rule::exists('roles', 'id')->where('tenant_id', $tenantId),
             ],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
             'is_active' => ['required', 'boolean'],
         ];
     }
