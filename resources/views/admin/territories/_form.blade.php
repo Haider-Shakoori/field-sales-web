@@ -86,7 +86,32 @@
 
     if (!mapElement || !polygonInput || typeof L === 'undefined') return;
 
-    const initialGeometry = @json($initialGeometry);
+    const rawInitialGeometry = @json($initialGeometry);
+    const normalizeGeometry = (geometry) => {
+        if (!geometry) return null;
+        if (geometry.type && geometry.coordinates) return geometry;
+
+        if (Array.isArray(geometry) && geometry.length >= 3) {
+            const ring = geometry
+                .filter((point) => Array.isArray(point) && point.length >= 2)
+                .map((point) => [Number(point[1]), Number(point[0])])
+                .filter((point) => Number.isFinite(point[0]) && Number.isFinite(point[1]));
+
+            if (ring.length >= 3) {
+                const first = ring[0];
+                const last = ring[ring.length - 1];
+
+                if (first[0] !== last[0] || first[1] !== last[1]) {
+                    ring.push([...first]);
+                }
+
+                return {type: 'Polygon', coordinates: [ring]};
+            }
+        }
+
+        return null;
+    };
+    const initialGeometry = normalizeGeometry(rawInitialGeometry);
     const defaultCenter = [34.5553, 69.2075];
     const map = L.map(mapElement).setView(defaultCenter, 11);
 
