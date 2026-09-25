@@ -998,3 +998,14 @@ class AiInsightToolService
             )->startOfDay();
         } catch (\Throwable) {
             throw new InvalidArgumentException('Dates must use YYYY-MM-DD.');
+        }
+    }
+
+    private function tool(string $name, string $description, array $parameters): array
+    {
+        return [
+            'type' => 'function',
+            'function' => compact('name', 'description', 'parameters'),
+        ];
+    }
+}
