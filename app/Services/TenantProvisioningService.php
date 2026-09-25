@@ -51,6 +51,8 @@ class TenantProvisioningService
         'expenses:manage',
         'targets:view',
         'targets:manage',
+        'commissions:view',
+        'commissions:manage',
         'reports:view',
         'notifications:send',
         'integrations:manage',
@@ -91,6 +93,8 @@ class TenantProvisioningService
             'expenses:view',
             'targets:view',
             'targets:manage',
+            'commissions:view',
+            'commissions:manage',
             'reports:view',
             'notifications:send',
         ],
@@ -137,6 +141,7 @@ class TenantProvisioningService
             'collections:manage',
             'expenses:view',
             'expenses:manage',
+            'commissions:view',
             'reports:view',
         ],
         'warehouse_user' => [
@@ -168,6 +173,7 @@ class TenantProvisioningService
             'collections:view',
             'expenses:view',
             'targets:view',
+            'commissions:view',
             'reports:view',
         ],
     ];
