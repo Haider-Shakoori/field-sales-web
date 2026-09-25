@@ -24,6 +24,7 @@ class StoreBranchRequest extends FormRequest
                 'max:40',
                 Rule::unique('branches', 'code')->where('tenant_id', $tenantId),
             ],
+            'geofence_polygon' => ['nullable', 'json'],
             'is_active' => ['required', 'boolean'],
         ];
     }
