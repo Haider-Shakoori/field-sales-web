@@ -6,6 +6,7 @@ use App\Services\AppointmentReminderService;
 use App\Support\ProductionReadiness;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('field-sales:about', function (): void {
@@ -90,4 +91,21 @@ Schedule::command('field-sales:prune-ai-history')
 
 Schedule::command('queue:prune-failed --hours=168')
     ->dailyAt('03:30')
+    ->withoutOverlapping();
+
+
+Schedule::call(function (): void {
+    Cache::put(
+        'field-sales:scheduler-heartbeat',
+        now()->getTimestamp(),
+        now()->addMinutes(10),
+    );
+})
+    ->name('field-sales:scheduler-heartbeat')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+Schedule::command('field-sales:backup --label=scheduled')
+    ->dailyAt('02:15')
+    ->when(fn (): bool => (bool) config('operations.shared_hosting.scheduled_backups'))
     ->withoutOverlapping();
