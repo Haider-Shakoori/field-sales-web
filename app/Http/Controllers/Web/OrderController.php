@@ -164,6 +164,8 @@ class OrderController extends Controller
             $stockEnabled,
             $previousStatus,
             $dueDate,
+            $audit,
+            $before,
         ): void {
             if ($stockEnabled && $validated['status'] === 'approved') {
                 $stock->applyApprovedOrder($order, $request->user());
@@ -184,18 +186,18 @@ class OrderController extends Controller
                 'status_changed_by' => $request->user()->id,
                 'status_changed_at' => now(),
             ]);
+
+            $audit->record('order.status_changed', $order, $before, [
+                'status' => $order->status,
+                'status_note' => $order->status_note,
+                'due_date' => $order->due_date?->toDateString(),
+            ]);
         });
 
-        $audit->record('order.status_changed', $order, $before, [
-            'status' => $order->status,
-            'status_note' => $order->status_note,
-            'due_date' => $order->due_date?->toDateString(),
-        ]);
-
-        $order->loadMissing('salesman.user');
+        $order->refresh()->loadMissing('salesman.user');
 
         if ($order->salesman?->user) {
-            $notifications->notify(
+            $notifications->notifySafely(
                 $order->salesman->user,
                 'order.status_changed',
                 'order_updates',

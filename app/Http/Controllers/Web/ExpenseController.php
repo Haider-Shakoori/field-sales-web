@@ -8,6 +8,7 @@ use App\Services\AuditLogger;
 use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -47,12 +48,6 @@ class ExpenseController extends Controller
             'review_note' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        if ($expense->status !== 'pending') {
-            throw ValidationException::withMessages([
-                'status' => 'Reviewed expenses are terminal and cannot be changed.',
-            ]);
-        }
-
         if (
             in_array($validated['status'], ['rejected', 'cancelled'], true)
             && trim((string) ($validated['review_note'] ?? '')) === ''
@@ -62,26 +57,40 @@ class ExpenseController extends Controller
             ]);
         }
 
-        $before = [
-            'status' => $expense->status,
-            'review_note' => $expense->review_note,
-        ];
+        DB::transaction(function () use ($request, $expense, $validated, $audit): void {
+            $locked = Expense::query()
+                ->whereKey($expense->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $expense->update([
-            'status' => $validated['status'],
-            'review_note' => $validated['review_note'] ?? null,
-            'reviewed_by' => $request->user()->id,
-            'reviewed_at' => now(),
-        ]);
+            if ($locked->status !== 'pending') {
+                throw ValidationException::withMessages([
+                    'status' => 'Reviewed expenses are terminal and cannot be changed.',
+                ]);
+            }
 
-        $audit->record('expense.status_changed', $expense, $before, [
-            'status' => $expense->status,
-            'review_note' => $expense->review_note,
-        ]);
+            $before = [
+                'status' => $locked->status,
+                'review_note' => $locked->review_note,
+            ];
 
-        $expense->loadMissing('salesman.user');
+            $locked->update([
+                'status' => $validated['status'],
+                'review_note' => $validated['review_note'] ?? null,
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now(),
+            ]);
+
+            $audit->record('expense.status_changed', $locked, $before, [
+                'status' => $locked->status,
+                'review_note' => $locked->review_note,
+            ]);
+        });
+
+        $expense->refresh()->loadMissing('salesman.user');
+
         if ($expense->salesman?->user) {
-            $notifications->notify(
+            $notifications->notifySafely(
                 $expense->salesman->user,
                 'expense.status_changed',
                 'expense_updates',

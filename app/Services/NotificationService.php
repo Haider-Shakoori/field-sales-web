@@ -11,6 +11,8 @@ use App\Models\SalesmanAssignment;
 use App\Models\User;
 use App\Models\VisitSuspiciousFlag;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class NotificationService
 {
@@ -29,6 +31,38 @@ class NotificationService
                 'suspicious_alerts' => true,
             ],
         );
+    }
+
+    public function notifySafely(
+        User $recipient,
+        string $type,
+        string $category,
+        string $title,
+        string $message,
+        array $data = [],
+        string $priority = 'normal',
+    ): ?OperationalNotification {
+        try {
+            return $this->notify(
+                $recipient,
+                $type,
+                $category,
+                $title,
+                $message,
+                $data,
+                $priority,
+            );
+        } catch (Throwable $exception) {
+            Log::warning('Operational notification failed after a successful business action.', [
+                'tenant_id' => $recipient->tenant_id,
+                'recipient_id' => $recipient->id,
+                'notification_type' => $type,
+                'category' => $category,
+                'exception' => $exception,
+            ]);
+
+            return null;
+        }
     }
 
     public function notify(
