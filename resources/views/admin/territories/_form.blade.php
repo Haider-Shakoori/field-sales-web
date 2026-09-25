@@ -228,9 +228,15 @@
                     }))
                     .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
 
-                pointCount.textContent = points.length + (points.length === 1 ? ' point' : ' points');
+                drawing = true;
+                removeExistingLayer();
+                redraw();
+                status.textContent = 'Boundary loaded. Drag points or click the map to refine it.';
             } else {
                 pointCount.textContent = initialGeometry.type === 'MultiPolygon' ? 'MultiPolygon' : 'Boundary loaded';
+                status.textContent = initialGeometry.type === 'MultiPolygon'
+                    ? 'MultiPolygon loaded. Click "Start new boundary" to replace it with a newly drawn territory.'
+                    : 'Existing boundary loaded.';
             }
         } catch (_) {
             drawing = true;
