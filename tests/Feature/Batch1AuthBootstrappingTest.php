@@ -148,6 +148,44 @@ class Batch1AuthBootstrappingTest extends TestCase
         $this->assertSame(TenantContextState::Uninitialized, $this->context->state());
     }
 
+    public function test_mobile_login_can_select_company_by_tenant_slug(): void
+    {
+        $tenantA = $this->tenant('company-a');
+        $tenantB = $this->tenant('company-b');
+
+        $this->platform(function () use ($tenantA, $tenantB): void {
+            foreach ([$tenantA, $tenantB] as $tenant) {
+                User::create([
+                    'uuid' => (string) Str::uuid(),
+                    'tenant_id' => $tenant->id,
+                    'name' => 'Shared Manager',
+                    'email' => 'shared-manager@test.local',
+                    'password' => Hash::make('password'),
+                    'role' => 'sales_manager',
+                    'is_active' => true,
+                ]);
+            }
+        });
+
+        $this->withHeaders([
+            'X-Installation-UUID' => 'tenant-select-install',
+            'X-Device-UUID' => 'tenant-select-device',
+            'X-App-Version' => '1.0.0',
+            'X-Platform' => 'android',
+            'X-OS-Version' => '15',
+        ])->postJson('/api/v1/auth/login', [
+            'email' => 'shared-manager@test.local',
+            'password' => 'password',
+            'tenant' => 'company-b',
+            'device_uuid' => 'tenant-select-device',
+            'app_version' => '1.0.0',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.user.role', 'sales_manager')
+            ->assertJsonPath('data.tenant.id', $tenantB->uuid)
+            ->assertJsonPath('data.tenant.slug', 'company-b');
+    }
+
     public function test_bearer_token_bootstrap_sets_correct_tenant_before_scoped_api_queries(): void
     {
         $tenantA = $this->tenant('api-a');
