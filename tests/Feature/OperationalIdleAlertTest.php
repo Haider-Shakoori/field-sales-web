@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CompanySetting;
 use App\Models\CurrentLocation;
+use App\Models\Device;
 use App\Models\OperationalNotification;
 use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
@@ -88,10 +89,22 @@ class OperationalIdleAlertTest extends TestCase
                 'effective_from' => today()->subDay(),
             ]);
 
+            $device = Device::create([
+                'user_id' => $salesUser->id,
+                'salesman_id' => $salesman->id,
+                'device_uuid' => 'idle-device',
+                'installation_uuid' => 'idle-installation',
+                'platform' => 'android',
+                'is_active' => true,
+                'registered_at' => now(),
+                'last_seen_at' => now()->subMinutes(70),
+            ]);
+
             WorkSession::create([
                 'uuid' => (string) Str::uuid(),
                 'user_id' => $salesUser->id,
                 'salesman_id' => $salesman->id,
+                'device_id' => $device->id,
                 'date' => today(),
                 'start_time' => now()->subHours(2),
                 'status' => 'active',
