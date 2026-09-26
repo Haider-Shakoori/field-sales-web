@@ -770,8 +770,8 @@ class DailyRoutePlannerService
         $longitude = $startLocation['longitude'] ?? null;
 
         if (
-            !is_numeric($latitude)
-            || !is_numeric($longitude)
+            ! is_numeric($latitude)
+            || ! is_numeric($longitude)
             || (float) $latitude < -90
             || (float) $latitude > 90
             || (float) $longitude < -180
@@ -785,7 +785,7 @@ class DailyRoutePlannerService
 
         if (
             $accuracy !== null
-            && (!is_numeric($accuracy) || (float) $accuracy < 0 || (float) $accuracy > 200)
+            && (! is_numeric($accuracy) || (float) $accuracy < 0 || (float) $accuracy > 200)
         ) {
             return null;
         }
@@ -1000,8 +1000,7 @@ class DailyRoutePlannerService
         float $lon1,
         float $lat2,
         float $lon2,
-    ): float
-    {
+    ): float {
         $earthRadiusKm = 6371.0088;
         $latDelta = deg2rad($lat2 - $lat1);
         $lonDelta = deg2rad($lon2 - $lon1);
