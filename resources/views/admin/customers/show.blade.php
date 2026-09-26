@@ -1,5 +1,14 @@
 <x-layouts.app>
-@php $limit = $customer->credit_limit === null ? null : (float) $customer->credit_limit; $outstanding = (float) $creditSnapshot['outstanding_balance']; $utilization = $limit !== null && $limit > 0 ? min(999, round(($outstanding / $limit) * 100)) : null; @endphp
+@php
+    $limit = $customer->credit_limit === null ? null : (float) $customer->credit_limit;
+    $outstanding = (float) $creditSnapshot['outstanding_balance'];
+    $utilization = $limit !== null && $limit > 0 ? min(999, round(($outstanding / $limit) * 100)) : null;
+    $customer360Summary = $customer360['summary'];
+    $customer360Activity = $customer360['recent_activity'];
+    $formatTotals = fn ($rows) => collect($rows)->map(
+        fn ($row) => number_format((float) $row['total'], 2).' '.$row['currency']
+    )->implode(' · ');
+@endphp
 <div class="mb-6 flex items-start justify-between gap-4"><div><h1 class="text-2xl font-bold">{{ $customer->name }}</h1><p class="mt-1 text-sm text-slate-400">{{ $customer->code }} · {{ $customer->territory?->name ?? __('No territory') }}</p></div><div class="flex flex-wrap gap-2"><a href="{{ route('admin.customers.statement', $customer) }}" class="rounded-xl bg-white/10 px-4 py-2.5 font-semibold">{{ __('Statement') }}</a>@if(auth()->user()->hasPermission('customers:manage'))<a href="{{ route('admin.customers.edit', $customer) }}" class="rounded-xl bg-indigo-500 px-4 py-2.5 font-semibold">{{ __('Edit') }}</a>@endif</div></div>
 <div class="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 <div class="rounded-2xl border border-white/10 bg-slate-900 p-5"><p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Outstanding') }}</p><p class="mt-2 text-2xl font-bold">{{ $creditSnapshot['currency'] }} {{ number_format($outstanding, 2) }}</p></div>
@@ -7,8 +16,44 @@
 <div class="rounded-2xl border border-white/10 bg-slate-900 p-5"><p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Credit terms') }}</p><p class="mt-2 text-2xl font-bold">{{ $customer->credit_terms_days }} {{ __('days') }}</p></div>
 <div class="rounded-2xl border border-white/10 bg-slate-900 p-5"><p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Credit utilization') }}</p><p class="mt-2 text-2xl font-bold">{{ $utilization === null ? '—' : $utilization.'%' }}</p></div>
 </div>
+
+<div class="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+        <p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Visits') }}</p>
+        <p class="mt-2 text-2xl font-bold">{{ $customer360Summary['completed_visits_count'] }}</p>
+        <p class="mt-1 text-xs text-slate-500">{{ $customer360Summary['visits_count'] }} {{ __('total visits') }}</p>
+    </div>
+    <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+        <p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Approved orders') }}</p>
+        <p class="mt-2 text-2xl font-bold">{{ $customer360Summary['approved_orders_count'] }}</p>
+        <p class="mt-1 text-xs text-slate-500">{{ $formatTotals($customer360['approved_order_totals']) ?: '—' }}</p>
+    </div>
+    <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+        <p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Verified collections') }}</p>
+        <p class="mt-2 text-2xl font-bold">{{ $customer360Summary['verified_collections_count'] }}</p>
+        <p class="mt-1 text-xs text-slate-500">{{ $formatTotals($customer360['verified_collection_totals']) ?: '—' }}</p>
+    </div>
+    <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+        <p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Returns') }}</p>
+        <p class="mt-2 text-2xl font-bold">{{ $customer360Summary['returns_count'] }}</p>
+        <p class="mt-1 text-xs text-slate-500">{{ __('Customer relationship activity') }}</p>
+    </div>
+</div>
+
 <div class="grid gap-5 lg:grid-cols-2">
 <section class="rounded-2xl border border-white/10 bg-slate-900 p-5"><dl class="grid gap-4 sm:grid-cols-2"><div><dt class="text-sm text-slate-400">{{ __('Contact') }}</dt><dd>{{ $customer->contact_person ?? '—' }}</dd></div><div><dt class="text-sm text-slate-400">{{ __('Phone') }}</dt><dd>{{ $customer->phone ?? '—' }}</dd></div><div><dt class="text-sm text-slate-400">{{ __('Coordinates') }}</dt><dd>{{ $customer->latitude ?? '—' }}, {{ $customer->longitude ?? '—' }}</dd></div><div><dt class="text-sm text-slate-400">{{ __('Geofence') }}</dt><dd>{{ $customer->geofence_radius_meters }} m</dd></div><div><dt class="text-sm text-slate-400">{{ __('Price list') }}</dt><dd>{{ $customer->priceList?->name ?? __('Base prices') }}</dd></div><div class="sm:col-span-2"><dt class="text-sm text-slate-400">{{ __('Address') }}</dt><dd>{{ $customer->address ?? '—' }}</dd></div></dl></section>
+@if($customer->latitude !== null && $customer->longitude !== null)
+<section class="overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+    <div class="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+        <div>
+            <h2 class="font-semibold">{{ __('Shop location') }}</h2>
+            <p class="mt-1 text-xs text-slate-500">{{ __('Saved customer geofence and exact shop position.') }}</p>
+        </div>
+        <span class="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">{{ $customer->geofence_radius_meters }} m</span>
+    </div>
+    <div id="customer-360-map" style="height:360px;min-height:300px;"></div>
+</section>
+@endif
 <section class="rounded-2xl border border-white/10 bg-slate-900 p-5"><h2 class="font-semibold">{{ __('Receivables aging') }}</h2><div class="mt-4 space-y-4">@forelse($aging as $row)<div class="rounded-xl bg-slate-950 p-4"><div class="mb-3 flex items-center justify-between"><span class="font-semibold">{{ $row['currency'] }}</span><span>{{ __('Total') }} {{ number_format($row['outstanding_total'], 2) }}</span></div><div class="grid grid-cols-2 gap-3 text-sm sm:grid-cols-5"><div><p class="text-slate-500">{{ __('Current') }}</p><p>{{ number_format($row['current'], 2) }}</p></div><div><p class="text-slate-500">1–30</p><p>{{ number_format($row['days_1_30'], 2) }}</p></div><div><p class="text-slate-500">31–60</p><p>{{ number_format($row['days_31_60'], 2) }}</p></div><div><p class="text-slate-500">61–90</p><p>{{ number_format($row['days_61_90'], 2) }}</p></div><div><p class="text-slate-500">90+</p><p class="{{ $row['days_90_plus'] > 0 ? 'text-rose-300' : '' }}">{{ number_format($row['days_90_plus'], 2) }}</p></div></div></div>@empty<p class="text-sm text-slate-400">{{ __('No credit receivables.') }}</p>@endforelse</div></section>
 <section class="rounded-2xl border border-white/10 bg-slate-900 p-5"><h2 class="font-semibold">{{ __('Route memberships') }}</h2><div class="mt-4 space-y-2">@forelse($customer->routeMemberships as $membership)<a href="{{ route('admin.routes.show', $membership->route) }}" class="block rounded-xl bg-slate-950 p-3">{{ $membership->route?->name }} · {{ __('stop') }} {{ $membership->sequence_number }}</a>@empty<p class="text-sm text-slate-400">{{ __('Not assigned to a route.') }}</p>@endforelse</div></section>
 <section class="rounded-2xl border border-white/10 bg-slate-900 p-5 lg:col-span-2">
@@ -35,6 +80,38 @@
         @endforelse
     </div>
 </section>
+<section class="rounded-2xl border border-white/10 bg-slate-900 p-5 lg:col-span-2">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <h2 class="font-semibold">{{ __('Customer 360 timeline') }}</h2>
+            <p class="mt-1 text-sm text-slate-400">{{ __('Recent visits, orders, collections and returns in one chronological view.') }}</p>
+        </div>
+        <span class="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-400">{{ count($customer360Activity) }} {{ __('recent events') }}</span>
+    </div>
+    <div class="mt-5 space-y-2">
+        @forelse($customer360Activity as $event)
+            <div class="flex flex-col gap-2 rounded-xl border border-white/10 bg-slate-950 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="rounded-lg bg-indigo-500/10 px-2 py-1 text-[11px] font-semibold uppercase text-indigo-300">{{ __($event['type']) }}</span>
+                        <span class="font-semibold">{{ $event['reference'] ?: $event['title'] }}</span>
+                        <span class="text-xs text-slate-500">{{ __(str($event['status'])->replace('_', ' ')->title()->toString()) }}</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">
+                        {{ $event['occurred_at']?->copy()->setTimezone($timezone)->format('Y-m-d H:i') ?? '—' }}
+                        @if($event['salesman']) · {{ $event['salesman'] }} @endif
+                    </p>
+                </div>
+                @if($event['amount'] !== null)
+                    <div class="shrink-0 text-sm font-semibold">{{ $event['currency'] }} {{ number_format((float) $event['amount'], 2) }}</div>
+                @endif
+            </div>
+        @empty
+            <div class="rounded-xl border border-dashed border-white/10 p-6 text-sm text-slate-500">{{ __('No operational activity recorded for this customer yet.') }}</div>
+        @endforelse
+    </div>
+</section>
+
 <section class="rounded-2xl border border-white/10 bg-slate-900 p-5"><div class="flex items-center justify-between gap-3"><h2 class="font-semibold">{{ __('Follow-ups') }}</h2><a href="{{ route('admin.follow-ups.index') }}" class="text-sm text-indigo-300 hover:underline">{{ __('All follow-ups') }}</a></div><div class="mt-4 space-y-3">@forelse($customer->followUps->take(8) as $followUp)<div class="rounded-xl bg-slate-950 p-3"><div class="flex justify-between gap-3"><span class="font-medium">{{ __(str($followUp->type)->title()->toString()) }}</span><span class="text-xs {{ $followUp->status === 'pending' && $followUp->due_at?->isPast() ? 'text-rose-300' : 'text-slate-400' }}">{{ $followUp->due_at?->copy()->setTimezone($timezone)->format('Y-m-d H:i') }}</span></div><div class="mt-1 text-xs text-slate-400">{{ $followUp->assignedSalesman?->full_name ?? __('Unassigned') }} · {{ __(str($followUp->status)->title()->toString()) }}</div>@if($followUp->notes)<p class="mt-2 text-sm">{{ $followUp->notes }}</p>@endif</div>@empty<p class="text-sm text-slate-400">{{ __('No follow-ups scheduled.') }}</p>@endforelse</div>
 @if(auth()->user()->hasPermission('customers:manage'))<form method="POST" action="{{ route('admin.customers.follow-ups.store', $customer) }}" class="mt-5 grid gap-3 border-t border-white/10 pt-5 sm:grid-cols-2">@csrf<select name="type" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5">@foreach(\App\Models\CustomerFollowUp::TYPES as $type)<option value="{{ $type }}">{{ __(str($type)->title()->toString()) }}</option>@endforeach</select><select name="priority" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5">@foreach(\App\Models\CustomerFollowUp::PRIORITIES as $priority)<option value="{{ $priority }}" @selected($priority === 'normal')>{{ __(str($priority)->title()->toString()) }}</option>@endforeach</select><select name="assigned_salesman_id" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5"><option value="">{{ __('Unassigned') }}</option>@foreach($salesmen as $salesman)<option value="{{ $salesman->id }}">{{ $salesman->employee_code }} · {{ $salesman->full_name }}</option>@endforeach</select><input type="datetime-local" name="due_at" value="{{ $defaultFollowUpAt }}" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5" required><textarea name="notes" rows="2" placeholder="{{ __('Follow-up notes') }}" class="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5 sm:col-span-2"></textarea><button class="rounded-xl bg-indigo-500 px-4 py-2.5 font-semibold sm:col-span-2">{{ __('Schedule follow-up') }}</button></form>@endif
 </section>
@@ -160,4 +237,37 @@
     </div>
 </section>
 </div>
+
+@if($customer->latitude !== null && $customer->longitude !== null)
+<link rel="stylesheet" href="{{ asset('vendor/leaflet/leaflet.css') }}">
+<script src="{{ asset('vendor/leaflet/leaflet.js') }}"></script>
+<script>
+(() => {
+    const element = document.getElementById('customer-360-map');
+    if (!element || typeof L === 'undefined') return;
+
+    const latitude = Number(@json((float) $customer->latitude));
+    const longitude = Number(@json((float) $customer->longitude));
+    const radius = Number(@json((int) $customer->geofence_radius_meters));
+
+    const map = L.map(element).setView([latitude, longitude], 17);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    L.marker([latitude, longitude]).addTo(map).bindPopup(@json($customer->name));
+    L.circle([latitude, longitude], {
+        radius,
+        color: '#22c55e',
+        weight: 2,
+        opacity: .8,
+        fillColor: '#22c55e',
+        fillOpacity: .08,
+    }).addTo(map);
+
+    setTimeout(() => map.invalidateSize(), 0);
+})();
+</script>
+@endif
 </x-layouts.app>
