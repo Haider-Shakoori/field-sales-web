@@ -69,6 +69,7 @@ Route::prefix('v1')->group(function () {
 
             Route::post('/attendance/start', [AttendanceController::class, 'start']);
             Route::post('/attendance/end', [AttendanceController::class, 'end']);
+            Route::post('/attendance/reopen', [AttendanceController::class, 'reopen']);
             Route::post('/gps/locations', [GpsController::class, 'ingest']);
             Route::post('/gps/privacy-acknowledgement', [GpsController::class, 'acknowledge']);
 
