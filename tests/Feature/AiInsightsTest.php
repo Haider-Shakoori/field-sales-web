@@ -57,10 +57,18 @@ class AiInsightsTest extends TestCase
             ])
             ->assertOk()
             ->assertJson([
-                'answer' => 'Overdue follow-ups: 1. Open high-priority follow-ups: 1.',
                 'source' => 'fieldpulse_grounded_rules',
                 'provider_status' => 'local',
             ]);
+
+        $this->assertStringContainsString(
+            '### Follow-up workload',
+            $response->json('answer'),
+        );
+        $this->assertStringContainsString(
+            '**Overdue follow-ups:** 1',
+            $response->json('answer'),
+        );
 
         $conversationUuid = $response->json('conversation.uuid');
 
@@ -366,6 +374,14 @@ class AiInsightsTest extends TestCase
             $requests[0][0]->url(),
         );
         $this->assertSame('openai/gpt-oss-120b', $firstPayload['model']);
+        $this->assertStringContainsString(
+            'human-readable Markdown',
+            $firstPayload['messages'][0]['content'],
+        );
+        $this->assertStringContainsString(
+            'Never expose raw JSON',
+            $firstPayload['messages'][0]['content'],
+        );
         $this->assertContains(
             'get_report',
             collect($firstPayload['tools'])
@@ -530,6 +546,7 @@ class AiInsightsTest extends TestCase
             $this->assertContains('get_returns', $names);
             $this->assertContains('get_scorecards', $names);
             $this->assertContains('get_mileage_summary', $names);
+            $this->assertContains('get_route_execution', $names);
             $this->assertContains('get_recommendations', $names);
             $this->assertContains('get_manager_briefing', $names);
             $this->assertNotContains('search_customers', $names);
