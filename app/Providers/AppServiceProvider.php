@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Contracts\BusinessOsConnector;
+use App\Services\BusinessOs\HttpBusinessOsConnector;
+use App\Services\BusinessOs\NullBusinessOsConnector;
 use App\Tenancy\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +18,12 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(TenantContext::class, fn () => new TenantContext);
+        $this->app->bind(
+            BusinessOsConnector::class,
+            fn ($app) => config('businessos.enabled', false)
+                ? $app->make(HttpBusinessOsConnector::class)
+                : $app->make(NullBusinessOsConnector::class),
+        );
     }
 
     public function boot(): void
