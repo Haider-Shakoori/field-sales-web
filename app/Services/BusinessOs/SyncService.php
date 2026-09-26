@@ -95,7 +95,7 @@ final class SyncService
         $counts = $this->emptyCounts();
         $errors = [];
 
-        foreach (['pull:products', 'pull:customers', 'pull:prices'] as $stream) {
+        foreach (['pull:products', 'pull:prices', 'pull:customers'] as $stream) {
             if (! in_array($stream, $streams, true)) {
                 continue;
             }
