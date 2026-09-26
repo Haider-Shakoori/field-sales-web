@@ -14,6 +14,16 @@
         <a href="{{ route('admin.live-map') }}" class="rounded-xl border border-white/10 bg-slate-900 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-white/5">{{ __('Live map') }}</a>
     </div>
 
+    @if(!($heatMap['enabled'] ?? true))
+        <div class="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-6">
+            <h2 class="font-semibold text-amber-200">{{ __('Territory heat maps are disabled') }}</h2>
+            <p class="mt-2 text-sm text-amber-200/80">{{ __('Territory polygons and customer assignments remain available, but management heat-map analytics are turned off for this organization.') }}</p>
+            @if(auth()->user()->hasPermission('settings:view'))
+                <a href="{{ route('organization.edit') }}" class="mt-4 inline-flex rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-white/20">{{ __('Open organization settings') }}</a>
+            @endif
+        </div>
+    @else
+
     <form method="GET" class="mb-5 grid gap-3 rounded-2xl border border-white/10 bg-slate-900 p-4 sm:grid-cols-2 xl:grid-cols-[180px_180px_180px_160px_auto]">
         <label><span class="mb-1 block text-xs text-slate-500">{{ __('From') }}</span><input type="date" name="date_from" value="{{ $filters['date_from'] }}" class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5"></label>
         <label><span class="mb-1 block text-xs text-slate-500">{{ __('To') }}</span><input type="date" name="date_to" value="{{ $filters['date_to'] }}" class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5"></label>
@@ -37,7 +47,7 @@
         </section>
 
         <aside class="space-y-5">
-            <section class="rounded-2xl border border-white/10 bg-slate-900"><div class="border-b border-white/10 px-4 py-3"><h2 class="font-semibold">{{ __('Coverage attention') }}</h2><p class="mt-1 text-xs text-slate-500">{{ __('Territories with the lowest customer visit coverage in the selected period.') }}</p></div><div class="divide-y divide-white/10">@forelse($heatMap['under_covered'] as $row)<div class="p-4"><div class="flex items-center justify-between gap-3"><div class="min-w-0"><p class="truncate text-sm font-semibold">{{ $row['name'] }}</p><p class="mt-1 text-xs text-slate-500">{{ $row['visited_customers'] }}/{{ $row['customers'] }} {{ __('customers visited') }}</p></div><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $row['coverage_percent'] < 50 ? 'bg-rose-500/10 text-rose-300' : ($row['coverage_percent'] < 80 ? 'bg-amber-500/10 text-amber-300' : 'bg-emerald-500/10 text-emerald-300') }}">{{ number_format($row['coverage_percent'], 1) }}%</span></div></div>@empty<div class="p-6 text-sm text-slate-500">{{ __('No territory coverage data is available.') }}</div>@endforelse</div></section>
+            <section class="rounded-2xl border border-white/10 bg-slate-900"><div class="border-b border-white/10 px-4 py-3"><h2 class="font-semibold">{{ __('Coverage attention') }}</h2><p class="mt-1 text-xs text-slate-500">{{ __('Territories below the configured coverage threshold are highlighted for attention.') }} {{ __('Threshold:') }} {{ $heatMap['under_covered_threshold_percent'] }}%</p></div><div class="divide-y divide-white/10">@forelse($heatMap['under_covered'] as $row)<div class="p-4"><div class="flex items-center justify-between gap-3"><div class="min-w-0"><p class="truncate text-sm font-semibold">{{ $row['name'] }}</p><p class="mt-1 text-xs text-slate-500">{{ $row['visited_customers'] }}/{{ $row['customers'] }} {{ __('customers visited') }}</p></div><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $row['coverage_percent'] < 50 ? 'bg-rose-500/10 text-rose-300' : ($row['coverage_percent'] < 80 ? 'bg-amber-500/10 text-amber-300' : 'bg-emerald-500/10 text-emerald-300') }}">{{ number_format($row['coverage_percent'], 1) }}%</span></div></div>@empty<div class="p-6 text-sm text-slate-500">{{ __('No territory coverage data is available.') }}</div>@endforelse</div></section>
             <section class="rounded-2xl border border-white/10 bg-slate-900 p-4"><h2 class="font-semibold">{{ __('Map reading') }}</h2><ul class="mt-3 space-y-2 text-xs leading-5 text-slate-400"><li>{{ __('Territory shading is normalized within the selected period and metric.') }}</li><li>{{ __('Customer circles use the same metric at customer level; larger circles indicate stronger activity.') }}</li><li>{{ __('Coverage counts a customer once when at least one completed visit exists in the selected period.') }}</li><li>{{ __('Sales and collections never combine currencies; choose a currency before comparing monetary performance.') }}</li></ul></section>
         </aside>
     </div>
@@ -105,4 +115,5 @@
             if (bounds.length > 0) map.fitBounds(bounds, {padding: [30, 30], maxZoom: 15});
         })();
     </script>
+    @endif
 </x-layouts.app>
