@@ -202,13 +202,19 @@ class CustomerBalanceService
                             4,
                         );
 
+                        $outstanding = round(
+                            max(0, $receivable - $verifiedAmount),
+                            4,
+                        );
+
                         return [
                             'currency' => $currency,
                             'receivable_total' => $receivable,
                             'verified_collections' => $verifiedAmount,
                             'pending_collections' => $pendingAmount,
-                            'outstanding_balance' => round(
-                                max(0, $receivable - $verifiedAmount),
+                            'outstanding_balance' => $outstanding,
+                            'available_to_collect' => round(
+                                max(0, $outstanding - $pendingAmount),
                                 4,
                             ),
                         ];
