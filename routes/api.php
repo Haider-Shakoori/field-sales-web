@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\MileageController;
+use App\Http\Controllers\Api\MobileDiagnosticController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ReorderRecommendationController;
@@ -39,6 +40,7 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('device.required')->group(function () {
             Route::get('/auth/me', [AuthController::class, 'me']);
+            Route::post('/mobile/diagnostics', [MobileDiagnosticController::class, 'store']);
 
             Route::get('/customers', [MasterDataController::class, 'customers']);
             Route::post('/customers', [MasterDataController::class, 'storeCustomer']);

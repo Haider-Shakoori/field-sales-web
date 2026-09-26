@@ -25,6 +25,7 @@ use App\Http\Controllers\Web\LeadController;
 use App\Http\Controllers\Web\LiveMapController;
 use App\Http\Controllers\Web\LocaleController;
 use App\Http\Controllers\Web\MileageController;
+use App\Http\Controllers\Web\MobileDiagnosticController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Web\OrganizationController;
@@ -182,6 +183,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/devices', [DeviceController::class, 'index'])
             ->middleware('permission:sales-team:view')
             ->name('devices.index');
+        Route::get('/mobile-diagnostics', [MobileDiagnosticController::class, 'index'])
+            ->middleware('permission:sales-team:view')
+            ->name('mobile-diagnostics.index');
         Route::get('/devices/{device}', [DeviceController::class, 'show'])
             ->middleware('permission:sales-team:view')
             ->name('devices.show');
