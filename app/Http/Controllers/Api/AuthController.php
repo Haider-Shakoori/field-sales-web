@@ -31,7 +31,7 @@ class AuthController extends Controller
         ]);
 
         $matches = $context->withAuthenticationBootstrapScope(function () use ($validated) {
-            return User::with(['tenant', 'salesman', 'roles.permissions'])
+            return User::with(['tenant', 'salesman', 'supervisor', 'roles.permissions'])
                 ->where('email', $validated['email'])
                 ->when(
                     $validated['tenant'] ?? null,
@@ -67,12 +67,18 @@ class AuthController extends Controller
             );
         }
 
-        if (! $user->salesman || ! $user->salesman->is_active) {
+        $roleSlugs = $user->roles->pluck('slug');
+        $isSalesman = $user->salesman?->is_active === true;
+        $isSupervisor = $user->supervisor?->is_active === true;
+        $isSalesManager = $roleSlugs->contains('sales_manager')
+            || $user->role === 'sales_manager';
+
+        if (! $isSalesman && ! $isSupervisor && ! $isSalesManager) {
             return ApiResponse::error(
-                'No active salesman profile is linked to this user.',
+                'This account is not enabled for the FieldPulse mobile app.',
                 422,
                 null,
-                'SALESMAN_REQUIRED'
+                'MOBILE_ROLE_REQUIRED'
             );
         }
 
@@ -124,7 +130,12 @@ class AuthController extends Controller
             );
         }
 
-        $other = Device::where('salesman_id', $user->salesman->id)
+        $other = Device::query()
+            ->when(
+                $user->salesman,
+                fn ($query) => $query->where('salesman_id', $user->salesman->id),
+                fn ($query) => $query->where('user_id', $user->id)
+            )
             ->where('is_active', true)
             ->whereNull('revoked_at')
             ->when($existing, fn ($query) => $query->whereKeyNot($existing->id))
@@ -132,7 +143,9 @@ class AuthController extends Controller
 
         if ($other) {
             return ApiResponse::error(
-                'Only one active device is allowed for this salesman.',
+                $user->salesman
+                    ? 'Only one active device is allowed for this salesman.'
+                    : 'Only one active mobile device is allowed for this user.',
                 422,
                 [
                     'active_device' => [
@@ -151,7 +164,7 @@ class AuthController extends Controller
                 'installation_uuid' => $installationUuid,
             ],
             [
-                'salesman_id' => $user->salesman->id,
+                'salesman_id' => $user->salesman?->id,
                 'device_uuid' => $deviceUuid,
                 'device_model' => $validated['device_model'] ?? null,
                 'manufacturer' => $validated['manufacturer'] ?? null,
@@ -189,11 +202,11 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->role,
             ],
-            'salesman' => [
+            'salesman' => $user->salesman ? [
                 'id' => $user->salesman->uuid,
                 'employee_code' => $user->salesman->employee_code,
                 'name' => $user->salesman->full_name,
-            ],
+            ] : null,
             'tenant' => [
                 'id' => $user->tenant->uuid,
                 'name' => $user->tenant->name,

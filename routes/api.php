@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\SalesReturnController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\StockController;
 use App\Http\Controllers\Api\TargetController;
+use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\VisitController;
 use App\Http\Controllers\Api\VisitFormController;
 use Illuminate\Support\Facades\Route;
@@ -99,6 +100,7 @@ Route::prefix('v1')->group(function () {
 
             Route::get('/targets/current', [TargetController::class, 'current']);
             Route::get('/targets/history', [TargetController::class, 'history']);
+            Route::get('/team/overview', [TeamController::class, 'overview']);
             Route::get('/notifications', [NotificationController::class, 'index']);
             Route::patch('/notifications/{notification:uuid}/read', [NotificationController::class, 'read']);
             Route::get('/notification-preferences', [NotificationController::class, 'preferences']);

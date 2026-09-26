@@ -9,6 +9,7 @@ use App\Models\Expense;
 use App\Models\Order;
 use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
+use App\Models\SupervisorAssignment;
 use App\Models\User;
 use App\Models\WorkSession;
 use Carbon\CarbonImmutable;
@@ -526,6 +527,22 @@ class DashboardService
 
             $assigned = SalesmanAssignment::query()
                 ->where('supervisor_id', $actor->supervisor->id)
+                ->current($localDate)
+                ->pluck('salesman_id');
+
+            $query->whereIn('id', $assigned);
+        } elseif ($actor->hasAnyRole(['sales_manager'])) {
+            $supervisorIds = SupervisorAssignment::query()
+                ->where('sales_manager_id', $actor->id)
+                ->current($localDate)
+                ->pluck('supervisor_id');
+
+            if ($supervisorIds->isEmpty()) {
+                return collect();
+            }
+
+            $assigned = SalesmanAssignment::query()
+                ->whereIn('supervisor_id', $supervisorIds)
                 ->current($localDate)
                 ->pluck('salesman_id');
 
