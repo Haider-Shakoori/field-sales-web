@@ -189,6 +189,11 @@ class SalesmanStockAndReturnsTest extends TestCase
         );
 
         $this->actingAs($actor['admin'])
+            ->get(route('admin.returns.index'))
+            ->assertOk()
+            ->assertSee('All statuses');
+
+        $this->actingAs($actor['admin'])
             ->patch('/admin/returns/'.$return->id.'/status', [
                 'status' => 'approved',
             ])
