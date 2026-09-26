@@ -143,6 +143,48 @@ class FieldSalesApiTest extends TestCase
             ->assertJsonPath('error.details.session.status', 'active');
     }
 
+    public function test_end_day_preview_and_remarks_are_available_before_closing(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-18T06:00:00Z');
+
+        try {
+            $actor = $this->actor();
+            $this->createActiveSession($actor, '2026-09-18 04:30:00');
+
+            $this->getJson('/api/v1/attendance/end-day-preview', $this->headers())
+                ->assertOk()
+                ->assertJsonPath('data.date', '2026-09-18')
+                ->assertJsonPath('data.session.status', 'active')
+                ->assertJsonPath('data.plan.summary.total_stops', 0)
+                ->assertJsonPath('data.visits.completed', 0)
+                ->assertJsonPath('data.orders.total_count', 0)
+                ->assertJsonPath('data.collections.total_count', 0)
+                ->assertJsonPath('data.expenses.total_count', 0)
+                ->assertJsonPath('data.returns.total_count', 0);
+
+            $this->postJson('/api/v1/attendance/end', [
+                'latitude' => 34.55,
+                'longitude' => 69.20,
+                'accuracy' => 8,
+                'ended_at' => '2026-09-18T06:00:00Z',
+                'notes' => 'Visited all priority customers; one shop was closed.',
+            ], $this->headers())
+                ->assertOk()
+                ->assertJsonPath(
+                    'data.notes',
+                    'Visited all priority customers; one shop was closed.',
+                );
+
+            $this->assertDatabaseHas('work_sessions', [
+                'user_id' => $actor['u']->id,
+                'status' => 'completed',
+                'notes' => 'Visited all priority customers; one shop was closed.',
+            ]);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
     public function test_revoked_device_has_machine_code(): void
     {
         $actor = $this->actor();
