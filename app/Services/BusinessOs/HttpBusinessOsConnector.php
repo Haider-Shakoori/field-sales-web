@@ -11,7 +11,7 @@ final class HttpBusinessOsConnector implements BusinessOsConnector
 {
     public function health(Tenant $tenant): array
     {
-        return $this->client($tenant)
+        return (array) $this->client($tenant)
             ->get((string) config('businessos.paths.health'))
             ->throw()
             ->json();
@@ -22,7 +22,7 @@ final class HttpBusinessOsConnector implements BusinessOsConnector
         array $types,
         ?string $cursor = null,
     ): array {
-        return $this->client($tenant)
+        return (array) $this->client($tenant)
             ->get((string) config('businessos.paths.master_data'), [
                 'types' => implode(',', array_values(array_unique($types))),
                 'cursor' => $cursor,
@@ -33,7 +33,7 @@ final class HttpBusinessOsConnector implements BusinessOsConnector
 
     public function pushEvents(Tenant $tenant, array $events): array
     {
-        return $this->client($tenant)
+        return (array) $this->client($tenant)
             ->post((string) config('businessos.paths.events'), [
                 'events' => $events,
             ])
