@@ -44,6 +44,7 @@ Route::prefix('v1')->group(function () {
 
             Route::get('/customers', [MasterDataController::class, 'customers']);
             Route::post('/customers', [MasterDataController::class, 'storeCustomer']);
+            Route::patch('/customers/{customer:uuid}', [MasterDataController::class, 'updateCustomer']);
             Route::get('/customers/{customer:uuid}/statement', CustomerStatementController::class);
             Route::get('/customers/{customer:uuid}/reorder-recommendations', ReorderRecommendationController::class);
             Route::get('/territories', [MasterDataController::class, 'territories']);
