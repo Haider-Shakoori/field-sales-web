@@ -79,6 +79,13 @@ class PushNotificationService
             return $this->finish($delivery, 'sent');
         }
 
+        if (in_array($response->status(), [400, 404], true)
+            && str_contains(strtoupper($response->body()), 'UNREGISTERED')) {
+            $delivery->device?->forceFill(['push_token' => null])->save();
+
+            return $this->finish($delivery, 'failed', 'FCM token is no longer registered.');
+        }
+
         return $this->finish($delivery, 'failed', 'FCM returned HTTP '.$response->status().'.');
     }
 
