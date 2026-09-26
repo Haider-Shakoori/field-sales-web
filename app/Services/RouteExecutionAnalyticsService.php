@@ -102,14 +102,31 @@ final class RouteExecutionAnalyticsService
             ->where('checked_in_at', '<', $end)
             ->get();
 
+        $completedCustomerUuids = $visits
+            ->map(fn (CustomerVisit $visit) => $visit->customer?->uuid)
+            ->filter()
+            ->unique()
+            ->values();
+
+        $visitedPlannedCustomerUuids = $completedCustomerUuids
+            ->intersect($plannedCustomerUuids)
+            ->values();
+
         $offRoute = $visits
             ->filter(fn (CustomerVisit $visit) => $visit->customer?->uuid
                 && ! $plannedCustomerUuids->contains($visit->customer->uuid))
             ->values();
 
         $assigned = $stops->count();
-        $visitedPlanned = $stops->where('visited_today', true)->count();
-        $remaining = $stops->where('visited_today', false)->count();
+        $visitedPlanned = $visitedPlannedCustomerUuids->count();
+        $remainingStops = $stops
+            ->reject(
+                fn (array $stop) => $visitedPlannedCustomerUuids->contains(
+                    $stop['customer_id'] ?? null,
+                ),
+            )
+            ->values();
+        $remaining = $remainingStops->count();
         $finalized = $this->isFinalizedDay(
             $localDate,
             $timezone,
@@ -120,7 +137,6 @@ final class RouteExecutionAnalyticsService
             ? round(($visitedPlanned / $assigned) * 100, 1)
             : 0.0;
 
-        $remainingStops = $stops->where('visited_today', false);
         $lastDeparture = $remainingStops
             ->pluck('estimated_departure_at')
             ->filter()
