@@ -25,6 +25,7 @@ use App\Http\Controllers\Web\ExpenseController;
 use App\Http\Controllers\Web\LeadController;
 use App\Http\Controllers\Web\LiveMapController;
 use App\Http\Controllers\Web\LocaleController;
+use App\Http\Controllers\Web\ManagementIntelligenceController;
 use App\Http\Controllers\Web\MileageController;
 use App\Http\Controllers\Web\MobileDiagnosticController;
 use App\Http\Controllers\Web\NotificationController;
@@ -163,6 +164,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])
             ->middleware('permission:reports:view')
             ->name('reports.index');
+
+        Route::get('/management-intelligence', [ManagementIntelligenceController::class, 'index'])
+            ->middleware('permission:reports:view')
+            ->name('management-intelligence.index');
 
         Route::get('/scorecards', [SupervisorScorecardController::class, 'index'])
             ->middleware('permission:reports:view')

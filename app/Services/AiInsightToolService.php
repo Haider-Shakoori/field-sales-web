@@ -22,6 +22,7 @@ class AiInsightToolService
         private readonly ReportService $reports,
         private readonly CustomerBalanceService $balances,
         private readonly SupervisorScorecardService $scorecards,
+        private readonly ManagementIntelligenceService $managementIntelligence,
         private readonly AiRecommendationService $recommendations,
         private readonly ManagerBriefingService $briefing,
         private readonly MileageService $mileage,
@@ -163,6 +164,21 @@ class AiInsightToolService
         }
 
         if ($user->hasPermission('reports:view')) {
+            $tools[] = $this->tool(
+                'get_management_intelligence',
+                'Get today-focused management intelligence for the visible sales team: attendance starts, route progress versus expected workday progress, missed and off-route visits, capacity risk, pending order/collection backlog, overdue follow-ups, visit flags, target risk, and per-salesman attention reasons. Use this for questions like who needs attention today, who is behind, who has not started, or what management should focus on now.',
+                [
+                    'type' => 'object',
+                    'properties' => [
+                        'date' => [
+                            'type' => 'string',
+                            'description' => 'YYYY-MM-DD',
+                        ],
+                    ],
+                    'required' => ['date'],
+                    'additionalProperties' => false,
+                ],
+            );
             $tools[] = $this->tool(
                 'get_scorecards',
                 'Get supervisor/salesman performance scorecards for a date range.',
@@ -327,6 +343,10 @@ class AiInsightToolService
             'get_expenses' => $this->expenses($user, $arguments),
             'get_salesman_stock' => $this->salesmanStock($user, $arguments),
             'get_returns' => $this->returns($user, $arguments),
+            'get_management_intelligence' => $this->managementIntelligence(
+                $user,
+                $arguments,
+            ),
             'get_scorecards' => $this->scorecards($user, $arguments),
             'get_mileage_summary' => $this->mileageSummary($user, $arguments),
             'get_route_execution' => $this->routeExecution($user, $arguments),
@@ -608,6 +628,83 @@ class AiInsightToolService
             ],
             'return_count' => $rows->count(),
             'items' => $items,
+        ];
+    }
+
+    private function managementIntelligence(
+        User $user,
+        array $arguments,
+    ): array {
+        abort_unless($user->hasPermission('reports:view'), 403);
+
+        $date = $this->date(
+            $user,
+            (string) ($arguments['date'] ?? ''),
+        )->toDateString();
+        $payload = $this->managementIntelligence->build(
+            $user,
+            $date,
+        );
+
+        return [
+            'date' => $payload['date'],
+            'timezone' => $payload['timezone'],
+            'generated_at' => $payload['generated_at'],
+            'thresholds' => $payload['thresholds'],
+            'workday' => $payload['workday'],
+            'live_backlog' => $payload['live_backlog'],
+            'summary' => $payload['summary'],
+            'briefing' => $payload['briefing'],
+            'salesmen' => collect($payload['rows'])->map(
+                fn (array $row) => [
+                    'salesman' => $row['salesman']->full_name,
+                    'employee_code' => $row[
+                        'salesman'
+                    ]->employee_code,
+                    'supervisor' => $row[
+                        'assignment'
+                    ]?->supervisor?->full_name,
+                    'territory' => $row[
+                        'assignment'
+                    ]?->territory?->name,
+                    'branch' => $row[
+                        'assignment'
+                    ]?->branch?->name,
+                    'attendance' => $row['attendance'],
+                    'route' => $row['route'],
+                    'expected_route_progress_percent' => $row[
+                        'expected_route_progress_percent'
+                    ],
+                    'route_progress_gap_percent' => $row[
+                        'route_progress_gap_percent'
+                    ],
+                    'route_behind' => $row['route_behind'],
+                    'orders' => $row['orders'],
+                    'collections' => $row['collections'],
+                    'pending_orders' => $row[
+                        'pending_orders'
+                    ],
+                    'pending_collections' => $row[
+                        'pending_collections'
+                    ],
+                    'follow_ups' => $row['follow_ups'],
+                    'unresolved_flags' => $row[
+                        'unresolved_flags'
+                    ],
+                    'target_average_percent' => $row[
+                        'target_average_percent'
+                    ],
+                    'attention_level' => $row[
+                        'attention_level'
+                    ],
+                    'attention_score' => $row[
+                        'attention_score'
+                    ],
+                    'attention_reasons' => $row[
+                        'attention_reasons'
+                    ],
+                ],
+            )->values()->all(),
         ];
     }
 
