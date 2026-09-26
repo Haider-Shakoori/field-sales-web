@@ -86,6 +86,13 @@ class Batch4CustomersTerritoriesRoutesTest extends TestCase
         );
 
         $this->actingAs($admin)
+            ->get(route('admin.customers.create'))
+            ->assertOk()
+            ->assertSee('customer-location-map', false)
+            ->assertSee('Use current location')
+            ->assertSee('customer-territory-select', false);
+
+        $this->actingAs($admin)
             ->post(route('admin.customers.store'), [
                 'branch_id' => $branch->id,
                 'territory_id' => $territory->id,
@@ -105,6 +112,16 @@ class Batch4CustomersTerritoriesRoutesTest extends TestCase
             $tenant,
             fn () => Customer::where('code', 'CUS-001')->firstOrFail()
         );
+
+        $this->assertSame('34.5553000', (string) $customer->latitude);
+        $this->assertSame('69.2075000', (string) $customer->longitude);
+
+        $this->actingAs($admin)
+            ->get(route('admin.customers.edit', $customer))
+            ->assertOk()
+            ->assertSee('customer-location-map', false)
+            ->assertSee('34.5553000')
+            ->assertSee('69.2075000');
 
         $this->actingAs($admin)
             ->post(route('admin.routes.store'), [
