@@ -468,15 +468,20 @@ class DailyRoutePlannerTest extends TestCase
             ],
         ]);
 
-        foreach ([
-            'workday_start_time' => '08:00',
-            'workday_end_time' => '08:20',
-        ] as $key => $value) {
-            CompanySetting::updateOrCreate(
-                ['tenant_id' => $tenant->id, 'key' => 'tracking.'.$key],
-                ['value' => $value],
-            );
-        }
+        app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($tenant): void {
+                foreach ([
+                    'workday_start_time' => '08:00',
+                    'workday_end_time' => '08:20',
+                ] as $key => $value) {
+                    CompanySetting::updateOrCreate(
+                        ['tenant_id' => $tenant->id, 'key' => 'tracking.'.$key],
+                        ['value' => $value],
+                    );
+                }
+            },
+        );
 
         $plan = app(TenantContext::class)->withTenant(
             $tenant->fresh(),
@@ -511,7 +516,10 @@ class DailyRoutePlannerTest extends TestCase
     {
         [$tenant, $admin, $salesman, , $regular] = $this->fixture();
 
-        $device = Device::where('salesman_id', $salesman->id)->firstOrFail();
+        $device = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => Device::where('salesman_id', $salesman->id)->firstOrFail(),
+        );
 
         app(TenantContext::class)->withTenant(
             $tenant,
