@@ -17,7 +17,10 @@ class TerritoryHeatMapService
 {
     public const METRICS = ['coverage', 'visits', 'sales', 'collections'];
 
-    public function __construct(private readonly TenantClock $clock) {}
+    public function __construct(
+        private readonly TenantClock $clock,
+        private readonly FieldIntelligenceSettingsService $settings,
+    ) {}
 
     public function build(User $actor, array $filters = []): array
     {
@@ -31,6 +34,40 @@ class TerritoryHeatMapService
         $metric = in_array($filters['metric'] ?? null, self::METRICS, true)
             ? (string) $filters['metric']
             : 'coverage';
+        $featureSettings = $this->settings->settingsFor($actor->tenant);
+        $underCoveredThreshold = (int) $featureSettings['territory_under_covered_threshold_percent'];
+
+        if (! $featureSettings['territory_heat_map_enabled']) {
+            $currency = strtoupper((string) ($filters['currency'] ?? 'AFN')) ?: 'AFN';
+
+            return [
+                'enabled' => false,
+                'filters' => [
+                    'date_from' => $fromDate,
+                    'date_to' => $toDate,
+                    'metric' => $metric,
+                    'currency' => $currency,
+                ],
+                'timezone' => $timezone,
+                'currencies' => [$currency],
+                'territories' => [],
+                'points' => [],
+                'under_covered' => [],
+                'under_covered_threshold_percent' => $underCoveredThreshold,
+                'summary' => [
+                    'territories' => 0,
+                    'customers' => 0,
+                    'mapped_customers' => 0,
+                    'visited_customers' => 0,
+                    'coverage_percent' => 0.0,
+                    'visits' => 0,
+                    'sales' => 0.0,
+                    'collections' => 0.0,
+                    'currency' => $currency,
+                ],
+            ];
+        }
+
         $localDate = CarbonImmutable::parse($toDate, $timezone)->toDateString();
         $salesmanIds = $this->visibleSalesmanIds($actor, $localDate);
         $territories = $this->visibleTerritories($actor, $localDate, $salesmanIds);
@@ -182,7 +219,10 @@ class TerritoryHeatMapService
             ->values();
 
         $underCovered = $territoryRows
-            ->filter(fn (array $row) => $row['customers'] > 0)
+            ->filter(
+                fn (array $row) => $row['customers'] > 0
+                    && $row['coverage_percent'] < $underCoveredThreshold
+            )
             ->sort(function (array $left, array $right): int {
                 $coverage = $left['coverage_percent'] <=> $right['coverage_percent'];
 
@@ -192,6 +232,7 @@ class TerritoryHeatMapService
             ->values();
 
         return [
+            'enabled' => true,
             'filters' => [
                 'date_from' => $fromDate,
                 'date_to' => $toDate,
@@ -203,6 +244,7 @@ class TerritoryHeatMapService
             'territories' => $territoryRows->all(),
             'points' => $points->all(),
             'under_covered' => $underCovered->all(),
+            'under_covered_threshold_percent' => $underCoveredThreshold,
             'summary' => [
                 'territories' => $territoryRows->count(),
                 'customers' => $customerRows->count(),
