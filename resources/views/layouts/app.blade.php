@@ -201,6 +201,7 @@
                     ['route' => 'admin.attendance.index', 'match' => 'admin.attendance.*', 'label' => 'Attendance', 'icon' => 'calendar-check', 'can' => 'sales-team:view'],
                     ['route' => 'admin.supervisors.index', 'match' => 'admin.supervisors.*', 'label' => 'Supervisors', 'icon' => 'user-plus', 'can' => 'sales-team:view'],
                     ['route' => 'admin.devices.index', 'match' => 'admin.devices.*', 'label' => 'Devices', 'icon' => 'device', 'can' => 'sales-team:view'],
+                    ['route' => 'admin.mobile-diagnostics.index', 'match' => 'admin.mobile-diagnostics.*', 'label' => 'Mobile diagnostics', 'icon' => 'alert', 'can' => 'sales-team:view'],
                     ['route' => 'admin.salesman-assignments.index', 'match' => 'admin.salesman-assignments.*', 'label' => 'Salesman assignments', 'icon' => 'clipboard', 'can' => 'sales-team:view'],
                     ['route' => 'admin.supervisor-assignments.index', 'match' => 'admin.supervisor-assignments.*', 'label' => 'Supervisor assignments', 'icon' => 'clipboard', 'can' => 'sales-team:view'],
                 ],
