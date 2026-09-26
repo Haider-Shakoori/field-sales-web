@@ -20,6 +20,14 @@
 
     @if(!$selectedSalesman)
         <div class="rounded-2xl border border-white/10 bg-slate-900 p-8 text-slate-400">{{ __('No active salesmen found.') }}</div>
+    @elseif(($plan['enabled'] ?? true) === false)
+        <div class="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-6">
+            <h2 class="font-semibold text-amber-200">{{ __('Smart route planning is disabled') }}</h2>
+            <p class="mt-2 text-sm text-amber-200/80">{{ __('This organization has disabled route optimization. Existing route, territory and branch assignments are unchanged.') }}</p>
+            @if(auth()->user()->hasPermission('settings:view'))
+                <a href="{{ route('organization.edit') }}" class="mt-4 inline-flex rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-white/20">{{ __('Open organization settings') }}</a>
+            @endif
+        </div>
     @elseif(!$plan['source'])
         <div class="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-6">
             <h2 class="font-semibold text-amber-200">{{ __('No assignment source') }}</h2>
@@ -147,7 +155,7 @@
                                     @endforelse
                                 </td>
                                 <td class="px-5 py-4">
-                                    {{ $stop['last_visited_at'] ? CarbonCarbonImmutable::parse($stop['last_visited_at'])->format('Y-m-d') : __('Never') }}
+                                    {{ $stop['last_visited_at'] ? \Carbon\CarbonImmutable::parse($stop['last_visited_at'])->format('Y-m-d') : __('Never') }}
                                 </td>
                                 <td class="px-5 py-4">
                                     {{ $stop['distance_from_previous_km'] === null ? '—' : number_format($stop['distance_from_previous_km'], 1).' km' }}

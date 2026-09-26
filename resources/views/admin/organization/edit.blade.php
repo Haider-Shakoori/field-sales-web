@@ -143,6 +143,198 @@
             </div>
         </section>
 
+        <section class="space-y-5 rounded-2xl border border-white/10 bg-slate-900 p-6">
+            <div>
+                <h2 class="font-semibold">{{ __('Field intelligence') }}</h2>
+                <p class="mt-1 text-sm text-slate-400">{{ __('Configure smart route planning and territory intelligence for this organization.') }}</p>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                    <input type="hidden" name="smart_routes_enabled" value="0">
+                    <input
+                        type="checkbox"
+                        name="smart_routes_enabled"
+                        value="1"
+                        @checked((bool) old('smart_routes_enabled', $intelligenceSettings['smart_routes_enabled']))
+                        class="mt-1 rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500"
+                    >
+                    <span>
+                        <span class="block text-sm font-semibold text-slate-200">{{ __('Enable smart daily route planning') }}</span>
+                        <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('Prioritizes assigned customers using overdue balances, follow-ups, visit recency and distance while keeping the normal assignment scope.') }}</span>
+                    </span>
+                </label>
+
+                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                    <input type="hidden" name="territory_auto_assign_enabled" value="0">
+                    <input
+                        type="checkbox"
+                        name="territory_auto_assign_enabled"
+                        value="1"
+                        @checked((bool) old('territory_auto_assign_enabled', $intelligenceSettings['territory_auto_assign_enabled']))
+                        class="mt-1 rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500"
+                    >
+                    <span>
+                        <span class="block text-sm font-semibold text-slate-200">{{ __('Auto-detect customer territory from GPS') }}</span>
+                        <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('When a customer has coordinates and no explicit territory, FieldPulse can match the shop to the territory polygon automatically.') }}</span>
+                    </span>
+                </label>
+
+                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                    <input type="hidden" name="territory_heat_map_enabled" value="0">
+                    <input
+                        type="checkbox"
+                        name="territory_heat_map_enabled"
+                        value="1"
+                        @checked((bool) old('territory_heat_map_enabled', $intelligenceSettings['territory_heat_map_enabled']))
+                        class="mt-1 rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500"
+                    >
+                    <span>
+                        <span class="block text-sm font-semibold text-slate-200">{{ __('Enable territory heat maps') }}</span>
+                        <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('Allows managers to compare coverage, visits, sales and collections geographically.') }}</span>
+                    </span>
+                </label>
+            </div>
+
+            <div class="grid gap-5 md:grid-cols-3">
+                <div>
+                    <label class="mb-2 block text-sm text-slate-300">{{ __('Nearby opportunity radius') }}</label>
+                    <div class="relative">
+                        <input
+                            type="number"
+                            step="0.5"
+                            min="0.5"
+                            max="25"
+                            name="route_nearby_radius_km"
+                            value="{{ old('route_nearby_radius_km', $intelligenceSettings['route_nearby_radius_km']) }}"
+                            class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pe-12"
+                        >
+                        <span class="pointer-events-none absolute inset-y-0 end-4 flex items-center text-xs text-slate-500">km</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">{{ __('Used when suggesting worthwhile nearby customers during the day.') }}</p>
+                </div>
+
+                <div>
+                    <label class="mb-2 block text-sm text-slate-300">{{ __('Maximum extra opportunities') }}</label>
+                    <input
+                        type="number"
+                        min="0"
+                        max="10"
+                        name="route_max_opportunities"
+                        value="{{ old('route_max_opportunities', $intelligenceSettings['route_max_opportunities']) }}"
+                        class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"
+                    >
+                    <p class="mt-1 text-xs text-slate-500">{{ __('Limits optional nearby stops so the assigned route remains the main plan.') }}</p>
+                </div>
+
+                <div>
+                    <label class="mb-2 block text-sm text-slate-300">{{ __('Under-covered territory threshold') }}</label>
+                    <div class="relative">
+                        <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            name="territory_under_covered_threshold_percent"
+                            value="{{ old('territory_under_covered_threshold_percent', $intelligenceSettings['territory_under_covered_threshold_percent']) }}"
+                            class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pe-10"
+                        >
+                        <span class="pointer-events-none absolute inset-y-0 end-4 flex items-center text-xs text-slate-500">%</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">{{ __('Territories below this visit coverage are highlighted for management attention.') }}</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="space-y-5 rounded-2xl border border-white/10 bg-slate-900 p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 class="font-semibold">{{ __('BusinessOS integration') }}</h2>
+                    <p class="mt-1 text-sm text-slate-400">{{ __('Keep FieldPulse standalone while allowing controlled master-data and transaction synchronization with BusinessOS.') }}</p>
+                </div>
+                <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $businessOsSettings['platform_available'] ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300' }}">
+                    {{ $businessOsSettings['platform_available'] ? __('Connector configured') : __('Connector not configured on server') }}
+                </span>
+            </div>
+
+            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                <input type="hidden" name="businessos_enabled" value="0">
+                <input
+                    type="checkbox"
+                    name="businessos_enabled"
+                    value="1"
+                    @checked((bool) old('businessos_enabled', $businessOsSettings['requested_enabled']))
+                    class="mt-1 rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500"
+                >
+                <span>
+                    <span class="block text-sm font-semibold text-slate-200">{{ __('Enable BusinessOS synchronization for this organization') }}</span>
+                    <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('The switch becomes operational only when the platform connector URL and token are configured on the server.') }}</span>
+                </span>
+            </label>
+
+            <div class="grid gap-5 md:grid-cols-2">
+                <div>
+                    <label class="mb-2 block text-sm text-slate-300">{{ __('BusinessOS organization key') }}</label>
+                    <input
+                        name="businessos_organization_key"
+                        value="{{ old('businessos_organization_key', $businessOsSettings['organization_key']) }}"
+                        maxlength="120"
+                        class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"
+                        placeholder="{{ __('Example: acme-distribution') }}"
+                    >
+                    <p class="mt-1 text-xs text-slate-500">{{ __('Maps this FieldPulse tenant to the corresponding organization in BusinessOS. This is not an API secret.') }}</p>
+                </div>
+
+                <div>
+                    <label class="mb-2 block text-sm text-slate-300">{{ __('Automatic sync interval') }}</label>
+                    <select name="businessos_sync_interval_minutes" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
+                        @foreach([
+                            5 => __('Every 5 minutes'),
+                            15 => __('Every 15 minutes'),
+                            30 => __('Every 30 minutes'),
+                            60 => __('Hourly'),
+                            120 => __('Every 2 hours'),
+                            240 => __('Every 4 hours'),
+                        ] as $minutes => $label)
+                            <option value="{{ $minutes }}" @selected((int) old('businessos_sync_interval_minutes', $businessOsSettings['sync_interval_minutes']) === $minutes)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <p class="mb-3 text-sm font-semibold text-slate-300">{{ __('Allowed synchronization directions') }}</p>
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    @foreach([
+                        'pull_products' => __('Pull products from BusinessOS'),
+                        'pull_customers' => __('Pull customers from BusinessOS'),
+                        'pull_prices' => __('Pull prices from BusinessOS'),
+                        'push_orders' => __('Push approved orders to BusinessOS'),
+                        'push_collections' => __('Push verified collections to BusinessOS'),
+                        'push_field_customers' => __('Push field-created customers to BusinessOS'),
+                    ] as $key => $label)
+                        <label class="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm">
+                            <input type="hidden" name="businessos_{{ $key }}" value="0">
+                            <input
+                                type="checkbox"
+                                name="businessos_{{ $key }}"
+                                value="1"
+                                @checked((bool) old('businessos_'.$key, $businessOsSettings[$key]))
+                                class="rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500"
+                            >
+                            <span>{{ $label }}</span>
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="rounded-xl border border-cyan-400/10 bg-cyan-500/5 px-4 py-3 text-xs leading-5 text-slate-400">
+                {{ __('BusinessOS credentials and connector endpoints are platform-managed and are never displayed here. FieldPulse remains independently usable when the integration is disabled or unavailable.') }}
+                @if($businessOsSettings['base_url'])
+                    <span class="mt-1 block">{{ __('Configured connector host:') }} <span class="font-mono text-slate-300">{{ $businessOsSettings['base_url'] }}</span></span>
+                @endif
+            </div>
+        </section>
+
         <div class="flex flex-wrap gap-3">
             @if(auth()->user()->hasPermission('settings:manage'))
                 <button class="rounded-xl bg-indigo-500 px-5 py-3 font-semibold hover:bg-indigo-400">Save profile</button>

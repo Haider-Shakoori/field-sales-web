@@ -76,7 +76,9 @@ class DailyRoutePlannerController extends Controller
                 $date,
                 $startLocation,
                 $includedCustomerUuids,
-                (float) ($validated['nearby_radius_km'] ?? 5.0),
+                isset($validated['nearby_radius_km'])
+                    ? (float) $validated['nearby_radius_km']
+                    : null,
             )
         );
     }

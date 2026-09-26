@@ -19,6 +19,7 @@ class DailyRoutePlannerService
 
     public function __construct(
         private readonly RouteOpportunityService $opportunities,
+        private readonly FieldIntelligenceSettingsService $settings,
     ) {}
 
     public function planFor(
@@ -26,20 +27,60 @@ class DailyRoutePlannerService
         CarbonImmutable $localDate,
         ?array $startLocation = null,
         array $includedCustomerUuids = [],
-        float $nearbyRadiusKm = 5.0,
+        ?float $nearbyRadiusKm = null,
     ): array {
         $salesman->loadMissing('user.tenant');
 
-        $timezone = $salesman->user?->tenant?->timezone
-            ?: config('app.timezone', 'UTC');
+        $tenant = $salesman->user?->tenant;
+        $timezone = $tenant?->timezone ?: config('app.timezone', 'UTC');
 
         $localDate = $localDate->setTimezone($timezone)->startOfDay();
         $startUtc = $localDate->utc();
         $endUtc = $localDate->addDay()->utc();
 
         $assignment = $this->assignmentFor($salesman, $localDate);
+        $featureSettings = $tenant
+            ? $this->settings->settingsFor($tenant)
+            : [
+                'smart_routes_enabled' => true,
+                'route_nearby_radius_km' => 5.0,
+                'route_max_opportunities' => 10,
+            ];
+
+        if (! $featureSettings['smart_routes_enabled']) {
+            return [
+                ...$this->basePlan($salesman, $localDate, $assignment),
+                'enabled' => false,
+                'source' => null,
+                'route' => null,
+                'summary' => $this->summary([]),
+                'start_location' => null,
+                'stops' => [],
+                'nearby_opportunities' => [],
+                'dynamic_route' => [
+                    'generated_at' => now()->toISOString(),
+                    'rerouted_from_current_position' => false,
+                    'included_opportunity_ids' => [],
+                    'nearby_radius_km' => (float) $featureSettings['route_nearby_radius_km'],
+                ],
+                'approximate_air_distance_km' => 0.0,
+                'distance_method' => self::DISTANCE_METHOD,
+                'warnings' => ['smart_route_planning_disabled'],
+            ];
+        }
+
         [$source, $route, $candidates] = $this->candidatesFor($assignment, $localDate);
         $startLocation = $this->normalizeStartLocation($startLocation);
+        $configuredRadius = (float) $featureSettings['route_nearby_radius_km'];
+        $nearbyRadiusKm = $nearbyRadiusKm === null
+            ? $configuredRadius
+            : min($configuredRadius, max(0.5, min(25.0, $nearbyRadiusKm)));
+        $maxOpportunities = (int) $featureSettings['route_max_opportunities'];
+        $includedCustomerUuids = array_slice(
+            array_values(array_unique($includedCustomerUuids)),
+            0,
+            $maxOpportunities,
+        );
 
         $plannedCustomerIds = $candidates
             ->pluck('customer')
@@ -51,6 +92,7 @@ class DailyRoutePlannerService
             $localDate,
             $includedCustomerUuids,
             $plannedCustomerIds,
+            $maxOpportunities,
         );
 
         $nextSequence = $candidates->count() + 1;
@@ -75,12 +117,14 @@ class DailyRoutePlannerService
             $localDate,
             $startLocation,
             $customerIds,
-            max(0.5, min(25.0, $nearbyRadiusKm)),
+            $nearbyRadiusKm,
+            $maxOpportunities,
         );
 
         if ($candidates->isEmpty()) {
             return [
                 ...$this->basePlan($salesman, $localDate, $assignment),
+                'enabled' => true,
                 'source' => $source,
                 'route' => $route,
                 'summary' => $this->summary([]),
@@ -91,7 +135,7 @@ class DailyRoutePlannerService
                     'generated_at' => now()->toISOString(),
                     'rerouted_from_current_position' => $startLocation !== null,
                     'included_opportunity_ids' => [],
-                    'nearby_radius_km' => max(0.5, min(25.0, $nearbyRadiusKm)),
+                    'nearby_radius_km' => $nearbyRadiusKm,
                 ],
                 'approximate_air_distance_km' => 0.0,
                 'distance_method' => self::DISTANCE_METHOD,
@@ -233,6 +277,7 @@ class DailyRoutePlannerService
 
         return [
             ...$this->basePlan($salesman, $localDate, $assignment),
+            'enabled' => true,
             'source' => $source,
             'route' => $route,
             'summary' => $this->summary($orderedStops),
@@ -246,7 +291,7 @@ class DailyRoutePlannerService
                     ->pluck('uuid')
                     ->values()
                     ->all(),
-                'nearby_radius_km' => max(0.5, min(25.0, $nearbyRadiusKm)),
+                'nearby_radius_km' => $nearbyRadiusKm,
             ],
             'approximate_air_distance_km' => round($totalDistance, 2),
             'distance_method' => self::DISTANCE_METHOD,

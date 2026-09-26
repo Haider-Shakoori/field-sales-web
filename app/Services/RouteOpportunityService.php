@@ -20,6 +20,7 @@ class RouteOpportunityService
         CarbonImmutable $localDate,
         array $customerUuids,
         array $excludedCustomerIds = [],
+        int $limit = 10,
     ): SupportCollection {
         if ($customerUuids === []) {
             return collect();
@@ -37,7 +38,7 @@ class RouteOpportunityService
                 $excludedCustomerIds !== [],
                 fn (Builder $query) => $query->whereNotIn('id', $excludedCustomerIds),
             )
-            ->limit(10)
+            ->limit(max(0, min(10, $limit)))
             ->get();
     }
 

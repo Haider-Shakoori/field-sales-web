@@ -11,6 +11,8 @@ use App\Models\Salesman;
 use App\Models\User;
 use App\Services\AiPolicyService;
 use App\Services\AuditLogger;
+use App\Services\BusinessOsIntegrationPolicyService;
+use App\Services\FieldIntelligenceSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -20,6 +22,8 @@ class OrganizationController extends Controller
     public function edit(
         Request $request,
         AiPolicyService $aiPolicy,
+        FieldIntelligenceSettingsService $intelligence,
+        BusinessOsIntegrationPolicyService $businessOs,
     ): View {
         $tenant = $request->user()->tenant;
 
@@ -27,6 +31,8 @@ class OrganizationController extends Controller
             'tenant' => $tenant,
             'timezones' => $this->timezones(),
             'aiPolicy' => $aiPolicy->settingsFor($tenant),
+            'intelligenceSettings' => $intelligence->settingsFor($tenant),
+            'businessOsSettings' => $businessOs->settingsFor($tenant),
             'stats' => [
                 'users' => User::count(),
                 'branches' => Branch::count(),
@@ -42,6 +48,8 @@ class OrganizationController extends Controller
         Request $request,
         AuditLogger $audit,
         AiPolicyService $aiPolicy,
+        FieldIntelligenceSettingsService $intelligence,
+        BusinessOsIntegrationPolicyService $businessOs,
     ): RedirectResponse {
         $tenant = $request->user()->tenant;
 
@@ -49,31 +57,149 @@ class OrganizationController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'timezone' => ['required', 'timezone'],
             'contact_email' => ['nullable', 'email', 'max:191'],
+
             'ai_enabled' => ['sometimes', 'boolean'],
             'ai_allow_customer_data' => ['sometimes', 'boolean'],
-            'ai_history_retention_days' => ['sometimes', 'integer', 'in:0,30,60,90,180,365'],
+            'ai_history_retention_days' => [
+                'sometimes',
+                'integer',
+                'in:0,30,60,90,180,365',
+            ],
+
+            'smart_routes_enabled' => ['sometimes', 'boolean'],
+            'route_nearby_radius_km' => ['sometimes', 'numeric', 'between:0.5,25'],
+            'route_max_opportunities' => ['sometimes', 'integer', 'between:0,10'],
+
+            'territory_auto_assign_enabled' => ['sometimes', 'boolean'],
+            'territory_heat_map_enabled' => ['sometimes', 'boolean'],
+            'territory_under_covered_threshold_percent' => [
+                'sometimes',
+                'integer',
+                'between:1,100',
+            ],
+
+            'businessos_enabled' => ['sometimes', 'boolean'],
+            'businessos_organization_key' => ['nullable', 'string', 'max:120'],
+            'businessos_pull_products' => ['sometimes', 'boolean'],
+            'businessos_pull_customers' => ['sometimes', 'boolean'],
+            'businessos_pull_prices' => ['sometimes', 'boolean'],
+            'businessos_push_orders' => ['sometimes', 'boolean'],
+            'businessos_push_collections' => ['sometimes', 'boolean'],
+            'businessos_push_field_customers' => ['sometimes', 'boolean'],
+            'businessos_sync_interval_minutes' => [
+                'sometimes',
+                'integer',
+                'in:5,15,30,60,120,240',
+            ],
         ]);
 
         $old = $tenant->only(['name', 'timezone', 'contact_email', 'settings']);
         $settings = $tenant->settings ?? [];
 
-        if (array_key_exists('ai_enabled', $validated)) {
-            data_set($settings, 'ai.enabled', (bool) $validated['ai_enabled']);
-        }
-
-        if (array_key_exists('ai_allow_customer_data', $validated)) {
-            data_set(
-                $settings,
-                'ai.allow_customer_data',
-                (bool) $validated['ai_allow_customer_data'],
-            );
-        }
+        $this->setBoolean(
+            $settings,
+            'ai.enabled',
+            $validated,
+            'ai_enabled',
+        );
+        $this->setBoolean(
+            $settings,
+            'ai.allow_customer_data',
+            $validated,
+            'ai_allow_customer_data',
+        );
 
         if (array_key_exists('ai_history_retention_days', $validated)) {
             data_set(
                 $settings,
                 'ai.history_retention_days',
                 (int) $validated['ai_history_retention_days'],
+            );
+        }
+
+        $this->setBoolean(
+            $settings,
+            'intelligence.smart_routes.enabled',
+            $validated,
+            'smart_routes_enabled',
+        );
+
+        if (array_key_exists('route_nearby_radius_km', $validated)) {
+            data_set(
+                $settings,
+                'intelligence.smart_routes.nearby_radius_km',
+                (float) $validated['route_nearby_radius_km'],
+            );
+        }
+
+        if (array_key_exists('route_max_opportunities', $validated)) {
+            data_set(
+                $settings,
+                'intelligence.smart_routes.max_opportunities',
+                (int) $validated['route_max_opportunities'],
+            );
+        }
+
+        $this->setBoolean(
+            $settings,
+            'intelligence.territories.auto_assign_customers',
+            $validated,
+            'territory_auto_assign_enabled',
+        );
+        $this->setBoolean(
+            $settings,
+            'intelligence.territories.heat_map_enabled',
+            $validated,
+            'territory_heat_map_enabled',
+        );
+
+        if (array_key_exists(
+            'territory_under_covered_threshold_percent',
+            $validated,
+        )) {
+            data_set(
+                $settings,
+                'intelligence.territories.under_covered_threshold_percent',
+                (int) $validated['territory_under_covered_threshold_percent'],
+            );
+        }
+
+        $this->setBoolean(
+            $settings,
+            'businessos.enabled',
+            $validated,
+            'businessos_enabled',
+        );
+
+        if (array_key_exists('businessos_organization_key', $validated)) {
+            data_set(
+                $settings,
+                'businessos.organization_key',
+                trim((string) ($validated['businessos_organization_key'] ?? '')),
+            );
+        }
+
+        foreach ([
+            'pull_products',
+            'pull_customers',
+            'pull_prices',
+            'push_orders',
+            'push_collections',
+            'push_field_customers',
+        ] as $key) {
+            $this->setBoolean(
+                $settings,
+                'businessos.sync.'.$key,
+                $validated,
+                'businessos_'.$key,
+            );
+        }
+
+        if (array_key_exists('businessos_sync_interval_minutes', $validated)) {
+            data_set(
+                $settings,
+                'businessos.sync.interval_minutes',
+                (int) $validated['businessos_sync_interval_minutes'],
             );
         }
 
@@ -84,15 +210,32 @@ class OrganizationController extends Controller
             'settings' => $settings,
         ]);
 
+        $fresh = $tenant->fresh();
+
         $audit->record('organization.profile_updated', $tenant, $old, [
             'name' => $tenant->name,
             'timezone' => $tenant->timezone,
             'contact_email' => $tenant->contact_email,
             'settings' => $tenant->settings,
-            'effective_ai_policy' => $aiPolicy->settingsFor($tenant->fresh()),
+            'effective_ai_policy' => $aiPolicy->settingsFor($fresh),
+            'effective_intelligence_settings' => $intelligence->settingsFor($fresh),
+            'effective_businessos_policy' => $businessOs->settingsFor($fresh),
         ]);
 
         return back()->with('status', 'Organization profile updated.');
+    }
+
+    private function setBoolean(
+        array &$settings,
+        string $path,
+        array $validated,
+        string $input,
+    ): void {
+        if (! array_key_exists($input, $validated)) {
+            return;
+        }
+
+        data_set($settings, $path, (bool) $validated[$input]);
     }
 
     private function timezones(): array

@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\SalesmanAssignment;
 use App\Models\SalesRoute;
 use App\Models\Territory;
+use App\Services\FieldIntelligenceSettingsService;
 use App\Services\TerritoryLocator;
 use App\Support\ApiResponse;
 use Carbon\CarbonImmutable;
@@ -43,6 +44,7 @@ class MasterDataController extends Controller
     public function storeCustomer(
         MobileStoreCustomerRequest $request,
         TerritoryLocator $territoryLocator,
+        FieldIntelligenceSettingsService $intelligence,
     ): JsonResponse {
 
         $user = $request->user()->load(['salesman', 'tenant']);
@@ -58,7 +60,8 @@ class MasterDataController extends Controller
 
         $assignment = $this->currentSalesmanAssignment($request);
         $preferredBranchId = $assignment?->branch_id ?? $user->branch_id;
-        $detectedTerritory = isset($validated['latitude'], $validated['longitude'])
+        $detectedTerritory = $intelligence->territoryAutoAssignEnabled($user)
+            && isset($validated['latitude'], $validated['longitude'])
             ? $territoryLocator->locate(
                 (float) $validated['latitude'],
                 (float) $validated['longitude'],
@@ -124,6 +127,7 @@ class MasterDataController extends Controller
         MobileUpdateCustomerRequest $request,
         Customer $customer,
         TerritoryLocator $territoryLocator,
+        FieldIntelligenceSettingsService $intelligence,
     ): JsonResponse {
         $visible = Customer::query()->whereKey($customer->id);
         $this->applySalesmanCustomerScope($request, $visible);
@@ -160,7 +164,9 @@ class MasterDataController extends Controller
             ?? $assignment?->branch_id
             ?? $user->branch_id;
 
-        $detectedTerritory = $latitude !== null && $longitude !== null
+        $detectedTerritory = $intelligence->territoryAutoAssignEnabled($user)
+            && $latitude !== null
+            && $longitude !== null
             ? $territoryLocator->locate(
                 (float) $latitude,
                 (float) $longitude,
