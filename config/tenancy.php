@@ -23,6 +23,8 @@ return [
         'idle_alerts_enabled' => false,
         'idle_alert_after_minutes' => 30,
         'idle_alert_repeat_minutes' => 60,
+        'idle_escalation_enabled' => true,
+        'idle_escalate_after_minutes' => 30,
         'privacy_policy_version' => '1',
     ],
 ];
