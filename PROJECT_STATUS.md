@@ -1,6 +1,6 @@
 # Field Sales — Project Status
 
-_Last updated: 2026-09-19_
+_Last updated: 2026-09-26_
 
 ## Repository State
 
@@ -11,6 +11,15 @@ _Last updated: 2026-09-19_
 - GitHub is the source of truth. Chat history is not a substitute for repository state.
 
 ## Current Delivery Status
+
+Post-release-candidate hardening completed on 2026-09-26:
+- responsive mobile customer cards no longer collapse customer identity text under quick actions;
+- same-day attendance can be reopened after an accidental End Day while preserving the original session/start time and existing field work;
+- mobile login now supports optional tenant/company disambiguation by slug or UUID with user-friendly authentication errors;
+- supervisor and sales-manager mobile leadership login remains supported, including safe account switching on the same app installation;
+- the backend account-switch/tenant-login hardening is deployed to `https://fieldpulse.businessos.af`;
+- public production health checks `/ready` and `/up` returned HTTP 200 during the 2026-09-26 verification pass;
+- manual physical-device UAT is still required before Batch 19 can be marked complete.
 
 Batches 1–14 are complete. Batch 14 — Notifications, Alerts & Reporting — adds tenant-scoped notification delivery, evidence-based operational alerts, and exportable operational reports without weakening the existing RBAC, tenancy, or offline-first guarantees.
 

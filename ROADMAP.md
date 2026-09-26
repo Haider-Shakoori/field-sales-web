@@ -1,6 +1,6 @@
 # Field Sales SaaS — Development Roadmap
 
-_Last updated: 2026-09-19_
+_Last updated: 2026-09-26_
 
 ## Delivery Sequence
 
@@ -232,6 +232,18 @@ Validate the merged web/API and Android release candidate across continuous busi
 - Mobile post-merge CI #412 PASS at `ec30a1d44d234d04a4994795780428d3fe4d4c41`: format, analyze, 28 tests, debug APK, ephemeral signing, signed release AAB, signature verification and SHA-256 output all passed.
 - Web PR #31 merged the canonical FieldPulse production deployment profile at `5e1620ef43263eb46c9448a99730cb21fc43b79a`: `https://fieldpulse.businessos.af` for web/admin/backend and `https://fieldpulse.businessos.af/api/v1` for Android, with post-merge web-ci #888 PASS.
 - Mobile PR #13 merged the canonical production API profile at `a5d69a68e8729a21ace0e48880b1b88a589ea8e6`; post-merge mobile CI #416 PASS including format, analyze, 28 tests, debug APK, ephemeral signing, signed release AAB, signature verification and SHA-256 output. Batch 19 still remains manual-UAT pending.
+
+### September 26 release-candidate hardening
+
+Additional merged hardening since the original Batch 19 checklist:
+- mobile customer cards were made responsive at phone widths;
+- accidental same-day End Day can be reopened without creating a second attendance session;
+- mobile tenant/company selection and authentication error handling were hardened;
+- supervisor/sales-manager leadership login and same-installation account switching were regression-covered;
+- the UAT checklist now includes tenant ambiguity, leadership login, remembered company selection, and Reopen Day;
+- the canonical production `/ready` and `/up` endpoints were observed healthy on 2026-09-26.
+
+This does not change the Batch 19 completion rule: physical-device and non-production restore evidence are still mandatory.
 
 ### Manual UAT Still Required
 
