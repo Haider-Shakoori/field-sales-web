@@ -21,8 +21,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             BusinessOsConnector::class,
             fn ($app) => config('businessos.enabled', false)
-                ? $app->make(HttpBusinessOsConnector::class)
-                : $app->make(NullBusinessOsConnector::class),
+                && filled(config('businessos.base_url'))
+                && filled(config('businessos.token'))
+                    ? $app->make(HttpBusinessOsConnector::class)
+                    : $app->make(NullBusinessOsConnector::class),
         );
     }
 
