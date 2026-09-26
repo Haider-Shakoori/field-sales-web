@@ -159,11 +159,12 @@ final class OperationalAlertService
                 if ($supervisor?->is_active) {
                     $escalationKey = "idle-escalation:{$now->toDateString()}:{$session->salesman_id}:".intdiv($idleMinutes, max(1, $repeat));
 
-                    if (!OperationalNotification::query()
+                    if (! OperationalNotification::query()
                         ->where('user_id', $supervisor->id)
                         ->where('type', 'team.idle_escalation')
                         ->where('data->dedupe_key', $escalationKey)
-                        ->exists()) {
+                        ->exists()
+                    ) {
                         $this->notifications->notifySafely(
                             $supervisor,
                             'team.idle_escalation',
