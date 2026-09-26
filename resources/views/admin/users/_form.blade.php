@@ -50,7 +50,7 @@
         <input id="user-latitude" type="hidden" name="latitude" value="{{ $selectedLatitude }}">
         <input id="user-longitude" type="hidden" name="longitude" value="{{ $selectedLongitude }}">
 
-        <div id="user-location-map" class="h-[360px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950"></div>
+        <div id="user-location-map" class="overflow-hidden rounded-2xl border border-white/10 bg-slate-950" style="height:360px;min-height:300px;"></div>
         <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
             <span id="user-location-status">
                 @if($selectedLatitude !== '' && $selectedLongitude !== '')
