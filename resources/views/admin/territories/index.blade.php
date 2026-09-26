@@ -31,7 +31,7 @@
             </div>
             <button id="fit-territories" type="button" class="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10">Fit all territories</button>
         </div>
-        <div id="territories-map" class="h-[520px] bg-slate-950"></div>
+        <div id="territories-map" class="bg-slate-950" style="height:520px;min-height:340px;"></div>
     </section>
 
     <div class="grid gap-4 lg:grid-cols-2">
