@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\GamificationPoint;
 use App\Services\GamificationService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +15,7 @@ class GamificationController extends Controller
         $user = $request->user()->loadMissing(['tenant', 'salesman']);
         $enabled = $gamification->enabled($user->tenant);
 
-        if (! $enabled) {
+        if (!$enabled) {
             return ApiResponse::success(['enabled' => false]);
         }
 
