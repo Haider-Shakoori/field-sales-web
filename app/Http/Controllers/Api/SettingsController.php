@@ -35,6 +35,11 @@ class SettingsController extends Controller
             'route_enforce_workday_capacity' => $values['route_enforce_workday_capacity'],
             'territory_auto_assign_enabled' => $values['territory_auto_assign_enabled'],
             'territory_heat_map_enabled' => $values['territory_heat_map_enabled'],
+            'territory_under_covered_threshold_percent' => $values['territory_under_covered_threshold_percent'],
+            'territory_stale_customer_days' => $values['territory_stale_customer_days'],
+            'territory_stale_attention_percent' => $values['territory_stale_attention_percent'],
+            'territory_geometry_audit_enabled' => $values['territory_geometry_audit_enabled'],
+            'gamification_enabled' => $values['gamification_enabled'],
         ]);
     }
 }
