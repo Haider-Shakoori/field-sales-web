@@ -188,7 +188,7 @@ class SalesmanStockAndReturnsTest extends TestCase
             fn () => SalesReturn::where('uuid', $returnUuid)->firstOrFail(),
         );
 
-        $this->actingAs($actor['admin'])
+        $this->actingAs($actor['admin'], 'web')
             ->get(route('admin.returns.index'))
             ->assertOk()
             ->assertSee('All statuses');
