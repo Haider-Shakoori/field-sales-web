@@ -58,6 +58,26 @@ final class FieldIntelligenceSettingsService
                 100,
                 60,
             ),
+            'territory_stale_customer_days' => $this->integer(
+                data_get($settings, 'intelligence.territories.stale_customer_days', 30),
+                7,
+                180,
+                30,
+            ),
+            'territory_stale_attention_percent' => $this->integer(
+                data_get($settings, 'intelligence.territories.stale_attention_percent', 40),
+                1,
+                100,
+                40,
+            ),
+            'territory_geometry_audit_enabled' => $this->boolean(
+                data_get($settings, 'intelligence.territories.geometry_audit_enabled', true),
+                true,
+            ),
+            'gamification_enabled' => $this->boolean(
+                data_get($settings, 'engagement.gamification.enabled', false),
+                false,
+            ),
         ];
     }
 
@@ -104,6 +124,26 @@ final class FieldIntelligenceSettingsService
     public function territoryUnderCoveredThresholdPercent(User|Tenant $subject): int
     {
         return $this->settingsFor($this->tenant($subject))['territory_under_covered_threshold_percent'];
+    }
+
+    public function territoryStaleCustomerDays(User|Tenant $subject): int
+    {
+        return $this->settingsFor($this->tenant($subject))['territory_stale_customer_days'];
+    }
+
+    public function territoryStaleAttentionPercent(User|Tenant $subject): int
+    {
+        return $this->settingsFor($this->tenant($subject))['territory_stale_attention_percent'];
+    }
+
+    public function territoryGeometryAuditEnabled(User|Tenant $subject): bool
+    {
+        return $this->settingsFor($this->tenant($subject))['territory_geometry_audit_enabled'];
+    }
+
+    public function gamificationEnabled(User|Tenant $subject): bool
+    {
+        return $this->settingsFor($this->tenant($subject))['gamification_enabled'];
     }
 
     private function tenant(User|Tenant $subject): Tenant

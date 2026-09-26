@@ -191,7 +191,22 @@
                     >
                     <span>
                         <span class="block text-sm font-semibold text-slate-200">{{ __('Enable territory heat maps') }}</span>
-                        <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('Allows managers to compare coverage, visits, sales and collections geographically.') }}</span>
+                        <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('Allows managers to compare coverage, visits, customer density, stale accounts, sales and collections geographically.') }}</span>
+                    </span>
+                </label>
+
+                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                    <input type="hidden" name="territory_geometry_audit_enabled" value="0">
+                    <input
+                        type="checkbox"
+                        name="territory_geometry_audit_enabled"
+                        value="1"
+                        @checked((bool) old('territory_geometry_audit_enabled', $intelligenceSettings['territory_geometry_audit_enabled']))
+                        class="mt-1 rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500"
+                    >
+                    <span>
+                        <span class="block text-sm font-semibold text-slate-200">{{ __('Audit customer GPS against territory polygons') }}</span>
+                        <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('Flags mapped customers whose saved coordinates fall outside their assigned territory and identifies customers with no territory.') }}</span>
                     </span>
                 </label>
             </div>
@@ -247,6 +262,50 @@
                     </div>
                     <p class="mt-1 text-xs text-slate-500">{{ __('Territories below this visit coverage are highlighted for management attention.') }}</p>
                 </div>
+
+                <div>
+                    <label class="mb-2 block text-sm text-slate-300">{{ __('Stale customer age') }}</label>
+                    <div class="relative">
+                        <input type="number" min="7" max="180" name="territory_stale_customer_days" value="{{ old('territory_stale_customer_days', $intelligenceSettings['territory_stale_customer_days']) }}" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pe-14">
+                        <span class="pointer-events-none absolute inset-y-0 end-4 flex items-center text-xs text-slate-500">days</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">{{ __('A customer is treated as stale when no completed visit exists inside this number of days.') }}</p>
+                </div>
+
+                <div>
+                    <label class="mb-2 block text-sm text-slate-300">{{ __('Stale-account attention threshold') }}</label>
+                    <div class="relative">
+                        <input type="number" min="1" max="100" name="territory_stale_attention_percent" value="{{ old('territory_stale_attention_percent', $intelligenceSettings['territory_stale_attention_percent']) }}" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pe-10">
+                        <span class="pointer-events-none absolute inset-y-0 end-4 flex items-center text-xs text-slate-500">%</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">{{ __('Highlights territories when the stale-customer share reaches or exceeds this level.') }}</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="space-y-5 rounded-2xl border border-white/10 bg-slate-900 p-6">
+            <div>
+                <h2 class="font-semibold">{{ __('Gamification') }}</h2>
+                <p class="mt-1 text-sm text-slate-400">{{ __('Control whether verified FieldPulse business events may participate in future points, achievements, streaks and challenges.') }}</p>
+            </div>
+
+            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                <input type="hidden" name="gamification_enabled" value="0">
+                <input
+                    type="checkbox"
+                    name="gamification_enabled"
+                    value="1"
+                    @checked((bool) old('gamification_enabled', $intelligenceSettings['gamification_enabled']))
+                    class="mt-1 rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500"
+                >
+                <span>
+                    <span class="block text-sm font-semibold text-slate-200">{{ __('Enable gamification for this organization') }}</span>
+                    <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('Disabled by default. When off, FieldPulse does not award points, badges, streaks, challenges or leaderboard progress. Future rewards will only use verified business events such as completed visits, confirmed collections, approved orders and achieved targets.') }}</span>
+                </span>
+            </label>
+
+            <div class="rounded-xl border border-indigo-400/10 bg-indigo-500/5 px-4 py-3 text-xs leading-5 text-slate-400">
+                {{ __('This switch is the organization-level gate for all future gamification features. Individual gamification options will remain subordinate to this setting.') }}
             </div>
         </section>
 

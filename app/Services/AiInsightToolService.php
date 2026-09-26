@@ -213,13 +213,13 @@ class AiInsightToolService
 
         $tools[] = $this->tool(
             'get_territory_performance',
-            'Compare territory customer coverage, completed visits, approved sales or verified collections for a date range. Monetary metrics remain separated by currency.',
+            'Analyze territory coverage, stale customers, customer density, completed visits, GPS-to-polygon exceptions, approved sales and verified collections for a date range. Use this for territory comparisons, under-covered areas, stale coverage, customer concentration, unassigned customers, or geographic data-quality questions. Monetary metrics remain separated by currency.',
             [
                 'type' => 'object',
                 'properties' => [
                     'date_from' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
                     'date_to' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
-                    'metric' => ['type' => 'string', 'enum' => ['coverage', 'visits', 'sales', 'collections']],
+                    'metric' => ['type' => 'string', 'enum' => ['coverage', 'visits', 'density', 'stale', 'sales', 'collections']],
                     'currency' => ['type' => 'string', 'description' => 'Three-letter currency code for sales or collections.'],
                 ],
                 'required' => ['date_from', 'date_to', 'metric'],
@@ -812,17 +812,42 @@ class AiInsightToolService
 
         return [
             'filters' => $payload['filters'],
+            'thresholds' => [
+                'under_covered_percent' => $payload['under_covered_threshold_percent'],
+                'stale_customer_days' => $payload['stale_customer_days'],
+                'stale_attention_percent' => $payload['stale_attention_percent'],
+                'geometry_audit_enabled' => $payload['geometry_audit_enabled'],
+            ],
             'summary' => $payload['summary'],
+            'attention' => collect($payload['attention'])->map(fn (array $row) => [
+                'territory' => $row['name'],
+                'code' => $row['code'],
+                'reasons' => $row['attention_reasons'],
+                'coverage_percent' => $row['coverage_percent'],
+                'stale_percent' => $row['stale_percent'],
+                'outside_polygon_customers' => $row['outside_polygon_customers'],
+                'unmapped_customers' => $row['unmapped_customers'],
+            ])->all(),
             'territories' => collect($payload['territories'])->map(fn (array $row) => [
                 'territory' => $row['name'],
                 'code' => $row['code'],
                 'customers' => $row['customers'],
                 'visited_customers' => $row['visited_customers'],
                 'coverage_percent' => $row['coverage_percent'],
+                'stale_customers' => $row['stale_customers'],
+                'stale_percent' => $row['stale_percent'],
+                'area_km2' => $row['area_km2'],
+                'customer_density_per_km2' => $row['customer_density_per_km2'],
+                'outside_polygon_customers' => $row['outside_polygon_customers'],
+                'unmapped_customers' => $row['unmapped_customers'],
                 'visits' => $row['visits'],
+                'visits_per_customer' => $row['visits_per_customer'],
                 'sales' => $row['sales'],
+                'sales_per_customer' => $row['sales_per_customer'],
                 'collections' => $row['collections'],
+                'collections_per_customer' => $row['collections_per_customer'],
                 'currency' => $row['currency'],
+                'attention_reasons' => $row['attention_reasons'],
                 'metric_value' => $row['metric_value'],
             ])->all(),
         ];

@@ -67,9 +67,85 @@ class TerritoryHeatMapTest extends TestCase
         $this->actingAs($f['admin'])
             ->get(route('admin.territory-heat-map', ['date_from' => '2026-09-01', 'date_to' => '2026-09-25']))
             ->assertOk()
-            ->assertSee('Territory heat maps')
+            ->assertSee('Territory intelligence')
+            ->assertSee('Territory comparison')
             ->assertSee($f['territoryA']->name)
             ->assertSee($f['territoryB']->name);
+    }
+
+    public function test_territory_intelligence_detects_stale_unassigned_and_polygon_mismatch_customers(): void
+    {
+        $f = $this->fixture();
+        $this->activity($f, $f['customerA'], 1000, 'AFN', true);
+
+        app(TenantContext::class)->withTenant(
+            $f['tenant'],
+            function () use ($f): void {
+                Customer::create([
+                    'branch_id' => $f['branch']->id,
+                    'territory_id' => null,
+                    'code' => 'UNASSIGNED',
+                    'name' => 'Unassigned Customer',
+                    'latitude' => 34.57,
+                    'longitude' => 69.17,
+                    'created_by' => $f['admin']->id,
+                    'is_active' => true,
+                ]);
+
+                Customer::create([
+                    'branch_id' => $f['branch']->id,
+                    'territory_id' => $f['territoryA']->id,
+                    'code' => 'OUTSIDE',
+                    'name' => 'Outside Polygon Customer',
+                    'latitude' => 35.10,
+                    'longitude' => 70.10,
+                    'created_by' => $f['admin']->id,
+                    'is_active' => true,
+                ]);
+            },
+        );
+
+        $payload = app(TenantContext::class)->withTenant(
+            $f['tenant'],
+            fn () => app(TerritoryHeatMapService::class)->build(
+                $f['admin'],
+                [
+                    'date_from' => '2026-09-01',
+                    'date_to' => '2026-09-25',
+                    'metric' => 'density',
+                    'currency' => 'AFN',
+                ],
+            ),
+        );
+
+        $territoryA = collect($payload['territories'])
+            ->firstWhere('id', $f['territoryA']->uuid);
+        $territoryB = collect($payload['territories'])
+            ->firstWhere('id', $f['territoryB']->uuid);
+
+        $this->assertGreaterThan(0, $territoryA['area_km2']);
+        $this->assertGreaterThan(0, $territoryA['customer_density_per_km2']);
+        $this->assertSame(1, $territoryA['outside_polygon_customers']);
+        $this->assertContains(
+            'customer_coordinates_outside_polygon',
+            $territoryA['attention_reasons'],
+        );
+        $this->assertSame(1, $territoryB['stale_customers']);
+        $this->assertSame(100.0, $territoryB['stale_percent']);
+        $this->assertContains(
+            'stale_customer_share_high',
+            $territoryB['attention_reasons'],
+        );
+        $this->assertSame(1, $payload['summary']['unassigned_customers']);
+        $this->assertSame(1, $payload['summary']['outside_polygon_customers']);
+        $this->assertSame(
+            'Unassigned Customer',
+            $payload['unassigned_customers'][0]['name'],
+        );
+        $this->assertSame(
+            'Outside Polygon Customer',
+            $payload['outside_polygon_customers'][0]['name'],
+        );
     }
 
     public function test_supervisor_only_sees_currently_supervised_territory(): void
