@@ -292,7 +292,7 @@ class AiInsightsService
                 'question' => trim($question),
                 'snapshot' => collect($snapshot)->except('recommendations')->all(),
                 'locale' => app()->getLocale(),
-                'instructions' => 'Answer only from the supplied FieldPulse aggregate snapshot. Do not invent customer-level details, names, forecasts, or facts that are not present. Respond in the requested locale when supported.',
+                'instructions' => 'Answer only from the supplied FieldPulse aggregate snapshot. Do not invent customer-level details, names, forecasts, or facts that are not present. Write polished human-readable Markdown: lead with the answer, use short paragraphs, bullets for multiple findings/actions, bold important figures, and tables only when a real comparison benefits from one. Never output raw JSON, database field names, or internal tool-style labels. Respond in the requested locale when supported.',
             ]);
 
             if (! $response->successful()) {
@@ -316,45 +316,50 @@ class AiInsightsService
         $question = Str::lower(trim($question));
 
         if (Str::contains($question, ['sale', 'revenue', 'order'])) {
-            return __('Approved sales in the last 7 days: :sales. Pending orders: :pending.', [
-                'sales' => $this->currencySummary($snapshot['approved_sales_7d']),
-                'pending' => $snapshot['pending_orders'],
-            ]);
+            return "### Sales summary\n"
+                ."- **Approved sales (last 7 days):** ".$this->currencySummaryMarkdown($snapshot['approved_sales_7d'])."\n"
+                ."- **Pending orders:** ".number_format((int) $snapshot['pending_orders'])."\n\n"
+                ."**Next step:** Review pending orders that are blocking fulfillment or approval.";
         }
 
         if (Str::contains($question, ['collection', 'payment', 'cash'])) {
-            return __('Verified collections in the last 7 days: :collections. Pending collections: :pending.', [
-                'collections' => $this->currencySummary($snapshot['verified_collections_7d']),
-                'pending' => $snapshot['pending_collections'],
-            ]);
+            return "### Collections summary\n"
+                ."- **Verified collections (last 7 days):** ".$this->currencySummaryMarkdown($snapshot['verified_collections_7d'])."\n"
+                ."- **Pending collections:** ".number_format((int) $snapshot['pending_collections'])."\n\n"
+                ."**Next step:** Verify pending collection evidence and reconcile any customer balances that remain open.";
         }
 
         if (Str::contains($question, ['visit', 'customer', 'coverage'])) {
-            return __('Visits today: :visits. Active customers without a visit in 30 days: :customers.', [
-                'visits' => $snapshot['visits_today'],
-                'customers' => $snapshot['customers_not_visited_30_days'],
-            ]);
+            return "### Coverage snapshot\n"
+                ."- **Visits today:** ".number_format((int) $snapshot['visits_today'])."\n"
+                ."- **Active customers not visited in 30 days:** ".number_format((int) $snapshot['customers_not_visited_30_days'])."\n\n"
+                ."**What this means:** Stale customers should be prioritized in the Daily Planner when coverage is falling behind.";
         }
 
         if (Str::contains($question, ['follow', 'task', 'priority'])) {
-            return __('Overdue follow-ups: :overdue. Open high-priority follow-ups: :high.', [
-                'overdue' => $snapshot['overdue_followups'],
-                'high' => $snapshot['high_priority_followups'],
-            ]);
+            return "### Follow-up workload\n"
+                ."- **Overdue follow-ups:** ".number_format((int) $snapshot['overdue_followups'])."\n"
+                ."- **Open high-priority follow-ups:** ".number_format((int) $snapshot['high_priority_followups'])."\n\n"
+                ."**Next step:** Clear overdue items first, then schedule the remaining high-priority follow-ups into today's field plan.";
         }
 
         if (Str::contains($question, ['attendance', 'start day', 'salesman', 'team'])) {
-            return __(':started of :active active salesmen have started work today.', [
-                'started' => $snapshot['salesmen_started_today'],
-                'active' => $snapshot['active_salesmen'],
-            ]);
+            $started = (int) $snapshot['salesmen_started_today'];
+            $active = (int) $snapshot['active_salesmen'];
+            $notStarted = max(0, $active - $started);
+
+            return "**{$started} of {$active} active salesmen have started work today.**"
+                .($notStarted > 0
+                    ? "\n\n- **Not started:** {$notStarted}\n- Check leave, delayed Start Day, device, or connectivity issues for those users."
+                    : "\n\nAll active salesmen currently have a work session for today.");
         }
 
         $top = $snapshot['recommendations'][0];
 
-        return __($top['title']).': '
+        return "### What needs attention\n"
+            ."**".__($top['title'])."**\n\n"
             .__($top['message'], $top['message_params'] ?? [])
-            .' '.__($top['action']);
+            ."\n\n**Recommended next action:** ".__($top['action']);
     }
 
     private function currencySummary(array $values): string
@@ -365,6 +370,17 @@ class AiInsightsService
 
         return collect($values)
             ->map(fn ($value, $currency) => $currency.' '.number_format((float) $value, 2))
+            ->implode(', ');
+    }
+
+    private function currencySummaryMarkdown(array $values): string
+    {
+        if ($values === []) {
+            return '**'.__('None recorded').'**';
+        }
+
+        return collect($values)
+            ->map(fn ($value, $currency) => '**'.$currency.' '.number_format((float) $value, 2).'**')
             ->implode(', ');
     }
 }
