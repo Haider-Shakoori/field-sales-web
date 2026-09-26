@@ -71,6 +71,27 @@ class TerritoryLocator
         }
 
         $type = $geometry['type'] ?? null;
+
+        if ($type === 'Feature') {
+            return $this->geometryContains(
+                $geometry['geometry'] ?? null,
+                $latitude,
+                $longitude,
+            );
+        }
+
+        if ($type === 'FeatureCollection') {
+            return collect($geometry['features'] ?? [])
+                ->contains(
+                    fn ($feature): bool => is_array($feature)
+                        && $this->geometryContains(
+                            $feature,
+                            $latitude,
+                            $longitude,
+                        )
+                );
+        }
+
         $coordinates = $geometry['coordinates'] ?? null;
 
         if (! is_array($coordinates)) {
