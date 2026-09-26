@@ -27,8 +27,8 @@ class MobileStoreCustomerRequest extends FormRequest
             'alternate_phone' => ['nullable', 'string', 'max:60'],
             'email' => ['nullable', 'email', 'max:191'],
             'address' => ['nullable', 'string', 'max:2000'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
             'geofence_radius_meters' => ['nullable', 'integer', 'between:25,1000'],
             'price_list_id' => ['nullable', 'uuid'],
         ];
