@@ -145,8 +145,10 @@ final class OperationalAlertService
             );
             $sent++;
 
-            if ($settings['idle_escalation_enabled']
-                && $idleMinutes >= $threshold + (int) $settings['idle_escalate_after_minutes']) {
+            if (
+                $settings['idle_escalation_enabled']
+                && $idleMinutes >= $threshold + (int) $settings['idle_escalate_after_minutes']
+            ) {
                 $assignment = SalesmanAssignment::with('supervisor.user')
                     ->where('salesman_id', $session->salesman_id)
                     ->current($now->toDateString())
@@ -157,7 +159,7 @@ final class OperationalAlertService
                 if ($supervisor?->is_active) {
                     $escalationKey = "idle-escalation:{$now->toDateString()}:{$session->salesman_id}:".intdiv($idleMinutes, max(1, $repeat));
 
-                    if (! OperationalNotification::query()
+                    if (!OperationalNotification::query()
                         ->where('user_id', $supervisor->id)
                         ->where('type', 'team.idle_escalation')
                         ->where('data->dedupe_key', $escalationKey)
