@@ -7,7 +7,7 @@
         <form method="GET" class="flex gap-2">
             <select name="status" class="rounded-xl border border-white/10 bg-slate-950 px-4 py-2.5">
                 <option value="">{{ __('All statuses') }}</option>
-                @foreach(AppModelsSalesReturn::STATUSES as $value)
+                @foreach(\App\Models\SalesReturn::STATUSES as $value)
                     <option value="{{ $value }}" @selected($status === $value)>{{ __(str($value)->title()->toString()) }}</option>
                 @endforeach
             </select>
