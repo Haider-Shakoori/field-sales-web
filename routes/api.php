@@ -32,6 +32,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/attendance/today', [AttendanceController::class, 'today']);
         Route::get('/attendance/history', [AttendanceController::class, 'history']);
+        Route::get('/attendance/end-day-preview', [AttendanceController::class, 'endDayPreview']);
         Route::get('/gps/current', [GpsController::class, 'current']);
         Route::get('/gps/history', [GpsController::class, 'history']);
         Route::get('/settings/attendance-tracking', [SettingsController::class, 'show']);
