@@ -14,6 +14,7 @@ use App\Services\AuditLogger;
 use App\Services\Customer360Service;
 use App\Services\CustomerBalanceService;
 use App\Services\CustomerReorderRecommendationService;
+use App\Services\FieldIntelligenceSettingsService;
 use App\Services\TerritoryLocator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,11 +56,13 @@ class CustomerController extends Controller
         StoreCustomerRequest $request,
         AuditLogger $audit,
         TerritoryLocator $territoryLocator,
+        FieldIntelligenceSettingsService $intelligence,
     ): RedirectResponse {
         $validated = $request->validated();
 
         if (
-            empty($validated['territory_id'])
+            $intelligence->territoryAutoAssignEnabled($request->user())
+            && empty($validated['territory_id'])
             && isset($validated['latitude'], $validated['longitude'])
         ) {
             $detected = $territoryLocator->locate(
@@ -124,12 +127,14 @@ class CustomerController extends Controller
         Customer $customer,
         AuditLogger $audit,
         TerritoryLocator $territoryLocator,
+        FieldIntelligenceSettingsService $intelligence,
     ): RedirectResponse {
         $before = $this->auditValues($customer);
         $validated = $request->validated();
 
         if (
-            empty($validated['territory_id'])
+            $intelligence->territoryAutoAssignEnabled($request->user())
+            && empty($validated['territory_id'])
             && isset($validated['latitude'], $validated['longitude'])
         ) {
             $detected = $territoryLocator->locate(
