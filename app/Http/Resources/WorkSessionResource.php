@@ -61,6 +61,7 @@ class WorkSessionResource extends JsonResource
             'distance_calculated_at' => $this->distance_calculated_at?->toISOString(),
             'is_late_start' => (bool) $this->is_late_start,
             'is_early_finish' => (bool) $this->is_early_finish,
+            'notes' => $this->notes,
         ];
     }
 }
