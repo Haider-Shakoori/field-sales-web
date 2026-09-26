@@ -25,6 +25,7 @@ use App\Http\Controllers\Web\LeadController;
 use App\Http\Controllers\Web\LiveMapController;
 use App\Http\Controllers\Web\LocaleController;
 use App\Http\Controllers\Web\MileageController;
+use App\Http\Controllers\Web\MobileDiagnosticController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Web\OrganizationController;
@@ -178,6 +179,10 @@ Route::middleware('auth')->group(function () {
         Route::resource('supervisors', SupervisorController::class)
             ->middlewareFor(['index', 'show'], 'permission:sales-team:view')
             ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:sales-team:manage');
+
+        Route::get('/mobile-diagnostics', [MobileDiagnosticController::class, 'index'])
+            ->middleware('permission:sales-team:view')
+            ->name('mobile-diagnostics.index');
 
         Route::get('/devices', [DeviceController::class, 'index'])
             ->middleware('permission:sales-team:view')

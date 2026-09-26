@@ -31,7 +31,7 @@ class AuthController extends Controller
         ]);
 
         $matches = $context->withAuthenticationBootstrapScope(function () use ($validated) {
-            return User::with(['tenant', 'salesman', 'roles.permissions'])
+            return User::with(['tenant', 'salesman', 'supervisor', 'roles.permissions'])
                 ->where('email', $validated['email'])
                 ->when(
                     $validated['tenant'] ?? null,
@@ -67,12 +67,21 @@ class AuthController extends Controller
             );
         }
 
-        if (! $user->salesman || ! $user->salesman->is_active) {
+        $managementRoles = ['sales_manager', 'owner', 'company_admin'];
+
+        $mobileRole = match (true) {
+            $user->salesman?->is_active => 'salesman',
+            $user->supervisor?->is_active => 'supervisor',
+            in_array((string) $user->role, $managementRoles, true) => (string) $user->role,
+            default => null,
+        };
+
+        if ($mobileRole === null) {
             return ApiResponse::error(
-                'No active salesman profile is linked to this user.',
-                422,
+                'This account is not enabled for the mobile app.',
+                403,
                 null,
-                'SALESMAN_REQUIRED'
+                'MOBILE_ROLE_UNSUPPORTED'
             );
         }
 
@@ -124,7 +133,7 @@ class AuthController extends Controller
             );
         }
 
-        $other = Device::where('salesman_id', $user->salesman->id)
+        $other = Device::where('user_id', $user->id)
             ->where('is_active', true)
             ->whereNull('revoked_at')
             ->when($existing, fn ($query) => $query->whereKeyNot($existing->id))
@@ -151,7 +160,7 @@ class AuthController extends Controller
                 'installation_uuid' => $installationUuid,
             ],
             [
-                'salesman_id' => $user->salesman->id,
+                'salesman_id' => $user->salesman?->id,
                 'device_uuid' => $deviceUuid,
                 'device_model' => $validated['device_model'] ?? null,
                 'manufacturer' => $validated['manufacturer'] ?? null,
@@ -187,13 +196,19 @@ class AuthController extends Controller
                 'id' => $user->uuid,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->role,
+                'role' => $mobileRole,
             ],
-            'salesman' => [
+            'profile_type' => $mobileRole,
+            'salesman' => $user->salesman ? [
                 'id' => $user->salesman->uuid,
                 'employee_code' => $user->salesman->employee_code,
                 'name' => $user->salesman->full_name,
-            ],
+            ] : null,
+            'supervisor' => $user->supervisor ? [
+                'id' => $user->supervisor->uuid,
+                'employee_code' => $user->supervisor->employee_code,
+                'name' => $user->supervisor->full_name,
+            ] : null,
             'tenant' => [
                 'id' => $user->tenant->uuid,
                 'name' => $user->tenant->name,
@@ -213,7 +228,7 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         /** @var User $user */
-        $user = $request->user();
+        $user = $request->user()->loadMissing(['tenant', 'salesman', 'supervisor']);
         /** @var Device|null $device */
         $device = $request->attributes->get('device');
 
@@ -224,11 +239,17 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->role,
             ],
-            'salesman' => [
-                'id' => $user->salesman?->uuid,
-                'employee_code' => $user->salesman?->employee_code,
-                'name' => $user->salesman?->full_name,
-            ],
+            'profile_type' => $user->role,
+            'salesman' => $user->salesman ? [
+                'id' => $user->salesman->uuid,
+                'employee_code' => $user->salesman->employee_code,
+                'name' => $user->salesman->full_name,
+            ] : null,
+            'supervisor' => $user->supervisor ? [
+                'id' => $user->supervisor->uuid,
+                'employee_code' => $user->supervisor->employee_code,
+                'name' => $user->supervisor->full_name,
+            ] : null,
             'tenant' => [
                 'id' => $user->tenant->uuid,
                 'name' => $user->tenant->name,
