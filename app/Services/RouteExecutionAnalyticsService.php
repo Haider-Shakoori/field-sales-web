@@ -191,8 +191,7 @@ final class RouteExecutionAnalyticsService
         CarbonImmutable $localDate,
         string $timezone,
         string $workdayEnd,
-    ): bool
-    {
+    ): bool {
         $now = CarbonImmutable::now($timezone);
 
         if ($localDate->lt($now->startOfDay())) {
