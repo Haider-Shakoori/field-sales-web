@@ -186,7 +186,7 @@
                                     @endforelse
                                 </td>
                                 <td class="px-5 py-4">
-                                    {{ $stop['last_visited_at'] ? \Carbon\CarbonImmutable::parse($stop['last_visited_at'])->format('Y-m-d') : __('Never') }}
+                                    {{ $stop['last_visited_at'] ? date('Y-m-d', strtotime($stop['last_visited_at'])) : __('Never') }}
                                 </td>
                                 <td class="px-5 py-4">
                                     <div>{{ $stop['distance_from_previous_km'] === null ? '—' : number_format($stop['distance_from_previous_km'], 1).' km' }}</div>
