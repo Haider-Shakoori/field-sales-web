@@ -5,6 +5,7 @@ return [
     'base_url' => env('BUSINESSOS_INTEGRATION_BASE_URL'),
     'token' => env('BUSINESSOS_INTEGRATION_TOKEN'),
     'timeout_seconds' => (int) env('BUSINESSOS_INTEGRATION_TIMEOUT', 20),
+    'push_batch_size' => (int) env('BUSINESSOS_INTEGRATION_PUSH_BATCH_SIZE', 200),
 
     'paths' => [
         'health' => env(
