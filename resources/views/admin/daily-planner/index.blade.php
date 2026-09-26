@@ -198,7 +198,7 @@
                                     @if($stop['visited_today'])
                                         <span class="rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300">{{ __('Completed') }}</span>
                                     @elseif($stop['estimated_arrival_at'])
-                                        <div class="font-medium">{{ CarbonCarbonImmutable::parse($stop['estimated_arrival_at'])->format('H:i') }}</div>
+                                        <div class="font-medium">{{ date('H:i', strtotime($stop['estimated_arrival_at'])) }}</div>
                                         <div class="mt-1 text-xs {{ $stop['capacity_status'] === 'overflow' ? 'text-rose-300' : 'text-slate-500' }}">
                                             {{ $stop['capacity_status'] === 'overflow' ? __('Outside planned capacity') : __('Fits workday') }}
                                         </div>
