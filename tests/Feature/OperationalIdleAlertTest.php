@@ -107,12 +107,18 @@ class OperationalIdleAlertTest extends TestCase
                 'device_id' => $device->id,
                 'date' => today(),
                 'start_time' => now()->subHours(2),
+                'start_latitude' => 34.5,
+                'start_longitude' => 69.2,
+                'start_accuracy' => 8,
                 'status' => 'active',
             ]);
             CurrentLocation::create([
+                'user_id' => $salesUser->id,
+                'device_id' => $device->id,
                 'salesman_id' => $salesman->id,
                 'latitude' => 34.5,
                 'longitude' => 69.2,
+                'horizontal_accuracy' => 8,
                 'recorded_at' => now()->subMinutes(70),
                 'received_at' => now()->subMinutes(70),
             ]);
