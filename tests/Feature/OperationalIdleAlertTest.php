@@ -84,13 +84,13 @@ class OperationalIdleAlertTest extends TestCase
                 'last_name' => 'Supervisor',
                 'is_active' => true,
             ]);
+            $localDate = CarbonImmutable::now('Asia/Kabul')->toDateString();
+
             SalesmanAssignment::create([
                 'salesman_id' => $salesman->id,
                 'supervisor_id' => $supervisor->id,
                 'effective_from' => CarbonImmutable::parse($localDate)->subDay()->toDateString(),
             ]);
-
-            $localDate = CarbonImmutable::now('Asia/Kabul')->toDateString();
 
             $device = Device::create([
                 'user_id' => $salesUser->id,
