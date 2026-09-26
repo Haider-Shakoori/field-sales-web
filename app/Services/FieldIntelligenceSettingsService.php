@@ -28,6 +28,22 @@ final class FieldIntelligenceSettingsService
                 10,
                 10,
             ),
+            'route_average_speed_kph' => $this->floating(
+                data_get($settings, 'intelligence.smart_routes.average_speed_kph', 25),
+                5,
+                100,
+                25,
+            ),
+            'route_time_buffer_minutes' => $this->integer(
+                data_get($settings, 'intelligence.smart_routes.time_buffer_minutes', 30),
+                0,
+                180,
+                30,
+            ),
+            'route_enforce_workday_capacity' => $this->boolean(
+                data_get($settings, 'intelligence.smart_routes.enforce_workday_capacity', true),
+                true,
+            ),
             'territory_auto_assign_enabled' => $this->boolean(
                 data_get($settings, 'intelligence.territories.auto_assign_customers', true),
                 true,
@@ -58,6 +74,21 @@ final class FieldIntelligenceSettingsService
     public function routeMaxOpportunities(User|Tenant $subject): int
     {
         return $this->settingsFor($this->tenant($subject))['route_max_opportunities'];
+    }
+
+    public function routeAverageSpeedKph(User|Tenant $subject): float
+    {
+        return $this->settingsFor($this->tenant($subject))['route_average_speed_kph'];
+    }
+
+    public function routeTimeBufferMinutes(User|Tenant $subject): int
+    {
+        return $this->settingsFor($this->tenant($subject))['route_time_buffer_minutes'];
+    }
+
+    public function routeEnforceWorkdayCapacity(User|Tenant $subject): bool
+    {
+        return $this->settingsFor($this->tenant($subject))['route_enforce_workday_capacity'];
     }
 
     public function territoryAutoAssignEnabled(User|Tenant $subject): bool
