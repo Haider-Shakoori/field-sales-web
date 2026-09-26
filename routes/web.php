@@ -22,6 +22,7 @@ use App\Http\Controllers\Web\DailyRoutePlannerController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\ExpenseController;
+use App\Http\Controllers\Web\GamificationController;
 use App\Http\Controllers\Web\LeadController;
 use App\Http\Controllers\Web\LiveMapController;
 use App\Http\Controllers\Web\LocaleController;
@@ -168,6 +169,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/management-intelligence', [ManagementIntelligenceController::class, 'index'])
             ->middleware('permission:reports:view')
             ->name('management-intelligence.index');
+
+        Route::get('/gamification', GamificationController::class)
+            ->middleware('permission:reports:view')
+            ->name('gamification.index');
 
         Route::get('/scorecards', [SupervisorScorecardController::class, 'index'])
             ->middleware('permission:reports:view')
