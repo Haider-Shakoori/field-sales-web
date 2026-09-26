@@ -55,6 +55,57 @@ class MobileLeadershipModeTest extends TestCase
             ->assertJsonMissing(['employee_code' => 'SAL-OUTSIDE']);
     }
 
+    public function test_same_installation_can_switch_from_salesman_to_supervisor(): void
+    {
+        $fixture = $this->fixture();
+        $headers = $this->deviceHeaders('shared-install', 'shared-device');
+
+        $salesmanLogin = $this->withHeaders($headers)
+            ->postJson('/api/v1/auth/login', [
+                'email' => $fixture['assignedUser']->email,
+                'password' => 'password',
+                'device_uuid' => 'shared-device',
+                'app_version' => '1.0.0',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.user.role', 'salesman');
+
+        $salesmanToken = $salesmanLogin->json('data.token');
+        $salesmanDeviceUuid = $salesmanLogin->json('data.device.id');
+
+        $this->withHeaders($headers)
+            ->postJson('/api/v1/auth/login', [
+                'email' => $fixture['supervisorUser']->email,
+                'password' => 'password',
+                'device_uuid' => 'shared-device',
+                'app_version' => '1.0.0',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.user.role', 'supervisor')
+            ->assertJsonPath('data.salesman', null)
+            ->assertJsonPath('data.device.installation_uuid', 'shared-install');
+
+        app(TenantContext::class)->withTenant(
+            $fixture['tenant'],
+            function () use ($fixture, $salesmanDeviceUuid): void {
+                $retired = Device::where('uuid', $salesmanDeviceUuid)->firstOrFail();
+                $current = Device::where('user_id', $fixture['supervisorUser']->id)
+                    ->where('installation_uuid', 'shared-install')
+                    ->firstOrFail();
+
+                $this->assertFalse($retired->is_active);
+                $this->assertNotNull($retired->revoked_at);
+                $this->assertStringStartsWith('reassigned-', $retired->installation_uuid);
+                $this->assertNull($current->salesman_id);
+                $this->assertTrue($current->is_active);
+            },
+        );
+
+        $this->withHeaders([...$headers, 'Authorization' => 'Bearer '.$salesmanToken])
+            ->getJson('/api/v1/auth/me')
+            ->assertUnauthorized();
+    }
+
     public function test_sales_manager_mobile_team_is_scoped_to_reporting_supervisors(): void
     {
         $fixture = $this->fixture();
