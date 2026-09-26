@@ -544,6 +544,7 @@ class AiInsightsTest extends TestCase
             $this->assertContains('get_expenses', $names);
             $this->assertContains('get_salesman_stock', $names);
             $this->assertContains('get_returns', $names);
+            $this->assertContains('get_management_intelligence', $names);
             $this->assertContains('get_scorecards', $names);
             $this->assertContains('get_mileage_summary', $names);
             $this->assertContains('get_route_execution', $names);

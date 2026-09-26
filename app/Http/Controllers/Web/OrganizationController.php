@@ -83,6 +83,16 @@ class OrganizationController extends Controller
             'territory_stale_customer_days' => ['sometimes', 'integer', 'between:7,180'],
             'territory_stale_attention_percent' => ['sometimes', 'integer', 'between:1,100'],
             'territory_geometry_audit_enabled' => ['sometimes', 'boolean'],
+            'management_route_progress_tolerance_percent' => [
+                'sometimes',
+                'integer',
+                'between:0,50',
+            ],
+            'management_target_attention_percent' => [
+                'sometimes',
+                'integer',
+                'between:1,100',
+            ],
             'gamification_enabled' => ['sometimes', 'boolean'],
 
             'businessos_organization_key' => ['nullable', 'string', 'max:120'],
@@ -215,6 +225,28 @@ class OrganizationController extends Controller
             $validated,
             'territory_geometry_audit_enabled',
         );
+        if (array_key_exists(
+            'management_route_progress_tolerance_percent',
+            $validated,
+        )) {
+            data_set(
+                $settings,
+                'intelligence.management.route_progress_tolerance_percent',
+                (int) $validated['management_route_progress_tolerance_percent'],
+            );
+        }
+
+        if (array_key_exists(
+            'management_target_attention_percent',
+            $validated,
+        )) {
+            data_set(
+                $settings,
+                'intelligence.management.target_attention_percent',
+                (int) $validated['management_target_attention_percent'],
+            );
+        }
+
         $this->setBoolean(
             $settings,
             'engagement.gamification.enabled',

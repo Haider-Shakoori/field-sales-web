@@ -280,6 +280,24 @@
                     </div>
                     <p class="mt-1 text-xs text-slate-500">{{ __('Highlights territories when the stale-customer share reaches or exceeds this level.') }}</p>
                 </div>
+
+                <div>
+                    <label class="mb-2 block text-sm text-slate-300">{{ __('Route progress tolerance') }}</label>
+                    <div class="relative">
+                        <input type="number" min="0" max="50" name="management_route_progress_tolerance_percent" value="{{ old('management_route_progress_tolerance_percent', $intelligenceSettings['management_route_progress_tolerance_percent']) }}" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pe-10">
+                        <span class="pointer-events-none absolute inset-y-0 end-4 flex items-center text-xs text-slate-500">%</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">{{ __('A route is flagged as behind when actual completion trails expected workday progress by more than this many percentage points.') }}</p>
+                </div>
+
+                <div>
+                    <label class="mb-2 block text-sm text-slate-300">{{ __('Target attention threshold') }}</label>
+                    <div class="relative">
+                        <input type="number" min="1" max="100" name="management_target_attention_percent" value="{{ old('management_target_attention_percent', $intelligenceSettings['management_target_attention_percent']) }}" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pe-10">
+                        <span class="pointer-events-none absolute inset-y-0 end-4 flex items-center text-xs text-slate-500">%</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">{{ __('Salesmen below this average active-target progress are highlighted for management review.') }}</p>
+                </div>
             </div>
         </section>
 
