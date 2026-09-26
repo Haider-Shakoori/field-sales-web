@@ -176,6 +176,100 @@ class Batch4CustomersTerritoriesRoutesTest extends TestCase
         }
     }
 
+    public function test_web_customer_map_can_auto_detect_territory_when_not_selected(): void
+    {
+        $tenant = $this->tenant('customer-map-auto-territory');
+
+        [$admin, $branch, $first, $second] = $this->platform(function () use ($tenant): array {
+            $admin = $this->userWithRole(
+                $tenant,
+                'admin@customer-map.local',
+                ['customers:view', 'customers:manage'],
+                'company_admin',
+            );
+
+            $branch = Branch::create([
+                'tenant_id' => $tenant->id,
+                'name' => 'Kabul',
+                'code' => 'KBL',
+                'is_active' => true,
+            ]);
+
+            $first = Territory::create([
+                'tenant_id' => $tenant->id,
+                'branch_id' => $branch->id,
+                'code' => 'MAP-1',
+                'name' => 'Map One',
+                'polygon' => [
+                    'type' => 'Polygon',
+                    'coordinates' => [[
+                        [69.10, 34.50],
+                        [69.30, 34.50],
+                        [69.30, 34.70],
+                        [69.10, 34.70],
+                        [69.10, 34.50],
+                    ]],
+                ],
+                'is_active' => true,
+            ]);
+
+            $second = Territory::create([
+                'tenant_id' => $tenant->id,
+                'branch_id' => $branch->id,
+                'code' => 'MAP-2',
+                'name' => 'Map Two',
+                'polygon' => [
+                    'type' => 'Polygon',
+                    'coordinates' => [[
+                        [69.35, 34.75],
+                        [69.55, 34.75],
+                        [69.55, 34.95],
+                        [69.35, 34.95],
+                        [69.35, 34.75],
+                    ]],
+                ],
+                'is_active' => true,
+            ]);
+
+            return [$admin, $branch, $first, $second];
+        });
+
+        $this->actingAs($admin)
+            ->post(route('admin.customers.store'), [
+                'branch_id' => $branch->id,
+                'territory_id' => '',
+                'code' => 'AUTO-MAP',
+                'name' => 'Auto Territory Shop',
+                'latitude' => '34.60',
+                'longitude' => '69.20',
+                'geofence_radius_meters' => '100',
+                'is_active' => '1',
+            ])
+            ->assertRedirect();
+
+        $customer = $this->tenantScope(
+            $tenant,
+            fn () => Customer::where('code', 'AUTO-MAP')->firstOrFail()
+        );
+
+        $this->assertSame($first->id, $customer->territory_id);
+
+        $this->actingAs($admin)
+            ->put(route('admin.customers.update', $customer), [
+                'branch_id' => $branch->id,
+                'territory_id' => '',
+                'code' => 'AUTO-MAP',
+                'name' => 'Auto Territory Shop',
+                'latitude' => '34.85',
+                'longitude' => '69.45',
+                'geofence_radius_meters' => '100',
+                'is_active' => '1',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame($second->id, $customer->fresh()->territory_id);
+    }
+
     public function test_cross_tenant_customer_territory_and_route_bindings_are_hidden(): void
     {
         $tenantA = $this->tenant('batch4-a');

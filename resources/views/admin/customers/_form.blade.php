@@ -36,7 +36,7 @@
     <label class="block">
         <span class="text-sm text-slate-300">{{ __('Territory') }}</span>
         <select id="customer-territory-select" name="territory_id" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
-            <option value="">{{ __('Unassigned') }}</option>
+            <option value="">{{ __('Auto-detect from map') }}</option>
             @foreach($territories as $territory)
                 <option value="{{ $territory->id }}" @selected((string) $selectedTerritoryId === (string) $territory->id)>{{ $territory->code }} — {{ $territory->name }}</option>
             @endforeach
@@ -236,6 +236,59 @@
         return null;
     };
 
+    const pointInRing = (ring, lat, lng) => {
+        if (!Array.isArray(ring) || ring.length < 3) return false;
+
+        let inside = false;
+
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            const a = ring[i];
+            const b = ring[j];
+
+            if (!Array.isArray(a) || !Array.isArray(b) || a.length < 2 || b.length < 2) {
+                continue;
+            }
+
+            const xi = Number(a[0]);
+            const yi = Number(a[1]);
+            const xj = Number(b[0]);
+            const yj = Number(b[1]);
+
+            if (![xi, yi, xj, yj].every(Number.isFinite)) continue;
+
+            const crosses = ((yi > lat) !== (yj > lat))
+                && (lng < ((xj - xi) * (lat - yi) / ((yj - yi) || 1e-12)) + xi);
+
+            if (crosses) inside = !inside;
+        }
+
+        return inside;
+    };
+
+    const geometryContains = (geometry, lat, lng) => {
+        const normalized = normalizeGeometry(geometry);
+        if (!normalized) return false;
+
+        const polygonContains = (rings) => {
+            if (!Array.isArray(rings) || !pointInRing(rings[0], lat, lng)) return false;
+
+            return !rings.slice(1).some((hole) => pointInRing(hole, lat, lng));
+        };
+
+        if (normalized.type === 'Polygon') {
+            return polygonContains(normalized.coordinates);
+        }
+
+        if (normalized.type === 'MultiPolygon') {
+            return normalized.coordinates?.some((polygon) => polygonContains(polygon)) ?? false;
+        }
+
+        return false;
+    };
+
+    const detectTerritory = (lat, lng) =>
+        territories.find((territory) => geometryContains(territory.polygon, lat, lng)) ?? null;
+
     const radius = () => {
         const parsed = Number.parseFloat(radiusInput?.value ?? '100');
         return Number.isFinite(parsed) && parsed > 0 ? parsed : 100;
@@ -289,6 +342,20 @@
         }
 
         redrawGeofence([lat, lng]);
+
+        const detected = detectTerritory(lat, lng);
+
+        if (territorySelect) {
+            territorySelect.value = detected ? String(detected.id) : '';
+            renderTerritory(territorySelect.value, false);
+        }
+
+        if (detected) {
+            status.textContent = (message ?? 'Shop location selected.')
+                + ' Territory: ' + detected.code + ' — ' + detected.name + '.';
+        } else if (!message) {
+            status.textContent = 'Shop location selected. No mapped territory contains this point yet.';
+        }
     };
 
     const removeLocation = () => {
