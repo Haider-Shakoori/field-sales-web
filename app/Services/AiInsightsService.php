@@ -295,7 +295,7 @@ class AiInsightsService
                 'instructions' => 'Answer only from the supplied FieldPulse aggregate snapshot. Do not invent customer-level details, names, forecasts, or facts that are not present. Write polished human-readable Markdown: lead with the answer, use short paragraphs, bullets for multiple findings/actions, bold important figures, and tables only when a real comparison benefits from one. Never output raw JSON, database field names, or internal tool-style labels. Respond in the requested locale when supported.',
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return null;
             }
 
