@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\WorkSessionResource;
 use App\Models\WorkSession;
+use App\Services\EndDayReconciliationService;
 use App\Services\MileageService;
 use App\Services\TenantClock;
 use App\Services\TrackingSettingsService;
@@ -128,6 +129,7 @@ class AttendanceController extends Controller
             'ended_at' => 'nullable|date',
             'vehicle_reference' => 'nullable|string|max:120',
             'odometer_end_km' => 'nullable|numeric|min:0|max:999999999.99',
+            'notes' => 'nullable|string|max:2000',
         ]);
 
         $user = $request->user()->load('tenant');
@@ -204,12 +206,22 @@ class AttendanceController extends Controller
             'vehicle_reference' => $validated['vehicle_reference']
                 ?? $session->vehicle_reference,
             'odometer_end_km' => $validated['odometer_end_km'] ?? null,
+            'notes' => $validated['notes'] ?? $session->notes,
         ]);
 
         $session = $mileage->refreshCompletedSession($session->fresh());
 
         return ApiResponse::success(
             (new WorkSessionResource($session->load(['user', 'device'])))->resolve(),
+        );
+    }
+
+    public function endDayPreview(
+        Request $request,
+        EndDayReconciliationService $reconciliation,
+    ) {
+        return ApiResponse::success(
+            $reconciliation->build($request->user())
         );
     }
 
