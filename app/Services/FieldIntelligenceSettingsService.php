@@ -74,6 +74,18 @@ final class FieldIntelligenceSettingsService
                 data_get($settings, 'intelligence.territories.geometry_audit_enabled', true),
                 true,
             ),
+            'management_route_progress_tolerance_percent' => $this->integer(
+                data_get($settings, 'intelligence.management.route_progress_tolerance_percent', 20),
+                0,
+                50,
+                20,
+            ),
+            'management_target_attention_percent' => $this->integer(
+                data_get($settings, 'intelligence.management.target_attention_percent', 80),
+                1,
+                100,
+                80,
+            ),
             'gamification_enabled' => $this->boolean(
                 data_get($settings, 'engagement.gamification.enabled', false),
                 false,
@@ -139,6 +151,22 @@ final class FieldIntelligenceSettingsService
     public function territoryGeometryAuditEnabled(User|Tenant $subject): bool
     {
         return $this->settingsFor($this->tenant($subject))['territory_geometry_audit_enabled'];
+    }
+
+    public function managementRouteProgressTolerancePercent(
+        User|Tenant $subject,
+    ): int {
+        return $this->settingsFor(
+            $this->tenant($subject),
+        )['management_route_progress_tolerance_percent'];
+    }
+
+    public function managementTargetAttentionPercent(
+        User|Tenant $subject,
+    ): int {
+        return $this->settingsFor(
+            $this->tenant($subject),
+        )['management_target_attention_percent'];
     }
 
     public function gamificationEnabled(User|Tenant $subject): bool
