@@ -11,6 +11,7 @@ use App\Models\PriceList;
 use App\Models\Salesman;
 use App\Models\Territory;
 use App\Services\AuditLogger;
+use App\Services\Customer360Service;
 use App\Services\CustomerBalanceService;
 use App\Services\CustomerReorderRecommendationService;
 use Illuminate\Http\RedirectResponse;
@@ -71,6 +72,7 @@ class CustomerController extends Controller
         Customer $customer,
         CustomerBalanceService $balances,
         CustomerReorderRecommendationService $reorders,
+        Customer360Service $customer360,
     ): View {
         Gate::authorize('view', $customer);
         $user = $request->user()->loadMissing(['tenant', 'salesman']);
@@ -86,6 +88,7 @@ class CustomerController extends Controller
             'reorderRecommendations' => $request->user()->hasPermission('orders:view')
                 ? $reorders->recommend($customer->loadMissing('tenant'), $user->salesman)
                 : [],
+            'customer360' => $customer360->build($customer),
         ]);
     }
 
