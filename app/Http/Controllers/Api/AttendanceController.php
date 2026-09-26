@@ -216,6 +216,95 @@ class AttendanceController extends Controller
         );
     }
 
+    public function reopen(Request $request, TenantClock $clock)
+    {
+        $validated = $request->validate([
+            'reopened_at' => 'nullable|date',
+        ]);
+
+        $user = $request->user()->load('tenant');
+        $localDate = $clock->now($user->tenant)->toDateString();
+
+        $session = WorkSession::where('tenant_id', $user->tenant_id)
+            ->where('user_id', $user->id)
+            ->whereDate('date', $localDate)
+            ->first();
+
+        if (! $session) {
+            return ApiResponse::error(
+                'No work session was found for today.',
+                404,
+                null,
+                'SESSION_NOT_FOUND',
+            );
+        }
+
+        if ($session->status === 'active') {
+            return ApiResponse::success(
+                (new WorkSessionResource($session->load(['user', 'device'])))->resolve(),
+            );
+        }
+
+        if ($session->status !== 'completed') {
+            return ApiResponse::error(
+                'Only a completed work day can be reopened.',
+                409,
+                null,
+                'SESSION_NOT_COMPLETED',
+            );
+        }
+
+        $reopenedAt = isset($validated['reopened_at'])
+            ? CarbonImmutable::parse($validated['reopened_at'])->utc()
+            : now()->toImmutable();
+
+        if ($reopenedAt->gt(now()->addMinutes(5))) {
+            return ApiResponse::error(
+                'Reopen time is too far in the future.',
+                422,
+                ['reopened_at' => ['Reopen time may not be more than five minutes in the future.']],
+                'VALIDATION_ERROR',
+            );
+        }
+
+        if ($reopenedAt->lt($session->start_time)) {
+            return ApiResponse::error(
+                'Reopen time cannot be before the work session start time.',
+                422,
+                ['reopened_at' => ['Reopen time must be on or after the work session start time.']],
+                'VALIDATION_ERROR',
+            );
+        }
+
+        $corrections = is_array($session->corrections)
+            ? $session->corrections
+            : [];
+        $corrections[] = [
+            'type' => 'day_reopened',
+            'reopened_at' => $reopenedAt->toIso8601String(),
+            'user_id' => $user->id,
+            'reason' => 'salesman_accidental_close',
+        ];
+
+        $session->update([
+            'end_time' => null,
+            'end_latitude' => null,
+            'end_longitude' => null,
+            'end_accuracy' => null,
+            'status' => 'active',
+            'duration_minutes' => null,
+            'is_early_finish' => false,
+            'odometer_end_km' => null,
+            'gps_distance_km' => null,
+            'distance_calculated_at' => null,
+            'corrections' => $corrections,
+        ]);
+
+        return ApiResponse::success(
+            (new WorkSessionResource($session->fresh()->load(['user', 'device'])))->resolve(),
+        );
+    }
+
     public function endDayPreview(
         Request $request,
         EndDayReconciliationService $reconciliation,
