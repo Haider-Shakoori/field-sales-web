@@ -396,6 +396,119 @@ class Batch5CatalogMobileApiTest extends TestCase
         ]);
     }
 
+    public function test_mobile_customer_location_auto_detects_territory_and_can_be_edited(): void
+    {
+        $tenant = $this->tenant('mobile-location-edit');
+        $actor = $this->mobileActor($tenant);
+        $offlineUuid = (string) Str::uuid();
+
+        [$firstTerritory, $secondTerritory] = $this->tenantScope(
+            $tenant,
+            function () use ($actor): array {
+                return [
+                    Territory::create([
+                        'branch_id' => $actor['branch']->id,
+                        'code' => 'MAP-A',
+                        'name' => 'Mapped A',
+                        'polygon' => [
+                            'type' => 'Polygon',
+                            'coordinates' => [[
+                                [69.10, 34.50],
+                                [69.30, 34.50],
+                                [69.30, 34.70],
+                                [69.10, 34.70],
+                                [69.10, 34.50],
+                            ]],
+                        ],
+                        'is_active' => true,
+                    ]),
+                    Territory::create([
+                        'branch_id' => $actor['branch']->id,
+                        'code' => 'MAP-B',
+                        'name' => 'Mapped B',
+                        'polygon' => [
+                            'type' => 'Polygon',
+                            'coordinates' => [[
+                                [69.35, 34.75],
+                                [69.55, 34.75],
+                                [69.55, 34.95],
+                                [69.35, 34.95],
+                                [69.35, 34.75],
+                            ]],
+                        ],
+                        'is_active' => true,
+                    ]),
+                ];
+            }
+        );
+
+        $this->postJson('/api/v1/customers', [
+            'offline_uuid' => $offlineUuid,
+            'name' => 'Mapped Mobile Shop',
+            'latitude' => 34.60,
+            'longitude' => 69.20,
+            'geofence_radius_meters' => 100,
+        ], $actor['headers'])
+            ->assertCreated()
+            ->assertJsonPath('data.territory_id', $firstTerritory->uuid);
+
+        $this->patchJson('/api/v1/customers/'.$offlineUuid, [
+            'name' => 'Mapped Mobile Shop Updated',
+            'phone' => '0700999888',
+            'latitude' => 34.85,
+            'longitude' => 69.45,
+            'geofence_radius_meters' => 125,
+        ], $actor['headers'])
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Mapped Mobile Shop Updated')
+            ->assertJsonPath('data.phone', '0700999888')
+            ->assertJsonPath('data.territory_id', $secondTerritory->uuid)
+            ->assertJsonPath('data.geofence_radius_meters', 125);
+
+        $this->assertDatabaseHas('customers', [
+            'tenant_id' => $tenant->id,
+            'uuid' => $offlineUuid,
+            'territory_id' => $secondTerritory->id,
+            'name' => 'Mapped Mobile Shop Updated',
+            'phone' => '0700999888',
+        ]);
+    }
+
+    public function test_mobile_customer_update_cannot_edit_customer_outside_salesman_scope(): void
+    {
+        $tenant = $this->tenant('mobile-update-scope');
+        $actor = $this->mobileActor($tenant);
+
+        $foreign = $this->tenantScope($tenant, function () use ($actor): Customer {
+            $otherTerritory = Territory::create([
+                'branch_id' => $actor['branch']->id,
+                'code' => 'OTHER-T',
+                'name' => 'Other Territory',
+                'is_active' => true,
+            ]);
+
+            return Customer::create([
+                'branch_id' => $actor['branch']->id,
+                'territory_id' => $otherTerritory->id,
+                'code' => 'OTHER-C',
+                'name' => 'Other Customer',
+                'geofence_radius_meters' => 100,
+                'is_active' => true,
+            ]);
+        });
+
+        $this->patchJson('/api/v1/customers/'.$foreign->uuid, [
+            'name' => 'Should Not Change',
+            'latitude' => 34.60,
+            'longitude' => 69.20,
+        ], $actor['headers'])->assertNotFound();
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $foreign->id,
+            'name' => 'Other Customer',
+        ]);
+    }
+
     public function test_salesman_master_data_is_scoped_to_current_route_but_keeps_offline_created_customer_visible(): void
     {
         $tenant = $this->tenant('mobile-scope');
