@@ -257,6 +257,7 @@
                 'label' => 'Settings',
                 'links' => [
                     ['route' => 'organization.edit', 'match' => 'organization.*', 'label' => 'Organization', 'icon' => 'building', 'can' => 'settings:view'],
+                    ['route' => 'admin.businessos-sync.index', 'match' => 'admin.businessos-sync.*', 'label' => 'BusinessOS sync', 'icon' => 'rotate-ccw', 'can' => 'settings:view'],
                     ['route' => 'tracking.edit', 'match' => 'tracking.*', 'label' => 'Tracking settings', 'icon' => 'cog', 'can' => 'settings:view'],
                 ],
             ],
