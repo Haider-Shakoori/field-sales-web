@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\CurrentLocation;
 use App\Models\OperationalNotification;
 use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\WorkSession;
 use Carbon\CarbonImmutable;
 
 final class OperationalAlertService
@@ -51,6 +53,79 @@ final class OperationalAlertService
                 'Planned visits need attention',
                 "You have {$missed} planned visit(s) marked as missed. Review your route and follow up where required.",
                 ['dedupe_key' => $key, 'date' => $date, 'missed_visits' => $missed],
+                'high',
+            );
+            $sent++;
+        }
+
+        $sent += $this->sendIdleAlerts($tenant);
+
+        return $sent;
+    }
+
+    private function sendIdleAlerts(Tenant $tenant): int
+    {
+        $settings = app(TrackingSettingsService::class)->get($tenant);
+
+        if (! $settings['idle_alerts_enabled']) {
+            return 0;
+        }
+
+        $timezone = $settings['timezone'];
+        $now = CarbonImmutable::now($timezone);
+        $start = CarbonImmutable::parse($now->toDateString().' '.$settings['workday_start_time'], $timezone);
+        $end = CarbonImmutable::parse($now->toDateString().' '.$settings['workday_end_time'], $timezone);
+
+        if ($now->lt($start) || $now->gt($end)) {
+            return 0;
+        }
+
+        $threshold = (int) $settings['idle_alert_after_minutes'];
+        $repeat = (int) $settings['idle_alert_repeat_minutes'];
+        $sent = 0;
+
+        $sessions = WorkSession::with(['salesman.user'])
+            ->where('status', 'active')
+            ->whereDate('date', $now->toDateString())
+            ->get();
+
+        $locations = CurrentLocation::query()
+            ->whereIn('salesman_id', $sessions->pluck('salesman_id'))
+            ->get()
+            ->keyBy('salesman_id');
+
+        foreach ($sessions as $session) {
+            $user = $session->salesman?->user;
+            $location = $locations->get($session->salesman_id);
+            $lastActivity = $location?->recorded_at ?? $session->start_time;
+
+            if (! $user?->is_active || ! $lastActivity) {
+                continue;
+            }
+
+            $idleMinutes = CarbonImmutable::parse($lastActivity)->diffInMinutes(now());
+
+            if ($idleMinutes < $threshold) {
+                continue;
+            }
+
+            $recent = OperationalNotification::query()
+                ->where('user_id', $user->id)
+                ->where('type', 'team.idle_alert')
+                ->where('created_at', '>=', now()->subMinutes($repeat))
+                ->exists();
+
+            if ($recent) {
+                continue;
+            }
+
+            $this->notifications->notifySafely(
+                $user,
+                'team.idle_alert',
+                'route_alerts',
+                'Field activity reminder',
+                "No recent field activity has been received for about {$idleMinutes} minutes. Please continue your route or update your status.",
+                ['idle_minutes' => $idleMinutes, 'last_activity_at' => $lastActivity->toISOString()],
                 'high',
             );
             $sent++;
