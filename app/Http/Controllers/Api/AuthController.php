@@ -68,8 +68,9 @@ class AuthController extends Controller
         }
 
         $mobileRoles = ['salesman', 'supervisor', 'sales_manager', 'owner', 'company_admin'];
+        $roleSlugs = $user->roles->pluck('slug');
 
-        if (! $user->hasAnyRole($mobileRoles)) {
+        if (! $roleSlugs->contains(fn (string $role): bool => in_array($role, $mobileRoles, true))) {
             return ApiResponse::error(
                 'This account role is not enabled for the mobile app.',
                 403,
@@ -78,7 +79,7 @@ class AuthController extends Controller
             );
         }
 
-        if ($user->hasAnyRole(['salesman']) && (! $user->salesman || ! $user->salesman->is_active)) {
+        if ($roleSlugs->contains('salesman') && (! $user->salesman || ! $user->salesman->is_active)) {
             return ApiResponse::error(
                 'No active salesman profile is linked to this user.',
                 422,
@@ -87,7 +88,7 @@ class AuthController extends Controller
             );
         }
 
-        if ($user->hasAnyRole(['supervisor']) && (! $user->supervisor || ! $user->supervisor->is_active)) {
+        if ($roleSlugs->contains('supervisor') && (! $user->supervisor || ! $user->supervisor->is_active)) {
             return ApiResponse::error(
                 'No active supervisor profile is linked to this user.',
                 422,
