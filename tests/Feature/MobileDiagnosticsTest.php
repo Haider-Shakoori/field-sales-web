@@ -124,7 +124,10 @@ class MobileDiagnosticsTest extends TestCase
         $this->assertSame('home', $diagnostic->context['screen']);
         $this->assertArrayNotHasKey('ignored_private_value', $diagnostic->context);
 
-        $this->actingAs($admin)
+        auth('sanctum')->forgetUser();
+        app('auth')->forgetGuards();
+
+        $this->actingAs($admin, 'web')
             ->get(route('admin.mobile-diagnostics.index'))
             ->assertOk()
             ->assertSee('Mobile diagnostics')
