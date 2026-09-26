@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Branch;
-use App\Models\Customer;
 use App\Models\CompanySetting;
+use App\Models\Customer;
 use App\Models\CustomerFollowUp;
 use App\Models\CustomerVisit;
 use App\Models\Device;
