@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\AttendanceController;
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\BranchController;
+use App\Http\Controllers\Web\BusinessOsSyncController;
 use App\Http\Controllers\Web\CallActivityController;
 use App\Http\Controllers\Web\CollectionController;
 use App\Http\Controllers\Web\CommissionController;
@@ -81,6 +82,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/territory-heat-map', TerritoryHeatMapController::class)
             ->middleware('permission:reports:view')
             ->name('territory-heat-map');
+
+        Route::get('/businessos-sync', [BusinessOsSyncController::class, 'index'])
+            ->middleware('permission:settings:view')
+            ->name('businessos-sync.index');
+        Route::post('/businessos-sync/run', [BusinessOsSyncController::class, 'sync'])
+            ->middleware('permission:settings:manage')
+            ->name('businessos-sync.run');
+        Route::post('/businessos-sync/retry-failed', [BusinessOsSyncController::class, 'retryFailed'])
+            ->middleware('permission:settings:manage')
+            ->name('businessos-sync.retry-failed');
+        Route::post('/businessos-sync/health', [BusinessOsSyncController::class, 'health'])
+            ->middleware(['permission:settings:manage', 'throttle:10,1'])
+            ->name('businessos-sync.health');
 
         Route::get('/attendance', [AttendanceController::class, 'index'])
             ->middleware('permission:sales-team:view')
