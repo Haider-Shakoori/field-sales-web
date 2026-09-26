@@ -50,7 +50,7 @@
         </div>
 
         <input id="territory-polygon" type="hidden" name="polygon" value="{{ $polygonValue }}">
-        <div id="territory-boundary-map" class="h-[470px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950"></div>
+        <div id="territory-boundary-map" class="overflow-hidden rounded-2xl border border-white/10 bg-slate-950" style="height:470px;min-height:320px;"></div>
 
         <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
             <span id="territory-boundary-status">
