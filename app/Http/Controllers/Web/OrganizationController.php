@@ -80,6 +80,10 @@ class OrganizationController extends Controller
                 'integer',
                 'between:1,100',
             ],
+            'territory_stale_customer_days' => ['sometimes', 'integer', 'between:7,180'],
+            'territory_stale_attention_percent' => ['sometimes', 'integer', 'between:1,100'],
+            'territory_geometry_audit_enabled' => ['sometimes', 'boolean'],
+            'gamification_enabled' => ['sometimes', 'boolean'],
 
             'businessos_enabled' => ['sometimes', 'boolean'],
             'businessos_organization_key' => ['nullable', 'string', 'max:120'],
@@ -189,6 +193,35 @@ class OrganizationController extends Controller
                 (int) $validated['territory_under_covered_threshold_percent'],
             );
         }
+
+        if (array_key_exists('territory_stale_customer_days', $validated)) {
+            data_set(
+                $settings,
+                'intelligence.territories.stale_customer_days',
+                (int) $validated['territory_stale_customer_days'],
+            );
+        }
+
+        if (array_key_exists('territory_stale_attention_percent', $validated)) {
+            data_set(
+                $settings,
+                'intelligence.territories.stale_attention_percent',
+                (int) $validated['territory_stale_attention_percent'],
+            );
+        }
+
+        $this->setBoolean(
+            $settings,
+            'intelligence.territories.geometry_audit_enabled',
+            $validated,
+            'territory_geometry_audit_enabled',
+        );
+        $this->setBoolean(
+            $settings,
+            'engagement.gamification.enabled',
+            $validated,
+            'gamification_enabled',
+        );
 
         $this->setBoolean(
             $settings,
