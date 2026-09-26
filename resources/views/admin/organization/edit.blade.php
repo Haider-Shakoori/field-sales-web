@@ -196,19 +196,11 @@
                 </label>
             </div>
 
-            <div class="grid gap-5 md:grid-cols-3">
+            <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">{{ __('Nearby opportunity radius') }}</label>
                     <div class="relative">
-                        <input
-                            type="number"
-                            step="0.5"
-                            min="0.5"
-                            max="25"
-                            name="route_nearby_radius_km"
-                            value="{{ old('route_nearby_radius_km', $intelligenceSettings['route_nearby_radius_km']) }}"
-                            class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pe-12"
-                        >
+                        <input type="number" step="0.5" min="0.5" max="25" name="route_nearby_radius_km" value="{{ old('route_nearby_radius_km', $intelligenceSettings['route_nearby_radius_km']) }}" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pe-12">
                         <span class="pointer-events-none absolute inset-y-0 end-4 flex items-center text-xs text-slate-500">km</span>
                     </div>
                     <p class="mt-1 text-xs text-slate-500">{{ __('Used when suggesting worthwhile nearby customers during the day.') }}</p>
@@ -216,28 +208,41 @@
 
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">{{ __('Maximum extra opportunities') }}</label>
-                    <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        name="route_max_opportunities"
-                        value="{{ old('route_max_opportunities', $intelligenceSettings['route_max_opportunities']) }}"
-                        class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"
-                    >
+                    <input type="number" min="0" max="10" name="route_max_opportunities" value="{{ old('route_max_opportunities', $intelligenceSettings['route_max_opportunities']) }}" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
                     <p class="mt-1 text-xs text-slate-500">{{ __('Limits optional nearby stops so the assigned route remains the main plan.') }}</p>
                 </div>
 
                 <div>
+                    <label class="mb-2 block text-sm text-slate-300">{{ __('Planning travel speed') }}</label>
+                    <div class="relative">
+                        <input type="number" step="1" min="5" max="100" name="route_average_speed_kph" value="{{ old('route_average_speed_kph', $intelligenceSettings['route_average_speed_kph']) }}" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pe-14">
+                        <span class="pointer-events-none absolute inset-y-0 end-4 flex items-center text-xs text-slate-500">km/h</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">{{ __('Used only for route ETA and capacity estimates; GPS distance remains authoritative for actual travel.') }}</p>
+                </div>
+
+                <div>
+                    <label class="mb-2 block text-sm text-slate-300">{{ __('Daily route time buffer') }}</label>
+                    <div class="relative">
+                        <input type="number" min="0" max="180" name="route_time_buffer_minutes" value="{{ old('route_time_buffer_minutes', $intelligenceSettings['route_time_buffer_minutes']) }}" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pe-14">
+                        <span class="pointer-events-none absolute inset-y-0 end-4 flex items-center text-xs text-slate-500">min</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">{{ __('Keeps room for traffic, parking, breaks and unexpected delays.') }}</p>
+                </div>
+
+                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                    <input type="hidden" name="route_enforce_workday_capacity" value="0">
+                    <input type="checkbox" name="route_enforce_workday_capacity" value="1" @checked((bool) old('route_enforce_workday_capacity', $intelligenceSettings['route_enforce_workday_capacity'])) class="mt-1 rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500">
+                    <span>
+                        <span class="block text-sm font-semibold text-slate-200">{{ __('Respect workday route capacity') }}</span>
+                        <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('Estimate whether remaining travel and visit time fit inside the Attendance & GPS workday window and flag overflow stops.') }}</span>
+                    </span>
+                </label>
+
+                <div>
                     <label class="mb-2 block text-sm text-slate-300">{{ __('Under-covered territory threshold') }}</label>
                     <div class="relative">
-                        <input
-                            type="number"
-                            min="1"
-                            max="100"
-                            name="territory_under_covered_threshold_percent"
-                            value="{{ old('territory_under_covered_threshold_percent', $intelligenceSettings['territory_under_covered_threshold_percent']) }}"
-                            class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pe-10"
-                        >
+                        <input type="number" min="1" max="100" name="territory_under_covered_threshold_percent" value="{{ old('territory_under_covered_threshold_percent', $intelligenceSettings['territory_under_covered_threshold_percent']) }}" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pe-10">
                         <span class="pointer-events-none absolute inset-y-0 end-4 flex items-center text-xs text-slate-500">%</span>
                     </div>
                     <p class="mt-1 text-xs text-slate-500">{{ __('Territories below this visit coverage are highlighted for management attention.') }}</p>
