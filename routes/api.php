@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\MileageController;
+use App\Http\Controllers\Api\MobileDiagnosticController;
+use App\Http\Controllers\Api\MobileTeamController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ReorderRecommendationController;
@@ -99,6 +101,9 @@ Route::prefix('v1')->group(function () {
 
             Route::get('/targets/current', [TargetController::class, 'current']);
             Route::get('/targets/history', [TargetController::class, 'history']);
+            Route::get('/mobile/team/overview', [MobileTeamController::class, 'overview']);
+            Route::post('/mobile/diagnostics', [MobileDiagnosticController::class, 'store']);
+
             Route::get('/notifications', [NotificationController::class, 'index']);
             Route::patch('/notifications/{notification:uuid}/read', [NotificationController::class, 'read']);
             Route::get('/notification-preferences', [NotificationController::class, 'preferences']);
