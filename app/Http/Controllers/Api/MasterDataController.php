@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MobileStoreCustomerRequest;
+use App\Http\Requests\MobileUpdateCustomerRequest;
 use App\Models\Customer;
 use App\Models\PriceList;
 use App\Models\PriceListItem;
@@ -11,6 +12,7 @@ use App\Models\Product;
 use App\Models\SalesmanAssignment;
 use App\Models\SalesRoute;
 use App\Models\Territory;
+use App\Services\TerritoryLocator;
 use App\Support\ApiResponse;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -38,8 +40,11 @@ class MasterDataController extends Controller
         );
     }
 
-    public function storeCustomer(MobileStoreCustomerRequest $request): JsonResponse
-    {
+    public function storeCustomer(
+        MobileStoreCustomerRequest $request,
+        TerritoryLocator $territoryLocator,
+    ): JsonResponse {
+
         $user = $request->user()->load(['salesman', 'tenant']);
         $validated = $request->validated();
 
@@ -52,6 +57,15 @@ class MasterDataController extends Controller
         }
 
         $assignment = $this->currentSalesmanAssignment($request);
+        $preferredBranchId = $assignment?->branch_id ?? $user->branch_id;
+        $detectedTerritory = isset($validated['latitude'], $validated['longitude'])
+            ? $territoryLocator->locate(
+                (float) $validated['latitude'],
+                (float) $validated['longitude'],
+                $preferredBranchId,
+            )
+            : null;
+
         $code = strtoupper(
             ($validated['code'] ?? null)
             ?: 'CUS-'.substr(str_replace('-', '', $validated['offline_uuid']), 0, 10)
@@ -78,8 +92,10 @@ class MasterDataController extends Controller
         $customer = Customer::create([
             'uuid' => $validated['offline_uuid'],
             'offline_uuid' => $validated['offline_uuid'],
-            'branch_id' => $assignment?->branch_id ?? $user->branch_id,
-            'territory_id' => $assignment?->territory_id,
+            'branch_id' => $detectedTerritory?->branch_id
+                ?? $assignment?->branch_id
+                ?? $user->branch_id,
+            'territory_id' => $detectedTerritory?->id ?? $assignment?->territory_id,
             'assigned_salesman_id' => $user->salesman?->id,
             'price_list_id' => $priceListId,
             'code' => $code,
@@ -101,6 +117,103 @@ class MasterDataController extends Controller
                 $customer->load(['branch', 'territory', 'priceList', 'routeMemberships.route'])
             ),
             201
+        );
+    }
+
+    public function updateCustomer(
+        MobileUpdateCustomerRequest $request,
+        Customer $customer,
+        TerritoryLocator $territoryLocator,
+    ): JsonResponse {
+        $visible = Customer::query()->whereKey($customer->id);
+        $this->applySalesmanCustomerScope($request, $visible);
+        abort_unless($visible->exists(), 404);
+
+        $user = $request->user()->load(['salesman', 'tenant']);
+        $validated = $request->validated();
+        $assignment = $this->currentSalesmanAssignment($request);
+
+        $priceListId = $customer->price_list_id;
+
+        if (array_key_exists('price_list_id', $validated)) {
+            $priceListId = null;
+
+            if (! empty($validated['price_list_id'])) {
+                $priceListId = PriceList::where('uuid', $validated['price_list_id'])->value('id');
+
+                if (! $priceListId) {
+                    throw ValidationException::withMessages([
+                        'price_list_id' => 'The selected price list is invalid.',
+                    ]);
+                }
+            }
+        }
+
+        $latitude = array_key_exists('latitude', $validated)
+            ? $validated['latitude']
+            : $customer->latitude;
+        $longitude = array_key_exists('longitude', $validated)
+            ? $validated['longitude']
+            : $customer->longitude;
+
+        $preferredBranchId = $customer->branch_id
+            ?? $assignment?->branch_id
+            ?? $user->branch_id;
+
+        $detectedTerritory = $latitude !== null && $longitude !== null
+            ? $territoryLocator->locate(
+                (float) $latitude,
+                (float) $longitude,
+                $preferredBranchId,
+            )
+            : null;
+
+        $updates = [
+            'name' => $validated['name'] ?? $customer->name,
+            'contact_person' => array_key_exists('contact_person', $validated)
+                ? $validated['contact_person']
+                : $customer->contact_person,
+            'phone' => array_key_exists('phone', $validated)
+                ? $validated['phone']
+                : $customer->phone,
+            'alternate_phone' => array_key_exists('alternate_phone', $validated)
+                ? $validated['alternate_phone']
+                : $customer->alternate_phone,
+            'email' => array_key_exists('email', $validated)
+                ? $validated['email']
+                : $customer->email,
+            'address' => array_key_exists('address', $validated)
+                ? $validated['address']
+                : $customer->address,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'geofence_radius_meters' => $validated['geofence_radius_meters']
+                ?? $customer->geofence_radius_meters,
+            'price_list_id' => $priceListId,
+            'territory_id' => $detectedTerritory?->id
+                ?? $customer->territory_id
+                ?? $assignment?->territory_id,
+            'branch_id' => $detectedTerritory?->branch_id
+                ?? $customer->branch_id
+                ?? $assignment?->branch_id
+                ?? $user->branch_id,
+        ];
+
+        if (array_key_exists('code', $validated) && filled($validated['code'])) {
+            $updates['code'] = strtoupper(trim((string) $validated['code']));
+        }
+
+        $customer->update($updates);
+
+        return ApiResponse::success(
+            $this->customerPayload(
+                $customer->fresh()->load([
+                    'branch',
+                    'territory',
+                    'priceList',
+                    'routeMemberships.route',
+                ])
+            )
         );
     }
 
