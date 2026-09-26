@@ -241,7 +241,10 @@ Additional merged hardening since the original Batch 19 checklist:
 - mobile tenant/company selection and authentication error handling were hardened;
 - supervisor/sales-manager leadership login and same-installation account switching were regression-covered;
 - the UAT checklist now includes tenant ambiguity, leadership login, remembered company selection, and Reopen Day;
-- the canonical production `/ready` and `/up` endpoints were observed healthy on 2026-09-26.
+- the canonical production `/ready` and `/up` endpoints were observed healthy on 2026-09-26;
+- the cPanel runtime passes production configuration/service readiness and operations backup-tooling checks;
+- cPanel scheduler, queue-drain and operations-monitor cron entries are installed;
+- a local production-host verification backup completed and both database and public-storage checksums matched its manifest.
 
 This does not change the Batch 19 completion rule: physical-device and non-production restore evidence are still mandatory.
 
