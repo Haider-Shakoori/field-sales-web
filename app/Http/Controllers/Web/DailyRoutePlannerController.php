@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Salesman;
 use App\Services\DailyRoutePlannerService;
+use App\Services\RouteExecutionAnalyticsService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -15,6 +16,7 @@ class DailyRoutePlannerController extends Controller
     public function index(
         Request $request,
         DailyRoutePlannerService $planner,
+        RouteExecutionAnalyticsService $execution,
     ): View {
         $user = $request->user()->loadMissing('tenant');
         $timezone = $user->tenant?->timezone ?: config('app.timezone', 'UTC');
@@ -47,6 +49,13 @@ class DailyRoutePlannerController extends Controller
             'selectedSalesman' => $salesman,
             'selectedDate' => $date->toDateString(),
             'plan' => $salesman ? $planner->planFor($salesman, $date) : null,
+            'execution' => $salesman
+                ? collect($execution->build(
+                    $user,
+                    $date->toDateString(),
+                    $salesman->employee_code,
+                )['salesmen'])->first()
+                : null,
         ]);
     }
 }
