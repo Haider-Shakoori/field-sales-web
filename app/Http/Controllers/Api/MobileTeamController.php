@@ -13,7 +13,6 @@ use App\Models\SalesmanAssignment;
 use App\Models\SupervisorAssignment;
 use App\Models\WorkSession;
 use App\Support\ApiResponse;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
