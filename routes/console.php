@@ -4,6 +4,7 @@ use App\Models\Tenant;
 use App\Services\AiConversationService;
 use App\Services\AppointmentReminderService;
 use App\Services\BusinessOs\SyncService;
+use App\Services\OperationalAlertService;
 use App\Support\ProductionReadiness;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
@@ -116,6 +117,29 @@ Artisan::command('field-sales:prune-ai-history', function (): int {
 
     return 0;
 });
+
+Artisan::command('field-sales:send-operational-alerts', function (): int {
+    $context = app(TenantContext::class);
+    $tenants = $context->withPlatformScope(
+        fn () => Tenant::query()->where('subscription_status', 'active')->get(['id', 'timezone']),
+    );
+    $sent = 0;
+
+    foreach ($tenants as $tenant) {
+        $sent += $context->withTenant(
+            $tenant,
+            fn () => app(OperationalAlertService::class)->sendMissedVisitAlerts($tenant),
+        );
+    }
+
+    $this->info("Sent {$sent} operational alert(s).");
+
+    return 0;
+});
+
+Schedule::command('field-sales:send-operational-alerts')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();
 
 Schedule::command('field-sales:send-appointment-reminders')
     ->everyFiveMinutes()
