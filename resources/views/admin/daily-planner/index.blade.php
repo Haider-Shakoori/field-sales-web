@@ -63,6 +63,7 @@
                             $warningLabel = match(true) {
                                 str_starts_with($warning, 'missing_customer_coordinates:') => __('Some customers are missing coordinates').': '.str($warning)->after(':'),
                                 $warning === 'route_not_scheduled_today' => __('Route is not normally scheduled today'),
+                                str_starts_with($warning, 'workday_capacity_exceeded:') => __('Workday capacity exceeded').': '.str($warning)->after(':').' '.__('stop(s)'),
                                 default => __('Straight-line distance estimate'),
                             };
                         @endphp
@@ -72,7 +73,7 @@
             @endif
         </div>
 
-        <div class="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
             <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
                 <p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Remaining stops') }}</p>
                 <p class="mt-2 text-2xl font-bold">{{ $plan['summary']['remaining'] }}</p>
@@ -89,7 +90,36 @@
                 <p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Planned visit time') }}</p>
                 <p class="mt-2 text-2xl font-bold">{{ $plan['summary']['planned_visit_minutes'] }} min</p>
             </div>
+            <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+                <p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Travel estimate') }}</p>
+                <p class="mt-2 text-2xl font-bold">{{ $plan['summary']['estimated_travel_minutes'] }} min</p>
+                <p class="mt-1 text-xs text-slate-500">{{ number_format((float) data_get($plan, 'schedule.average_speed_kph', 0), 0) }} km/h {{ __('planning speed') }}</p>
+            </div>
+            <div class="rounded-2xl border {{ $plan['summary']['route_fits_workday'] ? 'border-emerald-400/15' : 'border-rose-400/20' }} bg-slate-900 p-5">
+                <p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Workday capacity') }}</p>
+                <p class="mt-2 text-2xl font-bold {{ $plan['summary']['route_fits_workday'] ? 'text-emerald-300' : 'text-rose-300' }}">{{ number_format($plan['summary']['capacity_utilization_percent'], 0) }}%</p>
+                <p class="mt-1 text-xs text-slate-500">{{ $plan['summary']['overflow_stops'] }} {{ __('overflow stop(s)') }}</p>
+            </div>
         </div>
+
+        @if($execution)
+            <div class="mb-5 rounded-2xl border border-white/10 bg-slate-900 p-5">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-semibold">{{ __('Planned vs actual execution') }}</h3>
+                        <p class="mt-1 text-xs text-slate-500">{{ __('Live route completion based on verified completed customer visits.') }}</p>
+                    </div>
+                    <span class="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300">{{ __(str($execution['execution_status'])->replace('_', ' ')->title()->toString()) }}</span>
+                </div>
+                <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    <div class="rounded-xl bg-slate-950/70 p-3"><p class="text-[10px] uppercase tracking-wide text-slate-500">{{ __('Completion') }}</p><p class="mt-1 text-xl font-bold">{{ number_format($execution['completion_percent'], 1) }}%</p></div>
+                    <div class="rounded-xl bg-slate-950/70 p-3"><p class="text-[10px] uppercase tracking-wide text-slate-500">{{ __('Planned visited') }}</p><p class="mt-1 text-xl font-bold">{{ $execution['visited_planned_stops'] }}/{{ $execution['assigned_stops'] }}</p></div>
+                    <div class="rounded-xl bg-slate-950/70 p-3"><p class="text-[10px] uppercase tracking-wide text-slate-500">{{ __('Remaining') }}</p><p class="mt-1 text-xl font-bold">{{ $execution['remaining_stops'] }}</p></div>
+                    <div class="rounded-xl bg-slate-950/70 p-3"><p class="text-[10px] uppercase tracking-wide text-slate-500">{{ __('Off-route visits') }}</p><p class="mt-1 text-xl font-bold">{{ $execution['off_route_visits'] }}</p></div>
+                    <div class="rounded-xl bg-slate-950/70 p-3"><p class="text-[10px] uppercase tracking-wide text-slate-500">{{ __('Missed') }}</p><p class="mt-1 text-xl font-bold {{ $execution['missed_stops'] > 0 ? 'text-rose-300' : '' }}">{{ $execution['missed_stops'] }}</p></div>
+                </div>
+            </div>
+        @endif
 
         @if($plan['stops'] === [])
             <div class="rounded-2xl border border-white/10 bg-slate-900 p-8 text-center text-slate-400">
@@ -108,6 +138,7 @@
                             <th class="px-5 py-3">{{ __('Financial') }}</th>
                             <th class="px-5 py-3">{{ __('Last visit') }}</th>
                             <th class="px-5 py-3">{{ __('Travel') }}</th>
+                            <th class="px-5 py-3">{{ __('ETA / capacity') }}</th>
                         </tr>
                         </thead>
                         <tbody class="divide-y divide-white/10">
@@ -158,7 +189,22 @@
                                     {{ $stop['last_visited_at'] ? \Carbon\CarbonImmutable::parse($stop['last_visited_at'])->format('Y-m-d') : __('Never') }}
                                 </td>
                                 <td class="px-5 py-4">
-                                    {{ $stop['distance_from_previous_km'] === null ? '—' : number_format($stop['distance_from_previous_km'], 1).' km' }}
+                                    <div>{{ $stop['distance_from_previous_km'] === null ? '—' : number_format($stop['distance_from_previous_km'], 1).' km' }}</div>
+                                    @if(($stop['estimated_travel_minutes'] ?? 0) > 0)
+                                        <div class="mt-1 text-xs text-slate-500">~{{ $stop['estimated_travel_minutes'] }} min</div>
+                                    @endif
+                                </td>
+                                <td class="px-5 py-4">
+                                    @if($stop['visited_today'])
+                                        <span class="rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300">{{ __('Completed') }}</span>
+                                    @elseif($stop['estimated_arrival_at'])
+                                        <div class="font-medium">{{ CarbonCarbonImmutable::parse($stop['estimated_arrival_at'])->format('H:i') }}</div>
+                                        <div class="mt-1 text-xs {{ $stop['capacity_status'] === 'overflow' ? 'text-rose-300' : 'text-slate-500' }}">
+                                            {{ $stop['capacity_status'] === 'overflow' ? __('Outside planned capacity') : __('Fits workday') }}
+                                        </div>
+                                    @else
+                                        <span class="text-slate-500">—</span>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach
