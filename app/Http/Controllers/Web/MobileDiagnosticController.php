@@ -11,6 +11,8 @@ class MobileDiagnosticController extends Controller
 {
     public function index(Request $request): View
     {
+        auth()->shouldUse('web');
+
         $filters = $request->validate([
             'severity' => ['nullable', 'in:info,warning,error,critical'],
             'area' => ['nullable', 'string', 'max:80'],
