@@ -29,7 +29,8 @@ class DailyRoutePlannerService
         ?array $startLocation = null,
         array $includedCustomerUuids = [],
         ?float $nearbyRadiusKm = null,
-    ): array {
+    ): array
+    {
         $salesman->loadMissing('user.tenant');
 
         $tenant = $salesman->user?->tenant;
@@ -57,7 +58,7 @@ class DailyRoutePlannerService
                 'workday_end_time' => '17:00',
             ];
 
-        if (! $featureSettings['smart_routes_enabled']) {
+        if (!$featureSettings['smart_routes_enabled']) {
             return [
                 ...$this->basePlan($salesman, $localDate, $assignment),
                 'enabled' => false,
@@ -329,7 +330,8 @@ class DailyRoutePlannerService
         Salesman $salesman,
         Customer $customer,
         CarbonImmutable $localDate,
-    ): array {
+    ): array
+    {
         $salesman->loadMissing('user.tenant');
 
         $timezone = $salesman->user?->tenant?->timezone
@@ -338,7 +340,7 @@ class DailyRoutePlannerService
         $localDate = $localDate->setTimezone($timezone)->startOfDay();
         $assignment = $this->assignmentFor($salesman, $localDate);
 
-        if (! $assignment) {
+        if (!$assignment) {
             return [
                 'planned' => false,
                 'route_id' => null,
@@ -372,7 +374,7 @@ class DailyRoutePlannerService
 
         if (
             $assignment->branch_id
-            && ! $assignment->territory_id
+            && !$assignment->territory_id
             && (int) $assignment->branch_id === (int) $customer->branch_id
         ) {
             return [
@@ -403,8 +405,9 @@ class DailyRoutePlannerService
     private function candidatesFor(
         ?SalesmanAssignment $assignment,
         CarbonImmutable $localDate,
-    ): array {
-        if (! $assignment) {
+    ): array
+    {
+        if (!$assignment) {
             return [null, null, collect()];
         }
 
@@ -492,7 +495,8 @@ class DailyRoutePlannerService
         Salesman $salesman,
         CarbonImmutable $localDate,
         ?SalesmanAssignment $assignment,
-    ): array {
+    ): array
+    {
         return [
             'date' => $localDate->toDateString(),
             'weekday' => strtolower($localDate->format('D')),
@@ -531,7 +535,8 @@ class DailyRoutePlannerService
         SupportCollection $orders,
         SupportCollection $collectionRows,
         CarbonImmutable $asOfDate,
-    ): array {
+    ): array
+    {
         $verifiedByCurrency = $collectionRows
             ->mapWithKeys(fn ($row) => [
                 $row->currency => (float) $row->total,
@@ -585,7 +590,8 @@ class DailyRoutePlannerService
         ?CarbonImmutable $lastVisited,
         CarbonImmutable $localDate,
         CarbonImmutable $startUtc,
-    ): array {
+    ): array
+    {
         if ($visited) {
             return [-100, ['Already visited today']];
         }
@@ -671,7 +677,8 @@ class DailyRoutePlannerService
     private function sequenceStops(
         SupportCollection $stops,
         ?array $startLocation = null,
-    ): array {
+    ): array
+    {
         $ordered = collect();
         $previous = $startLocation;
         $totalDistance = 0.0;
@@ -736,8 +743,9 @@ class DailyRoutePlannerService
     private function nextStop(
         SupportCollection $remaining,
         ?array $previous,
-    ): array {
-        if (! $this->hasStopCoordinates($previous)) {
+    ): array
+    {
+        if (!$this->hasStopCoordinates($previous)) {
             return $remaining
                 ->sortBy(fn (array $stop): array => [
                     -$stop['priority_score'],
@@ -763,7 +771,7 @@ class DailyRoutePlannerService
 
     private function normalizeStartLocation(?array $startLocation): ?array
     {
-        if (! $startLocation) {
+        if (!$startLocation) {
             return null;
         }
 
@@ -771,8 +779,8 @@ class DailyRoutePlannerService
         $longitude = $startLocation['longitude'] ?? null;
 
         if (
-            ! is_numeric($latitude)
-            || ! is_numeric($longitude)
+            !is_numeric($latitude)
+            || !is_numeric($longitude)
             || (float) $latitude < -90
             || (float) $latitude > 90
             || (float) $longitude < -180
@@ -786,7 +794,7 @@ class DailyRoutePlannerService
 
         if (
             $accuracy !== null
-            && (! is_numeric($accuracy) || (float) $accuracy < 0 || (float) $accuracy > 200)
+            && (!is_numeric($accuracy) || (float) $accuracy < 0 || (float) $accuracy > 200)
         ) {
             return null;
         }
@@ -803,7 +811,7 @@ class DailyRoutePlannerService
         ?array $from,
         array $to,
     ): ?float {
-        if (! $this->hasStopCoordinates($from) || ! $this->hasStopCoordinates($to)) {
+        if (!$this->hasStopCoordinates($from) || !$this->hasStopCoordinates($to)) {
             return null;
         }
 
@@ -817,13 +825,13 @@ class DailyRoutePlannerService
 
     private function hasStopCoordinates(?array $stop): bool
     {
-        if (! $stop) {
+        if (!$stop) {
             return false;
         }
 
         return $stop['latitude'] !== null
             && $stop['longitude'] !== null
-            && ! (
+            && !(
                 (float) $stop['latitude'] === 0.0
                 && (float) $stop['longitude'] === 0.0
             );
@@ -833,7 +841,8 @@ class DailyRoutePlannerService
         ?array $route,
         CarbonImmutable $localDate,
         SupportCollection $candidates,
-    ): array {
+    ): array
+    {
         $warnings = ['distance_estimate_is_straight_line'];
 
         $missingCoordinates = $candidates->filter(function (array $candidate): bool {
@@ -852,7 +861,7 @@ class DailyRoutePlannerService
             $warnings[] = 'missing_customer_coordinates:'.$missingCoordinates;
         }
 
-        if ($route && ! $route['scheduled_today']) {
+        if ($route && !$route['scheduled_today']) {
             $warnings[] = 'route_not_scheduled_today';
         }
 
@@ -881,7 +890,7 @@ class DailyRoutePlannerService
                 ->where('visited_today', false)
                 ->sum('planned_visit_minutes'),
             'missing_coordinates' => $collection
-                ->filter(fn (array $stop) => ! $this->hasStopCoordinates($stop))
+                ->filter(fn (array $stop) => !$this->hasStopCoordinates($stop))
                 ->count(),
             'estimated_travel_minutes' => (int) ($schedule['estimated_travel_minutes'] ?? 0),
             'estimated_total_minutes' => (int) ($schedule['estimated_total_minutes'] ?? 0),
@@ -899,7 +908,8 @@ class DailyRoutePlannerService
         ?array $startLocation,
         array $featureSettings,
         array $trackingSettings,
-    ): array {
+    ): array
+    {
         $speed = max(5.0, (float) ($featureSettings['route_average_speed_kph'] ?? 25));
         $bufferMinutes = max(0, (int) ($featureSettings['route_time_buffer_minutes'] ?? 30));
         $capacityEnabled = (bool) ($featureSettings['route_enforce_workday_capacity'] ?? true);
@@ -953,14 +963,14 @@ class DailyRoutePlannerService
             $visitMinutes = max(1, (int) ($stop['planned_visit_minutes'] ?? 10));
             $arrival = $cursor->addMinutes($travelMinutes);
             $departure = $arrival->addMinutes($visitMinutes);
-            $fits = ! $capacityEnabled || $departure->lte($capacityEnd);
+            $fits = !$capacityEnabled || $departure->lte($capacityEnd);
 
             $stop['estimated_travel_minutes'] = $travelMinutes;
             $stop['estimated_arrival_at'] = $arrival->toIso8601String();
             $stop['estimated_departure_at'] = $departure->toIso8601String();
             $stop['capacity_status'] = $fits ? 'fits' : 'overflow';
 
-            if (! $fits) {
+            if (!$fits) {
                 $overflow++;
             }
 
@@ -1002,7 +1012,8 @@ class DailyRoutePlannerService
         float $lon1,
         float $lat2,
         float $lon2,
-    ): float {
+    ): float
+    {
         $earthRadiusKm = 6371.0088;
         $latDelta = deg2rad($lat2 - $lat1);
         $lonDelta = deg2rad($lon2 - $lon1);
