@@ -67,11 +67,12 @@ class AuthController extends Controller
             );
         }
 
-        $isSalesman = $user->hasAnyRole(['salesman'])
+        $roleSlugs = $user->roles->pluck('slug');
+        $isSalesman = $roleSlugs->contains('salesman')
             && $user->salesman?->is_active;
-        $isSupervisor = $user->hasAnyRole(['supervisor'])
+        $isSupervisor = $roleSlugs->contains('supervisor')
             && $user->supervisor?->is_active;
-        $isSalesManager = $user->hasAnyRole(['sales_manager']);
+        $isSalesManager = $roleSlugs->contains('sales_manager');
 
         if (! $isSalesman && ! $isSupervisor && ! $isSalesManager) {
             return ApiResponse::error(
