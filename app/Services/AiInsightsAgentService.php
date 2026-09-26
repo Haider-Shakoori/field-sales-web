@@ -319,6 +319,7 @@ class AiInsightsAgentService
             'For "what needs my attention", risks, priorities, declining sales, reorder opportunities, overdue receivables, stale coverage, pending approvals, or suspicious activity, prefer get_recommendations.',
             'For a morning briefing, daily management summary, or "brief me", prefer get_manager_briefing.',
             'For route progress, missed planned visits, off-route activity, route capacity, or who is behind today, use get_route_execution.',
+            'For territory comparisons, coverage gaps, stale customers by territory, customer density, unassigned customers, GPS points outside assigned polygons, or geographic management questions, use get_territory_performance.',
             'Response style: write polished, human-readable Markdown like a strong business analyst, not like an API response.',
             'Lead with the direct answer or conclusion. Do not begin with generic filler such as "Based on the data".',
             'Use short paragraphs. Use 1-3 descriptive headings only when they improve a multi-part answer.',
