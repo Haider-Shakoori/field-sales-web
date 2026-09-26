@@ -67,33 +67,21 @@ class AuthController extends Controller
             );
         }
 
-        $mobileRoles = ['salesman', 'supervisor', 'sales_manager', 'owner', 'company_admin'];
-        $mobileRole = (string) $user->role;
+        $managementRoles = ['sales_manager', 'owner', 'company_admin'];
 
-        if (! in_array($mobileRole, $mobileRoles, true)) {
+        $mobileRole = match (true) {
+            $user->salesman?->is_active => 'salesman',
+            $user->supervisor?->is_active => 'supervisor',
+            in_array((string) $user->role, $managementRoles, true) => (string) $user->role,
+            default => null,
+        };
+
+        if ($mobileRole === null) {
             return ApiResponse::error(
-                'This account role is not enabled for the mobile app.',
+                'This account is not enabled for the mobile app.',
                 403,
                 null,
                 'MOBILE_ROLE_UNSUPPORTED'
-            );
-        }
-
-        if ($mobileRole === 'salesman' && (! $user->salesman || ! $user->salesman->is_active)) {
-            return ApiResponse::error(
-                'No active salesman profile is linked to this user.',
-                422,
-                null,
-                'SALESMAN_REQUIRED'
-            );
-        }
-
-        if ($mobileRole === 'supervisor' && (! $user->supervisor || ! $user->supervisor->is_active)) {
-            return ApiResponse::error(
-                'No active supervisor profile is linked to this user.',
-                422,
-                null,
-                'SUPERVISOR_REQUIRED'
             );
         }
 
@@ -208,9 +196,9 @@ class AuthController extends Controller
                 'id' => $user->uuid,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->role,
+                'role' => $mobileRole,
             ],
-            'profile_type' => $user->role,
+            'profile_type' => $mobileRole,
             'salesman' => $user->salesman ? [
                 'id' => $user->salesman->uuid,
                 'employee_code' => $user->salesman->employee_code,
