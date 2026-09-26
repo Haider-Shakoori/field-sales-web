@@ -19,6 +19,9 @@ Post-release-candidate hardening completed on 2026-09-26:
 - supervisor and sales-manager mobile leadership login remains supported, including safe account switching on the same app installation;
 - the backend account-switch/tenant-login hardening is deployed to `https://fieldpulse.businessos.af`;
 - public production health checks `/ready` and `/up` returned HTTP 200 during the 2026-09-26 verification pass;
+- the cPanel runtime now passes `field-sales:production-check --services` and `field-sales:ops-check --backup-tooling`;
+- FieldPulse scheduler, queue-drain and five-minute operations-check cron entries are installed on the production cPanel account;
+- a production-host verification backup completed successfully and its database/public-storage SHA-256 values matched the manifest;
 - manual physical-device UAT is still required before Batch 19 can be marked complete.
 
 Batches 1–14 are complete. Batch 14 — Notifications, Alerts & Reporting — adds tenant-scoped notification delivery, evidence-based operational alerts, and exportable operational reports without weakening the existing RBAC, tenancy, or offline-first guarantees.
@@ -106,7 +109,7 @@ Batch 14 intentionally does not add a PDF library or commission engine. CSV is t
 - Historical route playback and territory overlays remain deferred.
 - Push delivery requires a configured provider endpoint/token; the server-side outbox and retry-safe queue foundation are present.
 - No browser automation or screenshot-based visual QA evidence is claimed for Batch 14.
-- Batch 17 provides deployment/operations artifacts and CI validation, but no live production-host deployment or disaster-restore drill is claimed yet.
+- The cPanel production runtime, scheduler/queue cron, backup tooling and one checksum-verified local backup have now been verified. A non-production destructive restore drill is still pending.
 - Off-site backup replication remains infrastructure-provider specific; the application creates local verified backup sets that must be copied to an independent encrypted target before launch.
 - Approved FieldPulse production launcher and splash branding is now present in the mobile repository and the platform default icon has been replaced. Physical-device launcher-mask/splash verification remains part of Batch 19 UAT.
 - A real production keystore, GitHub release secrets, production API repository variable, store submission, and real-device release installation are not falsely claimed by Batch 18.
@@ -217,7 +220,6 @@ Automated release-candidate evidence completed so far:
 
 Batch 19 is **not complete** yet. Repository-side production branding and canonical production endpoint configuration are resolved. The remaining gates require real infrastructure/physical-device execution evidence rather than simulation:
 - signed RC APK using the real external upload/release key
-- production-like/staging HTTPS deployment with healthy workers/readiness
 - physical Android install and UAT-01 through UAT-14
 - background GPS and Android permission/OEM behavior on a real device
 - reconnect/idempotent sync and admin round-trip
