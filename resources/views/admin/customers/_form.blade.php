@@ -124,7 +124,7 @@
         <input id="customer-latitude" type="hidden" name="latitude" value="{{ $selectedLatitude }}">
         <input id="customer-longitude" type="hidden" name="longitude" value="{{ $selectedLongitude }}">
 
-        <div id="customer-location-map" class="h-[460px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950"></div>
+        <div id="customer-location-map" class="overflow-hidden rounded-2xl border border-white/10 bg-slate-950" style="height:460px;min-height:320px;"></div>
 
         <div class="mt-3 grid gap-3 sm:grid-cols-2">
             <div class="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3">

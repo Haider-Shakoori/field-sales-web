@@ -17,7 +17,7 @@
                 <h2 class="font-semibold">Territory boundary</h2>
                 <p class="mt-1 text-xs text-slate-500">The stored geofence for this territory.</p>
             </div>
-            <div id="territory-detail-map" class="h-[430px] bg-slate-950"></div>
+            <div id="territory-detail-map" class="bg-slate-950" style="height:430px;min-height:320px;"></div>
         </section>
     @endif
 

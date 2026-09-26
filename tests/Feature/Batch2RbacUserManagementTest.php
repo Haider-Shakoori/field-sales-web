@@ -162,7 +162,8 @@ class Batch2RbacUserManagementTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.users.create'))
             ->assertOk()
-            ->assertSee('user-location-map', false);
+            ->assertSee('user-location-map', false)
+            ->assertSee('style="height:360px;min-height:300px;"', false);
 
         $this->actingAs($admin)
             ->post(route('admin.users.store'), [
