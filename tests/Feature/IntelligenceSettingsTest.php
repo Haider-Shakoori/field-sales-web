@@ -57,7 +57,6 @@ class IntelligenceSettingsTest extends TestCase
                 'territory_stale_attention_percent' => '35',
                 'territory_geometry_audit_enabled' => '1',
                 'gamification_enabled' => '1',
-                'businessos_enabled' => '1',
                 'businessos_organization_key' => 'acme-distribution',
                 'businessos_pull_products' => '1',
                 'businessos_pull_customers' => '1',
@@ -87,7 +86,7 @@ class IntelligenceSettingsTest extends TestCase
         $this->assertTrue($intelligence['gamification_enabled']);
 
         $policy = app(BusinessOsIntegrationPolicyService::class)->settingsFor($tenant);
-        $this->assertTrue($policy['requested_enabled']);
+        $this->assertFalse($policy['platform_granted']);
         $this->assertFalse($policy['enabled']);
         $this->assertSame('acme-distribution', $policy['organization_key']);
         $this->assertFalse($policy['pull_prices']);
@@ -98,8 +97,16 @@ class IntelligenceSettingsTest extends TestCase
         config()->set('businessos.base_url', 'https://businessos.example.test');
         config()->set('businessos.token', 'test-token');
 
-        $enabledPolicy = app(BusinessOsIntegrationPolicyService::class)->settingsFor($tenant);
-        $this->assertTrue($enabledPolicy['platform_available']);
+        $availablePolicy = app(BusinessOsIntegrationPolicyService::class)->settingsFor($tenant);
+        $this->assertTrue($availablePolicy['platform_available']);
+        $this->assertFalse($availablePolicy['enabled']);
+
+        $settings = $tenant->settings ?? [];
+        data_set($settings, 'businessos.platform_enabled', true);
+        $tenant->update(['settings' => $settings]);
+
+        $enabledPolicy = app(BusinessOsIntegrationPolicyService::class)->settingsFor($tenant->fresh());
+        $this->assertTrue($enabledPolicy['platform_granted']);
         $this->assertTrue($enabledPolicy['enabled']);
     }
 

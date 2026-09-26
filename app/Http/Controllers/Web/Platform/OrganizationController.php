@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Platform;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Services\AuditLogger;
+use App\Services\BusinessOsIntegrationPolicyService;
 use App\Services\TenantProvisioningService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -89,11 +90,14 @@ class OrganizationController extends Controller
             ->with('status', $tenant->name.' was created with default roles and tracking policy.');
     }
 
-    public function edit(Tenant $organization): View
-    {
+    public function edit(
+        Tenant $organization,
+        BusinessOsIntegrationPolicyService $businessOs,
+    ): View {
         return view('admin.organizations.edit', [
             'organization' => $organization,
             'timezones' => $this->timezones(),
+            'businessOsPolicy' => $businessOs->settingsFor($organization),
         ]);
     }
 
@@ -102,15 +106,39 @@ class OrganizationController extends Controller
         Tenant $organization,
         AuditLogger $audit,
     ): RedirectResponse {
-        $validated = $request->validate($this->rules($organization->id));
+        $validated = $request->validate(array_merge(
+            $this->rules($organization->id),
+            [
+                'businessos_platform_enabled' => [
+                    'sometimes',
+                    'boolean',
+                ],
+            ],
+        ));
 
-        $old = $organization->only(['name', 'slug', 'timezone', 'contact_email']);
+        $old = $organization->only([
+            'name',
+            'slug',
+            'timezone',
+            'contact_email',
+            'settings',
+        ]);
+        $settings = $organization->settings ?? [];
+
+        if (array_key_exists('businessos_platform_enabled', $validated)) {
+            data_set(
+                $settings,
+                'businessos.platform_enabled',
+                (bool) $validated['businessos_platform_enabled'],
+            );
+        }
 
         $organization->update([
             'name' => $validated['name'],
             'slug' => strtolower($validated['slug']),
             'timezone' => $validated['timezone'],
             'contact_email' => $validated['contact_email'] ?? null,
+            'settings' => $settings,
         ]);
 
         $audit->record('organization.updated', $organization, $old, [
@@ -118,6 +146,7 @@ class OrganizationController extends Controller
             'slug' => $organization->slug,
             'timezone' => $organization->timezone,
             'contact_email' => $organization->contact_email,
+            'settings' => $organization->settings,
         ], $organization->id);
 
         return redirect()

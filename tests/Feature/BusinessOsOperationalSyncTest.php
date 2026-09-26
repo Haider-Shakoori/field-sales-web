@@ -324,7 +324,7 @@ class BusinessOsOperationalSyncTest extends TestCase
                 'subscription_status' => 'active',
                 'settings' => [
                     'businessos' => [
-                        'enabled' => true,
+                        'platform_enabled' => true,
                         'organization_key' => 'businessos-test',
                         'sync' => [
                             'pull_products' => true,

@@ -11,17 +11,25 @@ final class BusinessOsIntegrationPolicyService
     {
         $settings = $tenant->settings ?? [];
         $available = $this->platformAvailable();
-        $requested = (bool) data_get($settings, 'businessos.enabled', false);
+        $platformGranted = (bool) data_get(
+            $settings,
+            'businessos.platform_enabled',
+            false,
+        );
+        $organizationKey = trim((string) data_get(
+            $settings,
+            'businessos.organization_key',
+            '',
+        ));
 
         return [
             'platform_available' => $available,
-            'enabled' => $available && $requested,
-            'requested_enabled' => $requested,
-            'organization_key' => trim((string) data_get(
-                $settings,
-                'businessos.organization_key',
-                '',
-            )),
+            'platform_granted' => $platformGranted,
+            'mapping_configured' => $organizationKey !== '',
+            'enabled' => $available
+                && $platformGranted
+                && $organizationKey !== '',
+            'organization_key' => $organizationKey,
             'pull_products' => (bool) data_get(
                 $settings,
                 'businessos.sync.pull_products',
