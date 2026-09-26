@@ -4,13 +4,11 @@ namespace App\Services\BusinessOs;
 
 use App\Contracts\BusinessOsConnector;
 use App\Jobs\SyncBusinessOsRun;
-use App\Models\BusinessOsOutboxEvent;
 use App\Models\BusinessOsSyncRun;
 use App\Models\BusinessOsSyncState;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BusinessOsIntegrationPolicyService;
-use Illuminate\Support\Collection;
 use Throwable;
 
 final class SyncService
