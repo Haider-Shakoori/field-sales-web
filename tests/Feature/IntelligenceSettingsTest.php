@@ -53,6 +53,10 @@ class IntelligenceSettingsTest extends TestCase
                 'territory_auto_assign_enabled' => '0',
                 'territory_heat_map_enabled' => '1',
                 'territory_under_covered_threshold_percent' => '70',
+                'territory_stale_customer_days' => '45',
+                'territory_stale_attention_percent' => '35',
+                'territory_geometry_audit_enabled' => '1',
+                'gamification_enabled' => '1',
                 'businessos_enabled' => '1',
                 'businessos_organization_key' => 'acme-distribution',
                 'businessos_pull_products' => '1',
@@ -77,6 +81,10 @@ class IntelligenceSettingsTest extends TestCase
         $this->assertFalse($intelligence['territory_auto_assign_enabled']);
         $this->assertTrue($intelligence['territory_heat_map_enabled']);
         $this->assertSame(70, $intelligence['territory_under_covered_threshold_percent']);
+        $this->assertSame(45, $intelligence['territory_stale_customer_days']);
+        $this->assertSame(35, $intelligence['territory_stale_attention_percent']);
+        $this->assertTrue($intelligence['territory_geometry_audit_enabled']);
+        $this->assertTrue($intelligence['gamification_enabled']);
 
         $policy = app(BusinessOsIntegrationPolicyService::class)->settingsFor($tenant);
         $this->assertTrue($policy['requested_enabled']);
@@ -236,6 +244,15 @@ class IntelligenceSettingsTest extends TestCase
                 'territories' => [
                     'auto_assign_customers' => false,
                     'heat_map_enabled' => true,
+                    'under_covered_threshold_percent' => 65,
+                    'stale_customer_days' => 21,
+                    'stale_attention_percent' => 30,
+                    'geometry_audit_enabled' => false,
+                ],
+            ],
+            'engagement' => [
+                'gamification' => [
+                    'enabled' => true,
                 ],
             ],
         ]);
@@ -251,7 +268,12 @@ class IntelligenceSettingsTest extends TestCase
             ->assertJsonPath('data.route_time_buffer_minutes', 20)
             ->assertJsonPath('data.route_enforce_workday_capacity', false)
             ->assertJsonPath('data.territory_auto_assign_enabled', false)
-            ->assertJsonPath('data.territory_heat_map_enabled', true);
+            ->assertJsonPath('data.territory_heat_map_enabled', true)
+            ->assertJsonPath('data.territory_under_covered_threshold_percent', 65)
+            ->assertJsonPath('data.territory_stale_customer_days', 21)
+            ->assertJsonPath('data.territory_stale_attention_percent', 30)
+            ->assertJsonPath('data.territory_geometry_audit_enabled', false)
+            ->assertJsonPath('data.gamification_enabled', true);
     }
 
     private function fixture(array $settings = []): array
