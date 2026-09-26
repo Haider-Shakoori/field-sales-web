@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Branch;
 use App\Models\Customer;
+use App\Models\CompanySetting;
 use App\Models\CustomerFollowUp;
+use App\Models\CustomerVisit;
 use App\Models\Device;
 use App\Models\Order;
 use App\Models\Permission;
@@ -17,6 +19,7 @@ use App\Models\Tenant;
 use App\Models\Territory;
 use App\Models\User;
 use App\Services\DailyRoutePlannerService;
+use App\Services\RouteExecutionAnalyticsService;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -446,6 +449,108 @@ class DailyRoutePlannerTest extends TestCase
             $outside->uuid,
             collect($plan['nearby_opportunities'])->pluck('customer_id')->all(),
         );
+    }
+
+    public function test_planner_adds_etas_and_flags_workday_capacity_overflow(): void
+    {
+        [$tenant, , $salesman] = $this->fixture();
+
+        $tenant->update([
+            'settings' => [
+                'intelligence' => [
+                    'smart_routes' => [
+                        'enabled' => true,
+                        'average_speed_kph' => 10,
+                        'time_buffer_minutes' => 0,
+                        'enforce_workday_capacity' => true,
+                    ],
+                ],
+            ],
+        ]);
+
+        foreach ([
+            'workday_start_time' => '08:00',
+            'workday_end_time' => '08:20',
+        ] as $key => $value) {
+            CompanySetting::updateOrCreate(
+                ['tenant_id' => $tenant->id, 'key' => 'tracking.'.$key],
+                ['value' => $value],
+            );
+        }
+
+        $plan = app(TenantContext::class)->withTenant(
+            $tenant->fresh(),
+            fn () => app(DailyRoutePlannerService::class)->planFor(
+                $salesman->fresh(),
+                CarbonImmutable::parse('2026-09-23', 'Asia/Kabul'),
+            ),
+        );
+
+        $this->assertSame(10.0, $plan['schedule']['average_speed_kph']);
+        $this->assertSame(20, $plan['summary']['available_work_minutes']);
+        $this->assertGreaterThan(0, $plan['summary']['estimated_travel_minutes']);
+        $this->assertGreaterThan(0, $plan['summary']['overflow_stops']);
+        $this->assertFalse($plan['summary']['route_fits_workday']);
+        $this->assertNotNull($plan['stops'][0]['estimated_arrival_at']);
+        $this->assertNotNull($plan['stops'][0]['estimated_departure_at']);
+        $this->assertContains(
+            'overflow',
+            collect($plan['stops'])->pluck('capacity_status')->all(),
+        );
+        $this->assertTrue(
+            collect($plan['warnings'])->contains(
+                fn (string $warning) => str_starts_with(
+                    $warning,
+                    'workday_capacity_exceeded:',
+                ),
+            ),
+        );
+    }
+
+    public function test_route_execution_compares_planned_and_completed_visits(): void
+    {
+        [$tenant, $admin, $salesman, , $regular] = $this->fixture();
+
+        $device = Device::where('salesman_id', $salesman->id)->firstOrFail();
+
+        app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => CustomerVisit::create([
+                'user_id' => $salesman->user_id,
+                'salesman_id' => $salesman->id,
+                'device_id' => $device->id,
+                'customer_id' => $regular->id,
+                'status' => 'completed',
+                'outcome' => 'productive',
+                'is_planned' => true,
+                'checked_in_at' => '2026-09-23 05:00:00',
+                'checked_out_at' => '2026-09-23 05:15:00',
+                'checkin_latitude' => 34.53,
+                'checkin_longitude' => 69.17,
+                'checkin_accuracy' => 8,
+                'checkout_latitude' => 34.53,
+                'checkout_longitude' => 69.17,
+                'checkout_accuracy' => 8,
+            ]),
+        );
+
+        $payload = app(TenantContext::class)->withTenant(
+            $tenant,
+            fn () => app(RouteExecutionAnalyticsService::class)->build(
+                $admin,
+                '2026-09-23',
+                $salesman->employee_code,
+            ),
+        );
+
+        $row = collect($payload['salesmen'])->firstOrFail();
+
+        $this->assertSame(2, $row['assigned_stops']);
+        $this->assertSame(1, $row['visited_planned_stops']);
+        $this->assertSame(1, $row['remaining_stops']);
+        $this->assertSame(1, $row['missed_stops']);
+        $this->assertSame(50.0, $row['completion_percent']);
+        $this->assertSame('missed_stops', $row['execution_status']);
     }
 
     private function plannerFoundation(string $slug): array
