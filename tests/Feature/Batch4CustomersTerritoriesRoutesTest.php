@@ -67,6 +67,7 @@ class Batch4CustomersTerritoriesRoutesTest extends TestCase
             ->get(route('admin.territories.create'))
             ->assertOk()
             ->assertSee('territory-boundary-map', false)
+            ->assertSee('style="height:470px;min-height:320px;"', false)
             ->assertSee('Start new boundary');
 
         $this->actingAs($admin)
@@ -89,6 +90,7 @@ class Batch4CustomersTerritoriesRoutesTest extends TestCase
             ->get(route('admin.customers.create'))
             ->assertOk()
             ->assertSee('customer-location-map', false)
+            ->assertSee('style="height:460px;min-height:320px;"', false)
             ->assertSee('Use current location')
             ->assertSee('customer-territory-select', false);
 
@@ -144,12 +146,14 @@ class Batch4CustomersTerritoriesRoutesTest extends TestCase
             ->get(route('admin.territories.index'))
             ->assertOk()
             ->assertSee('territories-map', false)
+            ->assertSee('style="height:520px;min-height:340px;"', false)
             ->assertSee('Kabul Central');
 
         $this->actingAs($admin)->get(route('admin.territories.show', $territory))
             ->assertOk()
             ->assertSee('Kabul Central')
-            ->assertSee('territory-detail-map', false);
+            ->assertSee('territory-detail-map', false)
+            ->assertSee('style="height:430px;min-height:320px;"', false);
         $this->actingAs($admin)->get(route('admin.customers.show', $customer))
             ->assertOk()
             ->assertSee('Demo Shop');
