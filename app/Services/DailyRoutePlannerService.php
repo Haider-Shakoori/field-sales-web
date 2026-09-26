@@ -509,7 +509,8 @@ class DailyRoutePlannerService
         ];
     }
 
-    private function routePayload($route, CarbonImmutable $localDate): array {
+    private function routePayload($route, CarbonImmutable $localDate): array
+    {
         $weekday = strtolower($localDate->format('D'));
 
         return [
@@ -858,7 +859,8 @@ class DailyRoutePlannerService
         return $warnings;
     }
 
-    private function summary(array $stops, ?array $schedule = null): array {
+    private function summary(array $stops, ?array $schedule = null): array
+    {
         $collection = collect($stops);
 
         return [
