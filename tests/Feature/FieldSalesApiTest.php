@@ -185,6 +185,51 @@ class FieldSalesApiTest extends TestCase
         }
     }
 
+    public function test_salesman_can_reopen_completed_session_for_same_local_day(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-18T07:00:00Z');
+
+        try {
+            $actor = $this->actor();
+            $this->createActiveSession($actor, '2026-09-18 04:30:00');
+
+            $this->postJson('/api/v1/attendance/end', [
+                'latitude' => 34.55,
+                'longitude' => 69.20,
+                'accuracy' => 8,
+                'ended_at' => '2026-09-18T06:00:00Z',
+            ], $this->headers())
+                ->assertOk()
+                ->assertJsonPath('data.status', 'completed');
+
+            $this->postJson('/api/v1/attendance/reopen', [
+                'reopened_at' => '2026-09-18T06:15:00Z',
+            ], $this->headers())
+                ->assertOk()
+                ->assertJsonPath('data.status', 'active')
+                ->assertJsonPath('data.ended_at', null);
+
+            $session = $this->inTenant(
+                $actor,
+                fn () => WorkSession::where('user_id', $actor['u']->id)->firstOrFail()
+            );
+
+            $this->assertNull($session->end_time);
+            $this->assertNull($session->duration_minutes);
+            $this->assertFalse($session->is_early_finish);
+            $this->assertSame('day_reopened', $session->corrections[0]['type'] ?? null);
+
+            // Reopening is idempotent if a retry reaches the server twice.
+            $this->postJson('/api/v1/attendance/reopen', [
+                'reopened_at' => '2026-09-18T06:15:00Z',
+            ], $this->headers())
+                ->assertOk()
+                ->assertJsonPath('data.status', 'active');
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
     public function test_revoked_device_has_machine_code(): void
     {
         $actor = $this->actor();
