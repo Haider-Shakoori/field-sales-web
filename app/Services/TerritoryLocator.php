@@ -152,13 +152,17 @@ class TerritoryLocator
             return false;
         }
 
+        $lengthSquared = ($x2 - $x1) ** 2 + ($y2 - $y1) ** 2;
+
+        if ($lengthSquared <= 1e-18) {
+            return (($x - $x1) ** 2 + ($y - $y1) ** 2) <= 1e-18;
+        }
+
         $dot = ($x - $x1) * ($x2 - $x1) + ($y - $y1) * ($y2 - $y1);
 
         if ($dot < -1e-9) {
             return false;
         }
-
-        $lengthSquared = ($x2 - $x1) ** 2 + ($y2 - $y1) ** 2;
 
         return $dot <= $lengthSquared + 1e-9;
     }
