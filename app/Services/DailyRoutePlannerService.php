@@ -943,6 +943,7 @@ class DailyRoutePlannerService
                 $stop['estimated_arrival_at'] = null;
                 $stop['estimated_departure_at'] = null;
                 $stop['capacity_status'] = 'completed';
+
                 continue;
             }
 
