@@ -89,6 +89,7 @@ class OperationalIdleAlertTest extends TestCase
             ]);
 
             WorkSession::create([
+                'uuid' => (string) Str::uuid(),
                 'user_id' => $salesUser->id,
                 'salesman_id' => $salesman->id,
                 'date' => today(),
