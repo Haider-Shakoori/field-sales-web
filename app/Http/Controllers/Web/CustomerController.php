@@ -14,6 +14,7 @@ use App\Services\AuditLogger;
 use App\Services\Customer360Service;
 use App\Services\CustomerBalanceService;
 use App\Services\CustomerReorderRecommendationService;
+use App\Services\TerritoryLocator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -50,9 +51,28 @@ class CustomerController extends Controller
         return view('admin.customers.create', $this->formData());
     }
 
-    public function store(StoreCustomerRequest $request, AuditLogger $audit): RedirectResponse
-    {
+    public function store(
+        StoreCustomerRequest $request,
+        AuditLogger $audit,
+        TerritoryLocator $territoryLocator,
+    ): RedirectResponse {
         $validated = $request->validated();
+
+        if (
+            empty($validated['territory_id'])
+            && isset($validated['latitude'], $validated['longitude'])
+        ) {
+            $detected = $territoryLocator->locate(
+                (float) $validated['latitude'],
+                (float) $validated['longitude'],
+                isset($validated['branch_id']) ? (int) $validated['branch_id'] : null,
+            );
+
+            if ($detected) {
+                $validated['territory_id'] = $detected->id;
+                $validated['branch_id'] = $detected->branch_id ?? ($validated['branch_id'] ?? null);
+            }
+        }
 
         $customer = Customer::create([
             ...$validated,
@@ -99,10 +119,33 @@ class CustomerController extends Controller
         return view('admin.customers.edit', [...$this->formData(), 'customer' => $customer]);
     }
 
-    public function update(UpdateCustomerRequest $request, Customer $customer, AuditLogger $audit): RedirectResponse
-    {
+    public function update(
+        UpdateCustomerRequest $request,
+        Customer $customer,
+        AuditLogger $audit,
+        TerritoryLocator $territoryLocator,
+    ): RedirectResponse {
         $before = $this->auditValues($customer);
         $validated = $request->validated();
+
+        if (
+            empty($validated['territory_id'])
+            && isset($validated['latitude'], $validated['longitude'])
+        ) {
+            $detected = $territoryLocator->locate(
+                (float) $validated['latitude'],
+                (float) $validated['longitude'],
+                isset($validated['branch_id'])
+                    ? (int) $validated['branch_id']
+                    : $customer->branch_id,
+            );
+
+            if ($detected) {
+                $validated['territory_id'] = $detected->id;
+                $validated['branch_id'] = $detected->branch_id
+                    ?? ($validated['branch_id'] ?? $customer->branch_id);
+            }
+        }
 
         $customer->update([
             ...$validated,
