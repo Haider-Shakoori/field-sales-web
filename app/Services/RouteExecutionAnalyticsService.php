@@ -21,7 +21,8 @@ final class RouteExecutionAnalyticsService
         User $actor,
         string $date,
         ?string $salesmanQuery = null,
-    ): array {
+    ): array
+    {
         $actor->loadMissing('tenant');
         $timezone = $this->clock->timezone($actor->tenant);
         $localDate = CarbonImmutable::createFromFormat(
@@ -83,7 +84,8 @@ final class RouteExecutionAnalyticsService
         CarbonImmutable $localDate,
         string $timezone,
         array $tracking,
-    ): array {
+    ): array
+    {
         $plan = $this->planner->planFor($salesman, $localDate);
         $stops = collect($plan['stops'] ?? []);
         $plannedCustomerUuids = $stops
@@ -115,7 +117,7 @@ final class RouteExecutionAnalyticsService
 
         $offRoute = $visits
             ->filter(fn (CustomerVisit $visit) => $visit->customer?->uuid
-                && ! $plannedCustomerUuids->contains($visit->customer->uuid))
+                && !$plannedCustomerUuids->contains($visit->customer->uuid))
             ->values();
 
         $assigned = $stops->count();
@@ -192,7 +194,8 @@ final class RouteExecutionAnalyticsService
         CarbonImmutable $localDate,
         string $timezone,
         string $workdayEnd,
-    ): bool {
+    ): bool
+    {
         $now = CarbonImmutable::now($timezone);
 
         if ($localDate->lt($now->startOfDay())) {
