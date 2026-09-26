@@ -30,6 +30,9 @@ class SettingsController extends Controller
             'smart_routes_enabled' => $values['smart_routes_enabled'],
             'route_nearby_radius_km' => $values['route_nearby_radius_km'],
             'route_max_opportunities' => $values['route_max_opportunities'],
+            'route_average_speed_kph' => $values['route_average_speed_kph'],
+            'route_time_buffer_minutes' => $values['route_time_buffer_minutes'],
+            'route_enforce_workday_capacity' => $values['route_enforce_workday_capacity'],
             'territory_auto_assign_enabled' => $values['territory_auto_assign_enabled'],
             'territory_heat_map_enabled' => $values['territory_heat_map_enabled'],
         ]);

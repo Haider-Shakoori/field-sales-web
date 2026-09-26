@@ -27,6 +27,7 @@ class AiInsightToolService
         private readonly MileageService $mileage,
         private readonly CustomerReorderRecommendationService $reorders,
         private readonly TerritoryHeatMapService $territoryHeatMap,
+        private readonly RouteExecutionAnalyticsService $routeExecution,
         private readonly TenantClock $clock,
         private readonly AiPolicyService $policy,
     ) {}
@@ -176,6 +177,22 @@ class AiInsightToolService
                 ],
             );
             $tools[] = $this->tool(
+                'get_route_execution',
+                'Get planned-versus-actual route execution for one date, including assigned stops, completed planned stops, remaining or missed stops, off-route visits, capacity utilization, and overflow. Use this for route progress, route compliance, missed visits, who is behind today, or whether a route can fit inside the workday.',
+                [
+                    'type' => 'object',
+                    'properties' => [
+                        'date' => ['type' => 'string', 'description' => 'YYYY-MM-DD'],
+                        'salesman_query' => [
+                            'type' => 'string',
+                            'description' => 'Optional salesman name or employee code.',
+                        ],
+                    ],
+                    'required' => ['date'],
+                    'additionalProperties' => false,
+                ],
+            );
+            $tools[] = $this->tool(
                 'get_mileage_summary',
                 'Get team or salesman travel distance, GPS/odometer variance, approved fuel use, fuel cost, and km-per-liter for a date range.',
                 [
@@ -312,6 +329,7 @@ class AiInsightToolService
             'get_returns' => $this->returns($user, $arguments),
             'get_scorecards' => $this->scorecards($user, $arguments),
             'get_mileage_summary' => $this->mileageSummary($user, $arguments),
+            'get_route_execution' => $this->routeExecution($user, $arguments),
             'get_territory_performance' => $this->territoryPerformance($user, $arguments),
             'get_customer_reorder_recommendations' => $this->customerReorders($user, $arguments),
             'get_order_details' => $this->orderDetails($user, $arguments),
@@ -732,6 +750,23 @@ class AiInsightToolService
             ],
             'salesmen' => $bySalesman->take(50)->all(),
         ];
+    }
+
+    private function routeExecution(User $user, array $arguments): array
+    {
+        abort_unless($user->hasPermission('reports:view'), 403);
+
+        $date = $this->date(
+            $user,
+            (string) ($arguments['date'] ?? ''),
+        )->toDateString();
+        $salesmanQuery = trim((string) ($arguments['salesman_query'] ?? ''));
+
+        return $this->routeExecution->build(
+            $user,
+            $date,
+            $salesmanQuery === '' ? null : $salesmanQuery,
+        );
     }
 
     private function customerReorders(User $user, array $arguments): array

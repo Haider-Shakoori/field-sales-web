@@ -47,6 +47,9 @@ class IntelligenceSettingsTest extends TestCase
                 'smart_routes_enabled' => '1',
                 'route_nearby_radius_km' => '7.5',
                 'route_max_opportunities' => '4',
+                'route_average_speed_kph' => '30',
+                'route_time_buffer_minutes' => '45',
+                'route_enforce_workday_capacity' => '1',
                 'territory_auto_assign_enabled' => '0',
                 'territory_heat_map_enabled' => '1',
                 'territory_under_covered_threshold_percent' => '70',
@@ -68,6 +71,9 @@ class IntelligenceSettingsTest extends TestCase
         $this->assertTrue($intelligence['smart_routes_enabled']);
         $this->assertSame(7.5, $intelligence['route_nearby_radius_km']);
         $this->assertSame(4, $intelligence['route_max_opportunities']);
+        $this->assertSame(30.0, $intelligence['route_average_speed_kph']);
+        $this->assertSame(45, $intelligence['route_time_buffer_minutes']);
+        $this->assertTrue($intelligence['route_enforce_workday_capacity']);
         $this->assertFalse($intelligence['territory_auto_assign_enabled']);
         $this->assertTrue($intelligence['territory_heat_map_enabled']);
         $this->assertSame(70, $intelligence['territory_under_covered_threshold_percent']);
@@ -223,6 +229,9 @@ class IntelligenceSettingsTest extends TestCase
                     'enabled' => false,
                     'nearby_radius_km' => 6,
                     'max_opportunities' => 2,
+                    'average_speed_kph' => 35,
+                    'time_buffer_minutes' => 20,
+                    'enforce_workday_capacity' => false,
                 ],
                 'territories' => [
                     'auto_assign_customers' => false,
@@ -238,6 +247,9 @@ class IntelligenceSettingsTest extends TestCase
             ->assertJsonPath('data.smart_routes_enabled', false)
             ->assertJsonPath('data.route_nearby_radius_km', 6)
             ->assertJsonPath('data.route_max_opportunities', 2)
+            ->assertJsonPath('data.route_average_speed_kph', 35)
+            ->assertJsonPath('data.route_time_buffer_minutes', 20)
+            ->assertJsonPath('data.route_enforce_workday_capacity', false)
             ->assertJsonPath('data.territory_auto_assign_enabled', false)
             ->assertJsonPath('data.territory_heat_map_enabled', true);
     }

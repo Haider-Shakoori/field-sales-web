@@ -20,6 +20,7 @@ class DailyRoutePlannerService
     public function __construct(
         private readonly RouteOpportunityService $opportunities,
         private readonly FieldIntelligenceSettingsService $settings,
+        private readonly TrackingSettingsService $trackingSettings,
     ) {}
 
     public function planFor(
@@ -45,6 +46,15 @@ class DailyRoutePlannerService
                 'smart_routes_enabled' => true,
                 'route_nearby_radius_km' => 5.0,
                 'route_max_opportunities' => 10,
+                'route_average_speed_kph' => 25.0,
+                'route_time_buffer_minutes' => 30,
+                'route_enforce_workday_capacity' => true,
+            ];
+        $trackingSettings = $tenant
+            ? $this->trackingSettings->get($tenant)
+            : [
+                'workday_start_time' => '08:00',
+                'workday_end_time' => '17:00',
             ];
 
         if (! $featureSettings['smart_routes_enabled']) {
@@ -274,13 +284,25 @@ class DailyRoutePlannerService
             $stops,
             $startLocation,
         );
+        [$orderedStops, $schedule] = $this->scheduleStops(
+            $orderedStops,
+            $localDate,
+            $timezone,
+            $startLocation,
+            $featureSettings,
+            $trackingSettings,
+        );
+        $warnings = $this->warnings($route, $localDate, $candidates);
+        if (($schedule['overflow_stops'] ?? 0) > 0) {
+            $warnings[] = 'workday_capacity_exceeded:'.$schedule['overflow_stops'];
+        }
 
         return [
             ...$this->basePlan($salesman, $localDate, $assignment),
             'enabled' => true,
             'source' => $source,
             'route' => $route,
-            'summary' => $this->summary($orderedStops),
+            'summary' => $this->summary($orderedStops, $schedule),
             'start_location' => $startLocation,
             'stops' => $orderedStops,
             'nearby_opportunities' => $nearbyOpportunities,
@@ -292,10 +314,14 @@ class DailyRoutePlannerService
                     ->values()
                     ->all(),
                 'nearby_radius_km' => $nearbyRadiusKm,
+                'average_speed_kph' => (float) $featureSettings['route_average_speed_kph'],
+                'time_buffer_minutes' => (int) $featureSettings['route_time_buffer_minutes'],
+                'workday_capacity_enabled' => (bool) $featureSettings['route_enforce_workday_capacity'],
             ],
+            'schedule' => $schedule,
             'approximate_air_distance_km' => round($totalDistance, 2),
             'distance_method' => self::DISTANCE_METHOD,
-            'warnings' => $this->warnings($route, $localDate, $candidates),
+            'warnings' => $warnings,
         ];
     }
 
@@ -833,7 +859,7 @@ class DailyRoutePlannerService
         return $warnings;
     }
 
-    private function summary(array $stops): array
+    private function summary(array $stops, ?array $schedule = null): array
     {
         $collection = collect($stops);
 
@@ -857,6 +883,118 @@ class DailyRoutePlannerService
             'missing_coordinates' => $collection
                 ->filter(fn (array $stop) => ! $this->hasStopCoordinates($stop))
                 ->count(),
+            'estimated_travel_minutes' => (int) ($schedule['estimated_travel_minutes'] ?? 0),
+            'estimated_total_minutes' => (int) ($schedule['estimated_total_minutes'] ?? 0),
+            'available_work_minutes' => (int) ($schedule['effective_capacity_minutes'] ?? 0),
+            'capacity_utilization_percent' => (float) ($schedule['capacity_utilization_percent'] ?? 0),
+            'overflow_stops' => (int) ($schedule['overflow_stops'] ?? 0),
+            'route_fits_workday' => (bool) ($schedule['route_fits_workday'] ?? true),
+        ];
+    }
+
+    private function scheduleStops(
+        array $stops,
+        CarbonImmutable $localDate,
+        string $timezone,
+        ?array $startLocation,
+        array $featureSettings,
+        array $trackingSettings,
+    ): array {
+        $speed = max(5.0, (float) ($featureSettings['route_average_speed_kph'] ?? 25));
+        $bufferMinutes = max(0, (int) ($featureSettings['route_time_buffer_minutes'] ?? 30));
+        $capacityEnabled = (bool) ($featureSettings['route_enforce_workday_capacity'] ?? true);
+        $workdayStart = CarbonImmutable::parse(
+            $localDate->toDateString().' '.($trackingSettings['workday_start_time'] ?? '08:00'),
+            $timezone,
+        );
+        $workdayEnd = CarbonImmutable::parse(
+            $localDate->toDateString().' '.($trackingSettings['workday_end_time'] ?? '17:00'),
+            $timezone,
+        );
+
+        if ($workdayEnd->lte($workdayStart)) {
+            $workdayEnd = $workdayEnd->addDay();
+        }
+
+        $planningStart = $workdayStart;
+        $now = CarbonImmutable::now($timezone);
+        if (
+            $startLocation !== null
+            && $localDate->isSameDay($now)
+            && $now->gt($planningStart)
+        ) {
+            $planningStart = $now;
+        }
+
+        $capacityEnd = $workdayEnd->subMinutes($bufferMinutes);
+        if ($capacityEnd->lt($planningStart)) {
+            $capacityEnd = $planningStart;
+        }
+
+        $effectiveCapacity = max(0, (int) $planningStart->diffInMinutes($capacityEnd));
+        $cursor = $planningStart;
+        $travelTotal = 0;
+        $visitTotal = 0;
+        $overflow = 0;
+
+        foreach ($stops as &$stop) {
+            if ($stop['visited_today']) {
+                $stop['estimated_travel_minutes'] = 0;
+                $stop['estimated_arrival_at'] = null;
+                $stop['estimated_departure_at'] = null;
+                $stop['capacity_status'] = 'completed';
+
+                continue;
+            }
+
+            $distance = $stop['distance_from_previous_km'];
+            $travelMinutes = $distance === null
+                ? 0
+                : (int) ceil(((float) $distance / $speed) * 60);
+            $visitMinutes = max(1, (int) ($stop['planned_visit_minutes'] ?? 10));
+            $arrival = $cursor->addMinutes($travelMinutes);
+            $departure = $arrival->addMinutes($visitMinutes);
+            $fits = ! $capacityEnabled || $departure->lte($capacityEnd);
+
+            $stop['estimated_travel_minutes'] = $travelMinutes;
+            $stop['estimated_arrival_at'] = $arrival->toIso8601String();
+            $stop['estimated_departure_at'] = $departure->toIso8601String();
+            $stop['capacity_status'] = $fits ? 'fits' : 'overflow';
+
+            if (! $fits) {
+                $overflow++;
+            }
+
+            $travelTotal += $travelMinutes;
+            $visitTotal += $visitMinutes;
+            $cursor = $departure;
+        }
+        unset($stop);
+
+        $estimatedTotal = $travelTotal + $visitTotal;
+        $utilization = $effectiveCapacity > 0
+            ? round(($estimatedTotal / $effectiveCapacity) * 100, 1)
+            : ($estimatedTotal > 0 ? 100.0 : 0.0);
+
+        return [
+            $stops,
+            [
+                'workday_start_at' => $workdayStart->toIso8601String(),
+                'planning_start_at' => $planningStart->toIso8601String(),
+                'capacity_end_at' => $capacityEnd->toIso8601String(),
+                'workday_end_at' => $workdayEnd->toIso8601String(),
+                'average_speed_kph' => $speed,
+                'buffer_minutes' => $bufferMinutes,
+                'capacity_enabled' => $capacityEnabled,
+                'effective_capacity_minutes' => $effectiveCapacity,
+                'estimated_travel_minutes' => $travelTotal,
+                'estimated_visit_minutes' => $visitTotal,
+                'estimated_total_minutes' => $estimatedTotal,
+                'capacity_utilization_percent' => $utilization,
+                'overflow_stops' => $overflow,
+                'route_fits_workday' => $overflow === 0,
+                'distance_estimate' => self::DISTANCE_METHOD,
+            ],
         ];
     }
 

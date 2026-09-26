@@ -69,6 +69,9 @@ class OrganizationController extends Controller
             'smart_routes_enabled' => ['sometimes', 'boolean'],
             'route_nearby_radius_km' => ['sometimes', 'numeric', 'between:0.5,25'],
             'route_max_opportunities' => ['sometimes', 'integer', 'between:0,10'],
+            'route_average_speed_kph' => ['sometimes', 'numeric', 'between:5,100'],
+            'route_time_buffer_minutes' => ['sometimes', 'integer', 'between:0,180'],
+            'route_enforce_workday_capacity' => ['sometimes', 'boolean'],
 
             'territory_auto_assign_enabled' => ['sometimes', 'boolean'],
             'territory_heat_map_enabled' => ['sometimes', 'boolean'],
@@ -139,6 +142,29 @@ class OrganizationController extends Controller
                 (int) $validated['route_max_opportunities'],
             );
         }
+
+        if (array_key_exists('route_average_speed_kph', $validated)) {
+            data_set(
+                $settings,
+                'intelligence.smart_routes.average_speed_kph',
+                (float) $validated['route_average_speed_kph'],
+            );
+        }
+
+        if (array_key_exists('route_time_buffer_minutes', $validated)) {
+            data_set(
+                $settings,
+                'intelligence.smart_routes.time_buffer_minutes',
+                (int) $validated['route_time_buffer_minutes'],
+            );
+        }
+
+        $this->setBoolean(
+            $settings,
+            'intelligence.smart_routes.enforce_workday_capacity',
+            $validated,
+            'route_enforce_workday_capacity',
+        );
 
         $this->setBoolean(
             $settings,
