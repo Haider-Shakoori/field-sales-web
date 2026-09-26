@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
 use App\Models\SupervisorAssignment;
 use App\Services\DashboardService;
+use App\Services\OperationalAlertService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,6 +33,25 @@ class TeamController extends Controller
             'locations' => $locations,
             'recent_activity' => $dashboard->recentActivity($actor, 16),
             'hierarchy' => $this->hierarchy($actor, $summary['local_date']),
+        ]);
+    }
+
+    public function nudge(
+        Request $request,
+        Salesman $salesman,
+        OperationalAlertService $alerts,
+    ): JsonResponse {
+        $validated = $request->validate([
+            'message' => ['required', 'string', 'min:2', 'max:500'],
+        ]);
+
+        $actor = $request->user()->loadMissing(['tenant', 'supervisor']);
+        $salesman->loadMissing('user');
+        $alerts->nudge($actor, $salesman, trim($validated['message']));
+
+        return ApiResponse::success([
+            'sent' => true,
+            'salesman_id' => $salesman->uuid,
         ]);
     }
 
