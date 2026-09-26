@@ -79,6 +79,83 @@ class OrganizationsAndLiveMapTest extends TestCase
         ]);
     }
 
+    public function test_only_platform_admin_can_grant_businessos_integration(): void
+    {
+        [$platformTenant, $platformAdmin] = $this->tenantUser(
+            'platform-integration@example.test',
+            ['settings:view'],
+            'company_admin',
+            'Platform Integration Tenant',
+            'platform-integration-tenant',
+            platformAdmin: true,
+        );
+        [$organization, $companyAdmin] = $this->tenantUser(
+            'tenant-integration@example.test',
+            ['settings:view', 'settings:manage'],
+            'company_admin',
+            'Integration Tenant',
+            'integration-tenant',
+        );
+
+        $this->actingAs($companyAdmin)
+            ->put(route('organization.update'), [
+                'name' => $organization->name,
+                'timezone' => $organization->timezone,
+                'businessos_platform_enabled' => '1',
+                'businessos_organization_key' => 'integration-tenant',
+            ])
+            ->assertRedirect();
+
+        $organization->refresh();
+        $this->assertFalse((bool) data_get(
+            $organization->settings,
+            'businessos.platform_enabled',
+            false,
+        ));
+        $this->assertSame(
+            'integration-tenant',
+            data_get($organization->settings, 'businessos.organization_key'),
+        );
+
+        $this->actingAs($platformAdmin)
+            ->get(route('admin.organizations.edit', $organization))
+            ->assertOk()
+            ->assertSee('BusinessOS platform access')
+            ->assertSee('Authorize BusinessOS integration for this organization');
+
+        $this->actingAs($platformAdmin)
+            ->put(route('admin.organizations.update', $organization), [
+                'name' => $organization->name,
+                'slug' => $organization->slug,
+                'timezone' => $organization->timezone,
+                'contact_email' => $organization->contact_email,
+                'businessos_platform_enabled' => '1',
+            ])
+            ->assertRedirect(route('admin.organizations.index'));
+
+        $organization->refresh();
+        $this->assertTrue((bool) data_get(
+            $organization->settings,
+            'businessos.platform_enabled',
+            false,
+        ));
+
+        $this->actingAs($companyAdmin)
+            ->put(route('organization.update'), [
+                'name' => $organization->name,
+                'timezone' => $organization->timezone,
+                'businessos_platform_enabled' => '0',
+            ])
+            ->assertRedirect();
+
+        $organization->refresh();
+        $this->assertTrue((bool) data_get(
+            $organization->settings,
+            'businessos.platform_enabled',
+            false,
+        ));
+    }
+
     public function test_non_platform_administrators_cannot_open_the_organization_console(): void
     {
         [, $companyAdmin] = $this->tenantUser(
