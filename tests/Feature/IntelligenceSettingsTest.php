@@ -150,6 +150,7 @@ class IntelligenceSettingsTest extends TestCase
         $settings = $fixture['tenant']->fresh()->settings ?? [];
         data_set($settings, 'intelligence.territories.auto_assign_customers', true);
         $fixture['tenant']->update(['settings' => $settings]);
+        $fixture['admin']->unsetRelation('tenant');
 
         $this->actingAs($fixture['admin'])
             ->post(route('admin.customers.store'), $this->customerPayload(
