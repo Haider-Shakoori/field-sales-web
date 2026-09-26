@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CollectionController;
 use App\Http\Controllers\Api\CustomerStatementController;
 use App\Http\Controllers\Api\DailyRoutePlannerController;
 use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\GamificationController;
 use App\Http\Controllers\Api\GpsController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\MasterDataController;
@@ -107,6 +108,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/targets/current', [TargetController::class, 'current']);
             Route::get('/targets/history', [TargetController::class, 'history']);
             Route::get('/team/overview', [TeamController::class, 'overview']);
+            Route::post('/team/salesmen/{salesman:uuid}/nudge', [TeamController::class, 'nudge']);
+            Route::get('/gamification', [GamificationController::class, 'show']);
             Route::get('/notifications', [NotificationController::class, 'index']);
             Route::patch('/notifications/{notification:uuid}/read', [NotificationController::class, 'read']);
             Route::get('/notification-preferences', [NotificationController::class, 'preferences']);
