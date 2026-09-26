@@ -42,6 +42,7 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('device.required')->group(function () {
             Route::get('/auth/me', [AuthController::class, 'me']);
+            Route::put('/device/push-token', [AuthController::class, 'updatePushToken']);
             Route::post('/mobile/diagnostics', [MobileDiagnosticController::class, 'store']);
 
             Route::get('/customers', [MasterDataController::class, 'customers']);
