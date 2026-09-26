@@ -121,7 +121,7 @@ class Batch10CollectionsTest extends TestCase
             'subject_id' => $collection->id,
         ]);
 
-        $this->actingAs($admin)
+        $this->actingAs($admin, 'web')
             ->get(route('admin.collections.show', $collection))
             ->assertOk()
             ->assertSee('Available to collect')
