@@ -15,7 +15,7 @@ class GamificationController extends Controller
         $user = $request->user()->loadMissing(['tenant', 'salesman']);
         $enabled = $gamification->enabled($user->tenant);
 
-        if (!$enabled) {
+        if (! $enabled) {
             return ApiResponse::success(['enabled' => false]);
         }
 
