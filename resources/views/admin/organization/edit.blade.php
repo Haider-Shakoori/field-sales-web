@@ -320,20 +320,22 @@
                 </span>
             </div>
 
-            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
-                <input type="hidden" name="businessos_enabled" value="0">
-                <input
-                    type="checkbox"
-                    name="businessos_enabled"
-                    value="1"
-                    @checked((bool) old('businessos_enabled', $businessOsSettings['requested_enabled']))
-                    class="mt-1 rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500"
-                >
-                <span>
-                    <span class="block text-sm font-semibold text-slate-200">{{ __('Enable BusinessOS synchronization for this organization') }}</span>
-                    <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('The switch becomes operational only when the platform connector URL and token are configured on the server.') }}</span>
-                </span>
-            </label>
+            <div class="rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <span class="block text-sm font-semibold text-slate-200">{{ __('Platform authorization') }}</span>
+                        <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('Only the FieldPulse platform administrator can activate BusinessOS synchronization for an organization. Organization administrators cannot enable it themselves.') }}</span>
+                    </div>
+                    <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $businessOsSettings['platform_granted'] ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300' }}">
+                        {{ $businessOsSettings['platform_granted'] ? __('Authorized by platform') : __('Not authorized by platform') }}
+                    </span>
+                </div>
+                @if(! $businessOsSettings['platform_available'])
+                    <p class="mt-3 text-xs text-amber-300">{{ __('The BusinessOS connector is unavailable at platform/server level.') }}</p>
+                @elseif($businessOsSettings['platform_granted'] && ! $businessOsSettings['mapping_configured'])
+                    <p class="mt-3 text-xs text-amber-300">{{ __('Platform access is granted, but an organization key is still required before synchronization can run.') }}</p>
+                @endif
+            </div>
 
             <div class="grid gap-5 md:grid-cols-2">
                 <div>
@@ -392,7 +394,7 @@
             </div>
 
             <div class="rounded-xl border border-cyan-400/10 bg-cyan-500/5 px-4 py-3 text-xs leading-5 text-slate-400">
-                {{ __('BusinessOS credentials and connector endpoints are platform-managed and are never displayed here. FieldPulse remains independently usable when the integration is disabled or unavailable.') }}
+                {{ __('BusinessOS activation, credentials and connector endpoints are platform-managed and are never displayed here. This organization may configure its mapping and permitted sync directions, but those settings stay inactive until the platform administrator grants access.') }}
                 @if($businessOsSettings['base_url'])
                     <span class="mt-1 block">{{ __('Configured connector host:') }} <span class="font-mono text-slate-300">{{ $businessOsSettings['base_url'] }}</span></span>
                 @endif
