@@ -3,6 +3,7 @@
 use App\Models\Tenant;
 use App\Services\AiConversationService;
 use App\Services\AppointmentReminderService;
+use App\Services\BusinessOs\SyncService;
 use App\Support\ProductionReadiness;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
@@ -61,6 +62,41 @@ Artisan::command('field-sales:send-appointment-reminders', function (): int {
     return 0;
 });
 
+Artisan::command('field-sales:queue-businessos-sync', function (): int {
+    $context = app(TenantContext::class);
+    $tenants = $context->withPlatformScope(
+        fn () => Tenant::query()
+            ->where('subscription_status', 'active')
+            ->get(['id', 'uuid', 'settings']),
+    );
+    $queued = 0;
+
+    foreach ($tenants as $tenant) {
+        $queued += $context->withTenant(
+            $tenant,
+            function () use ($tenant): int {
+                $sync = app(SyncService::class);
+
+                if (! $sync->due($tenant)) {
+                    return 0;
+                }
+
+                $run = $sync->queue(
+                    $tenant,
+                    null,
+                    'scheduled',
+                );
+
+                return $run->status === 'queued' ? 1 : 0;
+            },
+        );
+    }
+
+    $this->info("Queued {$queued} BusinessOS sync run(s).");
+
+    return 0;
+});
+
 Artisan::command('field-sales:prune-ai-history', function (): int {
     $context = app(TenantContext::class);
     $tenants = $context->withPlatformScope(
@@ -87,6 +123,10 @@ Schedule::command('field-sales:send-appointment-reminders')
 
 Schedule::command('field-sales:prune-ai-history')
     ->dailyAt('03:45')
+    ->withoutOverlapping();
+
+Schedule::command('field-sales:queue-businessos-sync')
+    ->everyFiveMinutes()
     ->withoutOverlapping();
 
 Schedule::command('queue:prune-failed --hours=168')
