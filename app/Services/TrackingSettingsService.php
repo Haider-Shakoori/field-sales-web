@@ -27,6 +27,8 @@ final class TrackingSettingsService
             'idle_alerts_enabled' => $this->bool($get('idle_alerts_enabled')),
             'idle_alert_after_minutes' => $this->int($get('idle_alert_after_minutes'), 5, 240, 30),
             'idle_alert_repeat_minutes' => $this->int($get('idle_alert_repeat_minutes'), 15, 480, 60),
+            'idle_escalation_enabled' => $this->bool($get('idle_escalation_enabled')),
+            'idle_escalate_after_minutes' => $this->int($get('idle_escalate_after_minutes'), 15, 480, 30),
             'timezone' => (new TenantClock)->timezone($tenant),
             'privacy_policy_version' => (string) $get('privacy_policy_version'),
             'updated_at' => CompanySetting::where('tenant_id', $tenant->id)->where('key', 'like', 'tracking.%')->max('updated_at'),

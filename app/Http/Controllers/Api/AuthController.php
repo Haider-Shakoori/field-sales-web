@@ -309,6 +309,9 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        /** @var Device|null $device */
+        $device = $request->attributes->get('device');
+        $device?->forceFill(['push_token' => null])->save();
         $request->user()?->currentAccessToken()?->delete();
 
         return ApiResponse::success(['logged_out' => true]);

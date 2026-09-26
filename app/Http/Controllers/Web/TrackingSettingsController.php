@@ -31,6 +31,8 @@ class TrackingSettingsController extends Controller
             'idle_alerts_enabled' => 'nullable|boolean',
             'idle_alert_after_minutes' => 'required|integer|min:5|max:240',
             'idle_alert_repeat_minutes' => 'required|integer|min:15|max:480',
+            'idle_escalation_enabled' => 'nullable|boolean',
+            'idle_escalate_after_minutes' => 'required|integer|min:15|max:480',
             'privacy_policy_version' => 'required|string|max:50',
         ]);
 
