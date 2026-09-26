@@ -103,6 +103,7 @@ final class RouteExecutionAnalyticsService
             ->get();
 
         $completedCustomerUuids = $visits
+            ->toBase()
             ->map(fn (CustomerVisit $visit) => $visit->customer?->uuid)
             ->filter()
             ->unique()
