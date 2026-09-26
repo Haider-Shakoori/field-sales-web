@@ -124,6 +124,7 @@ class DailyRoutePlannerService
         if ($candidates->isEmpty()) {
             return [
                 ...$this->basePlan($salesman, $localDate, $assignment),
+                'enabled' => true,
                 'source' => $source,
                 'route' => $route,
                 'summary' => $this->summary([]),
