@@ -56,6 +56,8 @@ class IntelligenceSettingsTest extends TestCase
                 'territory_stale_customer_days' => '45',
                 'territory_stale_attention_percent' => '35',
                 'territory_geometry_audit_enabled' => '1',
+                'management_route_progress_tolerance_percent' => '15',
+                'management_target_attention_percent' => '75',
                 'gamification_enabled' => '1',
                 'businessos_organization_key' => 'acme-distribution',
                 'businessos_pull_products' => '1',
@@ -83,6 +85,14 @@ class IntelligenceSettingsTest extends TestCase
         $this->assertSame(45, $intelligence['territory_stale_customer_days']);
         $this->assertSame(35, $intelligence['territory_stale_attention_percent']);
         $this->assertTrue($intelligence['territory_geometry_audit_enabled']);
+        $this->assertSame(
+            15,
+            $intelligence['management_route_progress_tolerance_percent'],
+        );
+        $this->assertSame(
+            75,
+            $intelligence['management_target_attention_percent'],
+        );
         $this->assertTrue($intelligence['gamification_enabled']);
 
         $policy = app(BusinessOsIntegrationPolicyService::class)->settingsFor($tenant);
