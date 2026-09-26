@@ -85,7 +85,6 @@ class OrganizationController extends Controller
             'territory_geometry_audit_enabled' => ['sometimes', 'boolean'],
             'gamification_enabled' => ['sometimes', 'boolean'],
 
-            'businessos_enabled' => ['sometimes', 'boolean'],
             'businessos_organization_key' => ['nullable', 'string', 'max:120'],
             'businessos_pull_products' => ['sometimes', 'boolean'],
             'businessos_pull_customers' => ['sometimes', 'boolean'],
@@ -221,13 +220,6 @@ class OrganizationController extends Controller
             'engagement.gamification.enabled',
             $validated,
             'gamification_enabled',
-        );
-
-        $this->setBoolean(
-            $settings,
-            'businessos.enabled',
-            $validated,
-            'businessos_enabled',
         );
 
         if (array_key_exists('businessos_organization_key', $validated)) {
