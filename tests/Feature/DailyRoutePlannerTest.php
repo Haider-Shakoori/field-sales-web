@@ -531,8 +531,14 @@ class DailyRoutePlannerTest extends TestCase
                 'status' => 'completed',
                 'outcome' => 'productive',
                 'is_planned' => true,
-                'checked_in_at' => '2026-09-23 05:00:00',
-                'checked_out_at' => '2026-09-23 05:15:00',
+                'checked_in_at' => CarbonImmutable::parse(
+                    '2026-09-23 12:00:00',
+                    'Asia/Kabul',
+                )->utc(),
+                'checked_out_at' => CarbonImmutable::parse(
+                    '2026-09-23 12:15:00',
+                    'Asia/Kabul',
+                )->utc(),
                 'checkin_latitude' => 34.53,
                 'checkin_longitude' => 69.17,
                 'checkin_accuracy' => 8,
