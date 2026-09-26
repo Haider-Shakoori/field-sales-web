@@ -158,6 +158,29 @@ class AuthController extends Controller
             );
         }
 
+        // A single app installation can legitimately switch between accounts
+        // (for example, a salesman logs out and a supervisor signs in on the
+        // same phone). The database keeps installation UUID unique per tenant,
+        // so retire the previous account binding instead of attempting a
+        // duplicate insert that would surface as a 500 error.
+        $installationOwner = Device::where('installation_uuid', $installationUuid)
+            ->when($existing, fn ($query) => $query->whereKeyNot($existing->id))
+            ->first();
+
+        if ($installationOwner && (int) $installationOwner->user_id !== (int) $user->id) {
+            $installationOwner->user?->tokens()
+                ->where('name', 'mobile-'.$installationOwner->uuid)
+                ->delete();
+
+            $installationOwner->forceFill([
+                'installation_uuid' => 'reassigned-'.$installationOwner->uuid,
+                'is_active' => false,
+                'revoked_at' => now(),
+                'revoked_by' => null,
+                'revocation_reason' => 'installation_reassigned_to_another_user',
+            ])->save();
+        }
+
         $device = Device::updateOrCreate(
             [
                 'user_id' => $user->id,
@@ -211,6 +234,7 @@ class AuthController extends Controller
                 'id' => $user->tenant->uuid,
                 'name' => $user->tenant->name,
                 'timezone' => $user->tenant->timezone,
+                'slug' => $user->tenant->slug,
             ],
             'permissions' => $permissions,
             'device' => [
@@ -246,6 +270,7 @@ class AuthController extends Controller
                 'id' => $user->tenant->uuid,
                 'name' => $user->tenant->name,
                 'timezone' => $user->tenant->timezone,
+                'slug' => $user->tenant->slug,
             ],
             'permissions' => $user->roles()
                 ->with('permissions')
