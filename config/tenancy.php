@@ -20,6 +20,9 @@ return [
         'gps_moving_interval_seconds' => 15,
         'gps_stationary_interval_seconds' => 60,
         'gps_stale_after_minutes' => 15,
+        'idle_alerts_enabled' => false,
+        'idle_alert_after_minutes' => 30,
+        'idle_alert_repeat_minutes' => 60,
         'privacy_policy_version' => '1',
     ],
 ];

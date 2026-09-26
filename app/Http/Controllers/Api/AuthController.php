@@ -290,6 +290,23 @@ class AuthController extends Controller
         ]);
     }
 
+    public function updatePushToken(Request $request)
+    {
+        $validated = $request->validate([
+            'push_token' => ['required', 'string', 'max:1000'],
+        ]);
+        /** @var Device|null $device */
+        $device = $request->attributes->get('device');
+        abort_unless($device, 404);
+
+        $device->forceFill([
+            'push_token' => $validated['push_token'],
+            'last_seen_at' => now(),
+        ])->save();
+
+        return ApiResponse::success(['registered' => true]);
+    }
+
     public function logout(Request $request)
     {
         $request->user()?->currentAccessToken()?->delete();
