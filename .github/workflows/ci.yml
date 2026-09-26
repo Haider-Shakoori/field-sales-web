@@ -48,10 +48,8 @@ jobs:
           fi
 
           if [ -n "$PHP_FILES" ]; then
-            vendor/bin/pint app/Services/BusinessOs/MasterDataImporter.php
-            echo "----- PINT AUTO-FIX DIFF -----"
-            git diff -- app/Services/BusinessOs/MasterDataImporter.php
-            exit 1
+            printf '%s\n' "$PHP_FILES"
+            printf '%s\n' "$PHP_FILES" | xargs vendor/bin/pint --test
           else
             echo "No changed PHP files to lint."
           fi
