@@ -16,6 +16,7 @@ use App\Services\OperationalAlertService;
 use App\Services\TenantProvisioningService;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -86,8 +87,10 @@ class OperationalIdleAlertTest extends TestCase
             SalesmanAssignment::create([
                 'salesman_id' => $salesman->id,
                 'supervisor_id' => $supervisor->id,
-                'effective_from' => today()->subDay(),
+                'effective_from' => CarbonImmutable::parse($localDate)->subDay()->toDateString(),
             ]);
+
+            $localDate = CarbonImmutable::now('Asia/Kabul')->toDateString();
 
             $device = Device::create([
                 'user_id' => $salesUser->id,
@@ -105,7 +108,7 @@ class OperationalIdleAlertTest extends TestCase
                 'user_id' => $salesUser->id,
                 'salesman_id' => $salesman->id,
                 'device_id' => $device->id,
-                'date' => today(),
+                'date' => $localDate,
                 'start_time' => now()->subHours(2),
                 'start_latitude' => 34.5,
                 'start_longitude' => 69.2,
