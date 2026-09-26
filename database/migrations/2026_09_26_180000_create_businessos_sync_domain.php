@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('businessos_sync_runs', function (Blueprint $table): void {
+        Schema::create('business_os_sync_runs', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
@@ -26,7 +26,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'status', 'created_at']);
         });
 
-        Schema::create('businessos_sync_states', function (Blueprint $table): void {
+        Schema::create('business_os_sync_states', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->string('stream', 60);
@@ -41,7 +41,7 @@ return new class extends Migration
             $table->unique(['tenant_id', 'stream']);
         });
 
-        Schema::create('businessos_entity_links', function (Blueprint $table): void {
+        Schema::create('business_os_entity_links', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
@@ -56,15 +56,15 @@ return new class extends Migration
 
             $table->unique(
                 ['tenant_id', 'entity_type', 'local_uuid'],
-                'businessos_link_local_unique',
+                'business_os_link_local_unique',
             );
             $table->unique(
                 ['tenant_id', 'entity_type', 'external_id'],
-                'businessos_link_external_unique',
+                'business_os_link_external_unique',
             );
         });
 
-        Schema::create('businessos_outbox_events', function (Blueprint $table): void {
+        Schema::create('business_os_outbox_events', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
@@ -89,9 +89,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('businessos_outbox_events');
-        Schema::dropIfExists('businessos_entity_links');
-        Schema::dropIfExists('businessos_sync_states');
-        Schema::dropIfExists('businessos_sync_runs');
+        Schema::dropIfExists('business_os_outbox_events');
+        Schema::dropIfExists('business_os_entity_links');
+        Schema::dropIfExists('business_os_sync_states');
+        Schema::dropIfExists('business_os_sync_runs');
     }
 };
