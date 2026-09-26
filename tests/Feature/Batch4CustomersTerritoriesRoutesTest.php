@@ -156,7 +156,11 @@ class Batch4CustomersTerritoriesRoutesTest extends TestCase
             ->assertSee('style="height:430px;min-height:320px;"', false);
         $this->actingAs($admin)->get(route('admin.customers.show', $customer))
             ->assertOk()
-            ->assertSee('Demo Shop');
+            ->assertSee('Demo Shop')
+            ->assertSee('Customer 360 timeline')
+            ->assertSee('customer-360-map', false)
+            ->assertSee('Approved orders')
+            ->assertSee('Verified collections');
         $this->actingAs($admin)->get(route('admin.routes.show', $route))
             ->assertOk()
             ->assertSee('Central Route');
