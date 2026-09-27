@@ -22,7 +22,7 @@ class SupervisorController extends Controller
         return view('admin.supervisors.index', [
             'supervisors' => Supervisor::with(['user.branch', 'assignments' => fn ($query) => $query->current()->with('branch')])
                 ->orderBy('employee_code')
-                ->paginate(25),
+                ->paginate(min(100, max(10, request()->integer('per_page', 25))))->withQueryString(),
         ]);
     }
 

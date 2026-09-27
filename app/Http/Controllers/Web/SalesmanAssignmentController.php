@@ -27,7 +27,7 @@ class SalesmanAssignmentController extends Controller
         return view('admin.salesman-assignments.index', [
             'assignments' => SalesmanAssignment::with(['salesman', 'branch', 'territory', 'route', 'supervisor'])
                 ->latest('effective_from')
-                ->paginate(30),
+                ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString(),
         ]);
     }
 

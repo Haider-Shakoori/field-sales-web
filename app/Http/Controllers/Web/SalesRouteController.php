@@ -25,7 +25,7 @@ class SalesRouteController extends Controller
             'routes' => SalesRoute::with(['branch', 'territory'])
                 ->withCount('customerMemberships')
                 ->orderBy('name')
-                ->paginate(30),
+                ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString(),
         ]);
     }
 

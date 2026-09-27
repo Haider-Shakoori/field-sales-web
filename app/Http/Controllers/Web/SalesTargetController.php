@@ -28,7 +28,7 @@ class SalesTargetController extends Controller
             })
             ->when($type !== '', fn ($query) => $query->where('target_type', $type))
             ->orderByDesc('period_start')
-            ->paginate(30)
+            ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString()
             ->withQueryString();
 
         $progressById = collect($targets->items())

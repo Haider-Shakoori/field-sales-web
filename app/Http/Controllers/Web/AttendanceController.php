@@ -127,7 +127,7 @@ class AttendanceController extends Controller
             ->orderByDesc('date')
             ->orderByDesc('start_time');
 
-        $sessions = $sessionsQuery->paginate(50)->withQueryString();
+        $sessions = $sessionsQuery->paginate(min(100, max(10, request()->integer('per_page', 50))))->withQueryString();
 
         $sessions->getCollection()->transform(function (WorkSession $session) use (
             $today,
