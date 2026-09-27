@@ -59,6 +59,8 @@ class CustomerController extends Controller
         FieldIntelligenceSettingsService $intelligence,
     ): RedirectResponse {
         $validated = $request->validated();
+        $isReferred = (bool) ($validated['referred_by'] ?? false);
+        unset($validated['referred_by']);
 
         if (
             $intelligence->territoryAutoAssignEnabled($request->user())
@@ -82,6 +84,9 @@ class CustomerController extends Controller
             'code' => strtoupper($validated['code']),
             'credit_currency' => strtoupper($validated['credit_currency'] ?? 'AFN'),
             'credit_terms_days' => $validated['credit_terms_days'] ?? 30,
+            'referred_by_salesman_id' => $isReferred
+                ? ($validated['assigned_salesman_id'] ?? null)
+                : null,
             'created_by' => $request->user()->id,
         ]);
 
@@ -102,7 +107,7 @@ class CustomerController extends Controller
         $timezone = $user->tenant?->timezone ?: config('app.timezone', 'UTC');
 
         return view('admin.customers.show', [
-            'customer' => $customer->load(['branch', 'territory', 'priceList', 'creator', 'routeMemberships.route', 'callActivities.user', 'followUps.assignedSalesman', 'communicationDeliveries.creator', 'portalAccesses.creator']),
+            'customer' => $customer->load(['branch', 'territory', 'assignedSalesman', 'referringSalesman', 'priceList', 'creator', 'routeMemberships.route', 'callActivities.user', 'followUps.assignedSalesman', 'communicationDeliveries.creator', 'portalAccesses.creator']),
             'creditSnapshot' => $balances->snapshot($customer, $customer->credit_currency ?? 'AFN'),
             'aging' => $balances->aging($customer),
             'salesmen' => Salesman::active()->orderBy('employee_code')->get(),
@@ -131,6 +136,8 @@ class CustomerController extends Controller
     ): RedirectResponse {
         $before = $this->auditValues($customer);
         $validated = $request->validated();
+        $isReferred = (bool) ($validated['referred_by'] ?? false);
+        unset($validated['referred_by']);
 
         if (
             $intelligence->territoryAutoAssignEnabled($request->user())
@@ -161,6 +168,10 @@ class CustomerController extends Controller
             'credit_terms_days' => $validated['credit_terms_days']
                 ?? $customer->credit_terms_days
                 ?? 30,
+            'referred_by_salesman_id' => $isReferred
+                ? ($customer->referred_by_salesman_id
+                    ?? ($validated['assigned_salesman_id'] ?? null))
+                : null,
         ]);
 
         $audit->record('customer.updated', $customer, $before, $this->auditValues($customer));
@@ -189,6 +200,7 @@ class CustomerController extends Controller
             'branches' => Branch::active()->orderBy('name')->get(),
             'territories' => Territory::active()->with('branch')->orderBy('name')->get(),
             'priceLists' => PriceList::active()->effectiveOn()->orderBy('name')->get(),
+            'salesmen' => Salesman::active()->orderBy('employee_code')->get(),
         ];
     }
 
@@ -196,6 +208,7 @@ class CustomerController extends Controller
     {
         return [
             'branch_id' => $customer->branch_id, 'territory_id' => $customer->territory_id, 'price_list_id' => $customer->price_list_id,
+            'assigned_salesman_id' => $customer->assigned_salesman_id, 'referred_by_salesman_id' => $customer->referred_by_salesman_id,
             'credit_limit' => $customer->credit_limit, 'credit_currency' => $customer->credit_currency, 'credit_terms_days' => $customer->credit_terms_days,
             'code' => $customer->code, 'name' => $customer->name, 'contact_person' => $customer->contact_person, 'phone' => $customer->phone,
             'alternate_phone' => $customer->alternate_phone, 'email' => $customer->email, 'address' => $customer->address,

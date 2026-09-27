@@ -537,6 +537,95 @@ class Batch4CustomersTerritoriesRoutesTest extends TestCase
         $this->assertSame(['MON'], $codes);
     }
 
+    public function test_customer_assignment_and_referral_are_tracked_separately(): void
+    {
+        $tenant = $this->tenant('customer-referral');
+        [$admin, $branch, $territory] = $this->catalogFixture($tenant);
+        [$salesman, $supervisor] = $this->salesTeam($tenant);
+
+        $this->actingAs($admin)
+            ->post(route('admin.salesman-assignments.store'), [
+                'salesman_id' => $salesman->id,
+                'branch_id' => $branch->id,
+                'territory_id' => $territory->id,
+                'route_id' => '',
+                'supervisor_id' => $supervisor->id,
+                'effective_from' => '2026-09-01',
+                'effective_to' => '',
+            ])
+            ->assertRedirect();
+
+        $assignment = $this->tenantScope(
+            $tenant,
+            fn () => SalesmanAssignment::where('salesman_id', $salesman->id)->firstOrFail()
+        );
+
+        $this->actingAs($admin)
+            ->post(route('admin.customers.store'), [
+                'branch_id' => $branch->id,
+                'territory_id' => $territory->id,
+                'assigned_salesman_id' => $salesman->id,
+                'referred_by' => '1',
+                'code' => 'REF-001',
+                'name' => 'Referred Shop',
+                'geofence_radius_meters' => '100',
+                'is_active' => '1',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($admin)
+            ->post(route('admin.customers.store'), [
+                'branch_id' => $branch->id,
+                'territory_id' => $territory->id,
+                'assigned_salesman_id' => $salesman->id,
+                'referred_by' => '0',
+                'code' => 'ASSIGN-001',
+                'name' => 'Assignment Only Shop',
+                'geofence_radius_meters' => '100',
+                'is_active' => '1',
+            ])
+            ->assertRedirect();
+
+        $referred = $this->tenantScope(
+            $tenant,
+            fn () => Customer::where('code', 'REF-001')->firstOrFail()
+        );
+        $assignedOnly = $this->tenantScope(
+            $tenant,
+            fn () => Customer::where('code', 'ASSIGN-001')->firstOrFail()
+        );
+
+        $this->assertSame($salesman->id, $referred->assigned_salesman_id);
+        $this->assertSame($salesman->id, $referred->referred_by_salesman_id);
+        $this->assertSame($salesman->id, $assignedOnly->assigned_salesman_id);
+        $this->assertNull($assignedOnly->referred_by_salesman_id);
+
+        $this->actingAs($admin)
+            ->post(route('admin.customers.store'), [
+                'branch_id' => $branch->id,
+                'territory_id' => $territory->id,
+                'assigned_salesman_id' => '',
+                'referred_by' => '1',
+                'code' => 'BAD-REF',
+                'name' => 'Invalid Referral',
+                'geofence_radius_meters' => '100',
+                'is_active' => '1',
+            ])
+            ->assertSessionHasErrors('assigned_salesman_id');
+
+        $this->actingAs($admin)
+            ->get(route('admin.salesman-assignments.show', $assignment))
+            ->assertOk()
+            ->assertSee('Referred customers')
+            ->assertSee('Referred Shop')
+            ->assertDontSee('Assignment Only Shop');
+
+        $this->actingAs($admin)
+            ->get(route('admin.salesman-assignments.index'))
+            ->assertOk()
+            ->assertSee('1 referred customers');
+    }
+
     private function catalogFixture(Tenant $tenant): array
     {
         return $this->platform(function () use ($tenant): array {

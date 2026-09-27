@@ -2,6 +2,11 @@
     $selectedLatitude = old('latitude', $customer->latitude ?? '');
     $selectedLongitude = old('longitude', $customer->longitude ?? '');
     $selectedTerritoryId = old('territory_id', $customer->territory_id ?? '');
+    $selectedSalesmanId = old('assigned_salesman_id', $customer->assigned_salesman_id ?? '');
+    $isReferred = (bool) old(
+        'referred_by',
+        isset($customer) && $customer->referred_by_salesman_id !== null ? 1 : 0
+    );
     $territoryMapData = $territories->map(fn ($territory) => [
         'id' => (string) $territory->id,
         'code' => $territory->code,
@@ -41,6 +46,34 @@
                 <option value="{{ $territory->id }}" @selected((string) $selectedTerritoryId === (string) $territory->id)>{{ $territory->code }} — {{ $territory->name }}</option>
             @endforeach
         </select>
+    </label>
+
+    <label class="block">
+        <span class="text-sm text-slate-300">{{ __('Assigned salesman') }}</span>
+        <select id="customer-assigned-salesman" name="assigned_salesman_id" class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
+            <option value="">{{ __('Unassigned') }}</option>
+            @foreach($salesmen as $salesman)
+                <option value="{{ $salesman->id }}" @selected((string) $selectedSalesmanId === (string) $salesman->id)>
+                    {{ $salesman->employee_code }} — {{ $salesman->full_name }}
+                </option>
+            @endforeach
+        </select>
+        @error('assigned_salesman_id')<p class="mt-2 text-sm text-rose-300">{{ $message }}</p>@enderror
+    </label>
+
+    <label class="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <input type="hidden" name="referred_by" value="0">
+        <input id="customer-referred-by" type="checkbox" name="referred_by" value="1" class="mt-1" @checked($isReferred)>
+        <span>
+            <span class="block text-sm font-semibold text-slate-200">{{ __('Referred by') }}</span>
+            <span class="mt-1 block text-xs leading-5 text-slate-400">
+                @if(isset($customer) && $customer->referred_by_salesman_id)
+                    {{ __('Referral credit stays with the original salesman unless you uncheck this option.') }}
+                @else
+                    {{ __('Check this only when the selected salesman brought this customer. Leaving it unchecked assigns the customer without referral credit.') }}
+                @endif
+            </span>
+        </span>
     </label>
 
     <label class="block md:col-span-2">
