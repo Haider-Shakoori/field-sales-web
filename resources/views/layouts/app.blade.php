@@ -109,6 +109,30 @@
             color: #64748b !important;
         }
 
+        /* Keep the active sidebar item readable in both themes. */
+        .fp-nav-active {
+            color: #e0e7ff !important;
+        }
+
+        .fp-nav-active .fp-nav-label {
+            color: inherit !important;
+            font-weight: 700;
+        }
+
+        .fp-nav-active svg {
+            color: #a5b4fc !important;
+        }
+
+        html[data-theme="light"] .fp-nav-active {
+            background-color: #eef2ff !important;
+            color: #3730a3 !important;
+            box-shadow: inset 0 0 0 1px rgba(99, 102, 241, .28) !important;
+        }
+
+        html[data-theme="light"] .fp-nav-active svg {
+            color: #4f46e5 !important;
+        }
+
         @media (min-width: 1024px) {
             html[data-sidebar-collapsed="true"] .fp-sidebar {
                 width: 5.5rem;
