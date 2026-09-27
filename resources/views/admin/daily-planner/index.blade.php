@@ -6,6 +6,13 @@
         </div>
     </div>
 
+    @if(session('success'))
+        <div class="mb-5 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{{ session('success') }}</div>
+    @endif
+    @if($errors->any())
+        <div class="mb-5 rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{{ $errors->first() }}</div>
+    @endif
+
     <form method="GET" class="mb-6 grid gap-3 rounded-2xl border border-white/10 bg-slate-900 p-4 md:grid-cols-[1fr_180px_auto]">
         <select name="salesman" class="rounded-xl border border-white/10 bg-slate-950 px-4 py-3" required>
             @foreach($salesmen as $salesman)
@@ -50,9 +57,23 @@
                         @endif
                     </p>
                 </div>
-                <div class="text-sm text-slate-400">
-                    {{ __('Approx. straight-line distance') }}:
-                    <span class="font-semibold text-slate-100">{{ number_format($plan['approximate_air_distance_km'], 1) }} km</span>
+                <div class="flex flex-col items-end gap-3">
+                    <div class="text-sm text-slate-400">
+                        {{ __('Approx. straight-line distance') }}:
+                        <span class="font-semibold text-slate-100">{{ number_format($plan['approximate_air_distance_km'], 1) }} km</span>
+                    </div>
+                    @can('visits:manage')
+                        @if(($plan['summary']['planned_today'] ?? $plan['summary']['remaining']) > 0)
+                            <form method="POST" action="{{ route('admin.daily-planner.assign') }}">
+                                @csrf
+                                <input type="hidden" name="salesman" value="{{ $selectedSalesman->uuid }}">
+                                <input type="hidden" name="date" value="{{ $selectedDate }}">
+                                <button class="rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white">
+                                    {{ __('Assign today’s plan to mobile') }}
+                                </button>
+                            </form>
+                        @endif
+                    @endcan
                 </div>
             </div>
 
