@@ -24,7 +24,7 @@ class SalesReturnController extends Controller
                 ->withCount('items')
                 ->when($status !== '', fn ($query) => $query->where('status', $status))
                 ->orderByDesc('returned_at')
-                ->paginate(30)
+                ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString()
                 ->withQueryString(),
         ]);
     }

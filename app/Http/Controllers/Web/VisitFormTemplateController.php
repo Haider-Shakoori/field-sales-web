@@ -28,7 +28,7 @@ class VisitFormTemplateController extends Controller
             ])
                 ->withCount(['questions', 'submissions'])
                 ->orderBy('name')
-                ->paginate(30),
+                ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString(),
         ]);
     }
 

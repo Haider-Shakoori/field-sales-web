@@ -28,13 +28,13 @@ class CommissionController extends Controller
                 ->with(['salesman', 'territory', 'product'])
                 ->orderByDesc('is_active')
                 ->orderBy('name')
-                ->paginate(25, ['*'], 'rules_page')
+                ->paginate(min(100, max(10, request()->integer('per_page', 25))), ['*'], 'rules_page')->withQueryString()
                 ->withQueryString(),
             'runs' => CommissionRun::query()
                 ->with(['generator', 'approver'])
                 ->withCount('lines')
                 ->latest('period_start')
-                ->paginate(20, ['*'], 'runs_page')
+                ->paginate(min(100, max(10, request()->integer('per_page', 20))), ['*'], 'runs_page')->withQueryString()
                 ->withQueryString(),
             'canManage' => $request->user()->hasPermission('commissions:manage'),
         ]);
