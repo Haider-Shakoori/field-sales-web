@@ -292,9 +292,18 @@ class DailyRoutePlannerService
             $featureSettings,
             $trackingSettings,
         );
+
+        $orderedStops = collect($orderedStops)
+            ->reject(fn (array $stop): bool => ($stop['capacity_status'] ?? null) === 'deferred')
+            ->values()
+            ->all();
+
+        $totalDistance = collect($orderedStops)
+            ->sum(fn (array $stop): float => (float) ($stop['distance_from_previous_km'] ?? 0));
+
         $warnings = $this->warnings($route, $localDate, $candidates);
-        if (($schedule['overflow_stops'] ?? 0) > 0) {
-            $warnings[] = 'workday_capacity_exceeded:'.$schedule['overflow_stops'];
+        if (($schedule['deferred_stops'] ?? 0) > 0) {
+            $warnings[] = 'workday_capacity_deferred:'.$schedule['deferred_stops'];
         }
 
         return [
@@ -883,6 +892,9 @@ class DailyRoutePlannerService
             'missing_coordinates' => $collection
                 ->filter(fn (array $stop) => ! $this->hasStopCoordinates($stop))
                 ->count(),
+            'eligible_stops' => (int) ($schedule['candidate_stops'] ?? $collection->count()),
+            'planned_today' => $collection->where('visited_today', false)->count(),
+            'deferred_stops' => (int) ($schedule['deferred_stops'] ?? 0),
             'estimated_travel_minutes' => (int) ($schedule['estimated_travel_minutes'] ?? 0),
             'estimated_total_minutes' => (int) ($schedule['estimated_total_minutes'] ?? 0),
             'available_work_minutes' => (int) ($schedule['effective_capacity_minutes'] ?? 0),
@@ -935,7 +947,9 @@ class DailyRoutePlannerService
         $cursor = $planningStart;
         $travelTotal = 0;
         $visitTotal = 0;
-        $overflow = 0;
+        $candidateStops = 0;
+        $deferred = 0;
+        $previous = $startLocation;
 
         foreach ($stops as &$stop) {
             if ($stop['visited_today']) {
@@ -947,7 +961,8 @@ class DailyRoutePlannerService
                 continue;
             }
 
-            $distance = $stop['distance_from_previous_km'];
+            $candidateStops++;
+            $distance = $this->distanceBetweenStops($previous, $stop);
             $travelMinutes = $distance === null
                 ? 0
                 : (int) ceil(((float) $distance / $speed) * 60);
@@ -956,18 +971,28 @@ class DailyRoutePlannerService
             $departure = $arrival->addMinutes($visitMinutes);
             $fits = ! $capacityEnabled || $departure->lte($capacityEnd);
 
+            if (! $fits) {
+                $stop['estimated_travel_minutes'] = $travelMinutes;
+                $stop['estimated_arrival_at'] = null;
+                $stop['estimated_departure_at'] = null;
+                $stop['capacity_status'] = 'deferred';
+                $deferred++;
+
+                continue;
+            }
+
+            $stop['distance_from_previous_km'] = $distance === null
+                ? null
+                : round($distance, 2);
             $stop['estimated_travel_minutes'] = $travelMinutes;
             $stop['estimated_arrival_at'] = $arrival->toIso8601String();
             $stop['estimated_departure_at'] = $departure->toIso8601String();
-            $stop['capacity_status'] = $fits ? 'fits' : 'overflow';
-
-            if (! $fits) {
-                $overflow++;
-            }
+            $stop['capacity_status'] = 'fits';
 
             $travelTotal += $travelMinutes;
             $visitTotal += $visitMinutes;
             $cursor = $departure;
+            $previous = $stop;
         }
         unset($stop);
 
@@ -991,8 +1016,11 @@ class DailyRoutePlannerService
                 'estimated_visit_minutes' => $visitTotal,
                 'estimated_total_minutes' => $estimatedTotal,
                 'capacity_utilization_percent' => $utilization,
-                'overflow_stops' => $overflow,
-                'route_fits_workday' => $overflow === 0,
+                'candidate_stops' => $candidateStops,
+                'planned_stops' => max(0, $candidateStops - $deferred),
+                'deferred_stops' => $deferred,
+                'overflow_stops' => 0,
+                'route_fits_workday' => true,
                 'distance_estimate' => self::DISTANCE_METHOD,
             ],
         ];

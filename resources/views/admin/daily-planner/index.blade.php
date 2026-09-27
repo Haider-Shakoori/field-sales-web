@@ -63,7 +63,7 @@
                             $warningLabel = match(true) {
                                 str_starts_with($warning, 'missing_customer_coordinates:') => __('Some customers are missing coordinates').': '.str($warning)->after(':'),
                                 $warning === 'route_not_scheduled_today' => __('Route is not normally scheduled today'),
-                                str_starts_with($warning, 'workday_capacity_exceeded:') => __('Workday capacity exceeded').': '.str($warning)->after(':').' '.__('stop(s)'),
+                                str_starts_with($warning, 'workday_capacity_deferred:') => __('Deferred to another day due to workday capacity').': '.str($warning)->after(':').' '.__('stop(s)'),
                                 default => __('Straight-line distance estimate'),
                             };
                         @endphp
@@ -75,8 +75,9 @@
 
         <div class="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
             <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
-                <p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Remaining stops') }}</p>
-                <p class="mt-2 text-2xl font-bold">{{ $plan['summary']['remaining'] }}</p>
+                <p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Planned today') }}</p>
+                <p class="mt-2 text-2xl font-bold">{{ $plan['summary']['planned_today'] ?? $plan['summary']['remaining'] }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ $plan['summary']['eligible_stops'] ?? $plan['summary']['remaining'] }} {{ __('eligible') }}</p>
             </div>
             <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
                 <p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Urgent / high') }}</p>
@@ -98,7 +99,7 @@
             <div class="rounded-2xl border {{ $plan['summary']['route_fits_workday'] ? 'border-emerald-400/15' : 'border-rose-400/20' }} bg-slate-900 p-5">
                 <p class="text-xs uppercase tracking-wide text-slate-400">{{ __('Workday capacity') }}</p>
                 <p class="mt-2 text-2xl font-bold {{ $plan['summary']['route_fits_workday'] ? 'text-emerald-300' : 'text-rose-300' }}">{{ number_format($plan['summary']['capacity_utilization_percent'], 0) }}%</p>
-                <p class="mt-1 text-xs text-slate-500">{{ $plan['summary']['overflow_stops'] }} {{ __('overflow stop(s)') }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ $plan['summary']['deferred_stops'] ?? 0 }} {{ __('deferred stop(s)') }}</p>
             </div>
         </div>
 

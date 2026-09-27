@@ -451,7 +451,7 @@ class DailyRoutePlannerTest extends TestCase
         );
     }
 
-    public function test_planner_adds_etas_and_flags_workday_capacity_overflow(): void
+    public function test_planner_caps_daily_stops_to_workday_capacity_and_defers_the_rest(): void
     {
         [$tenant, , $salesman] = $this->fixture();
 
@@ -493,20 +493,21 @@ class DailyRoutePlannerTest extends TestCase
 
         $this->assertSame(10.0, $plan['schedule']['average_speed_kph']);
         $this->assertSame(20, $plan['summary']['available_work_minutes']);
-        $this->assertGreaterThan(0, $plan['summary']['estimated_travel_minutes']);
-        $this->assertGreaterThan(0, $plan['summary']['overflow_stops']);
-        $this->assertFalse($plan['summary']['route_fits_workday']);
+        $this->assertGreaterThan(0, $plan['summary']['deferred_stops']);
+        $this->assertSame(0, $plan['summary']['overflow_stops']);
+        $this->assertTrue($plan['summary']['route_fits_workday']);
+        $this->assertLessThanOrEqual(100, $plan['summary']['capacity_utilization_percent']);
         $this->assertNotNull($plan['stops'][0]['estimated_arrival_at']);
         $this->assertNotNull($plan['stops'][0]['estimated_departure_at']);
-        $this->assertContains(
-            'overflow',
+        $this->assertNotContains(
+            'deferred',
             collect($plan['stops'])->pluck('capacity_status')->all(),
         );
         $this->assertTrue(
             collect($plan['warnings'])->contains(
                 fn (string $warning) => str_starts_with(
                     $warning,
-                    'workday_capacity_exceeded:',
+                    'workday_capacity_deferred:',
                 ),
             ),
         );
