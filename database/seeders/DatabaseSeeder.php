@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
                 ['slug' => 'demo-field-sales'],
                 [
                     'uuid' => (string) Str::uuid(),
-                    'name' => 'Demo Field Sales',
+                    'name' => 'Demo FieldPulse',
                     'timezone' => 'Asia/Kabul',
                     'subscription_status' => 'active',
                 ]
