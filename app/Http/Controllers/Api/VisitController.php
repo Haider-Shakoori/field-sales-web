@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\TranscribeVisitVoiceNote;
 use App\Models\Customer;
 use App\Models\CustomerVisit;
+use App\Models\VisitAssignment;
 use App\Models\VisitPhoto;
 use App\Models\VisitSuspiciousFlag;
 use App\Models\VisitVoiceNote;
@@ -90,7 +91,14 @@ class VisitController extends Controller
             $customer,
             $localDate,
         );
-        $planned = $planningContext['planned'];
+        $assignment = VisitAssignment::query()
+            ->where('salesman_id', $user->salesman->id)
+            ->where('customer_id', $customer->id)
+            ->whereDate('visit_date', $localDate->toDateString())
+            ->whereIn('status', ['scheduled', 'in_progress'])
+            ->orderBy('scheduled_time')
+            ->first();
+        $planned = $assignment !== null || $planningContext['planned'];
         $plannedRouteId = $planningContext['route_id'];
 
         $geo = $geofence->evaluate(
@@ -114,7 +122,8 @@ class VisitController extends Controller
             $plannedRouteId,
             $geo,
             $checkedInAt,
-            $otherActive
+            $otherActive,
+            $assignment
         ) {
             $visit = CustomerVisit::create([
                 'uuid' => $validated['offline_uuid'],
@@ -144,6 +153,10 @@ class VisitController extends Controller
 
             if ($otherActive) {
                 $this->flag($visit, 'multiple_simultaneous_checkins', 'high');
+            }
+
+            if ($assignment) {
+                $assignment->update(['status' => 'in_progress']);
             }
 
             return $visit;
@@ -235,9 +248,58 @@ class VisitController extends Controller
                     'threshold_seconds' => 60,
                 ]);
             }
+
+            VisitAssignment::query()
+                ->where('salesman_id', $visit->salesman_id)
+                ->where('customer_id', $visit->customer_id)
+                ->whereDate('visit_date', $visit->checked_in_at->toDateString())
+                ->whereIn('status', ['scheduled', 'in_progress'])
+                ->update(['status' => 'completed', 'completed_at' => $checkedOutAt]);
         });
 
         return ApiResponse::success($this->payload($visit->fresh()->load($this->relations())));
+    }
+
+    public function scheduled(Request $request): JsonResponse
+    {
+        $user = $request->user()->load(['tenant', 'salesman']);
+        abort_unless($user->salesman?->is_active, 403);
+
+        $timezone = $user->tenant->timezone ?: config('app.timezone', 'UTC');
+        $date = $request->filled('date')
+            ? CarbonImmutable::parse((string) $request->string('date'), $timezone)->startOfDay()
+            : CarbonImmutable::now($timezone)->startOfDay();
+
+        $assignments = VisitAssignment::query()
+            ->with('customer')
+            ->where('salesman_id', $user->salesman->id)
+            ->whereDate('visit_date', $date->toDateString())
+            ->whereIn('status', ['scheduled', 'in_progress'])
+            ->orderByRaw('scheduled_time IS NULL')
+            ->orderBy('scheduled_time')
+            ->get()
+            ->map(fn (VisitAssignment $assignment) => [
+                'id' => $assignment->uuid,
+                'date' => $assignment->visit_date?->toDateString(),
+                'time' => $assignment->scheduled_time,
+                'purpose' => $assignment->purpose,
+                'priority' => $assignment->priority,
+                'expected_duration_minutes' => $assignment->expected_duration_minutes,
+                'notes' => $assignment->notes,
+                'status' => $assignment->status,
+                'customer' => [
+                    'id' => $assignment->customer?->uuid,
+                    'name' => $assignment->customer?->name,
+                    'code' => $assignment->customer?->code,
+                    'address' => $assignment->customer?->address,
+                    'phone' => $assignment->customer?->phone,
+                    'latitude' => $assignment->customer?->latitude === null ? null : (float) $assignment->customer->latitude,
+                    'longitude' => $assignment->customer?->longitude === null ? null : (float) $assignment->customer->longitude,
+                ],
+            ])
+            ->values();
+
+        return ApiResponse::success($assignments);
     }
 
     public function today(Request $request): JsonResponse
