@@ -79,6 +79,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/visit-forms', [VisitFormController::class, 'index']);
 
             Route::get('/visits/today', [VisitController::class, 'today']);
+            Route::get('/visits/scheduled', [VisitController::class, 'scheduled']);
             Route::get('/visits/history', [VisitController::class, 'history']);
             Route::post('/visits/check-in', [VisitController::class, 'checkIn']);
             Route::post('/visits/{visit:uuid}/check-out', [VisitController::class, 'checkOut']);
