@@ -28,8 +28,7 @@ class SalesTargetController extends Controller
             })
             ->when($type !== '', fn ($query) => $query->where('target_type', $type))
             ->orderByDesc('period_start')
-            ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString()
-            ->withQueryString();
+            ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString();
 
         $progressById = collect($targets->items())
             ->mapWithKeys(fn (SalesTarget $target) => [$target->id => $progress->payload($target)]);

@@ -37,8 +37,7 @@ class CustomerFollowUpController extends Controller
                     fn ($query) => $query->where('assigned_salesman_id', $salesman->id)
                 )
                 ->orderBy('due_at')
-                ->paginate(min(100, max(10, request()->integer('per_page', 40))))->withQueryString()
-                ->withQueryString(),
+                ->paginate(min(100, max(10, request()->integer('per_page', 40))))->withQueryString(),
             'salesmen' => Salesman::active()->orderBy('employee_code')->get(),
             'filters' => [
                 'status' => $status,
