@@ -5,9 +5,13 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSalesmanRequest;
 use App\Http\Requests\UpdateSalesmanRequest;
+use App\Models\Collection;
+use App\Models\CustomerVisit;
+use App\Models\Order;
 use App\Models\Salesman;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\CustomerBalanceService;
 use App\Services\OperationalAlertService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,9 +55,24 @@ class SalesmanController extends Controller
             ->with('status', 'Salesman profile created.');
     }
 
-    public function show(Salesman $salesman): View
-    {
+    public function show(
+        Salesman $salesman,
+        CustomerBalanceService $balances,
+    ): View {
         Gate::authorize('view', $salesman);
+
+        $referredCustomers = $salesman->referredCustomers()
+            ->with(['territory', 'assignedSalesman'])
+            ->withCount(['orders', 'collections', 'visits'])
+            ->orderBy('name')
+            ->paginate(
+                min(100, max(12, request()->integer('referrals_per_page', 24))),
+                ['*'],
+                'referrals_page',
+            )
+            ->withQueryString();
+
+        $customerIds = $salesman->referredCustomers()->select('customers.id');
 
         return view('admin.salesmen.show', [
             'salesman' => $salesman->load([
@@ -61,6 +80,23 @@ class SalesmanController extends Controller
                 'devices' => fn ($query) => $query->latest('registered_at'),
                 'assignments' => fn ($query) => $query->with(['branch', 'supervisor'])->latest('effective_from'),
             ]),
+            'referredCustomers' => $referredCustomers,
+            'referralBalances' => collect(
+                $balances->forCustomers($referredCustomers->getCollection())
+            )->keyBy('customer_id'),
+            'referralSummary' => [
+                'customers' => $salesman->referredCustomers()->count(),
+                'active_customers' => $salesman->referredCustomers()->active()->count(),
+                'orders' => Order::query()
+                    ->whereIn('customer_id', clone $customerIds)
+                    ->count(),
+                'collections' => Collection::query()
+                    ->whereIn('customer_id', clone $customerIds)
+                    ->count(),
+                'visits' => CustomerVisit::query()
+                    ->whereIn('customer_id', clone $customerIds)
+                    ->count(),
+            ],
         ]);
     }
 

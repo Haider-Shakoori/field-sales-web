@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\MileageController;
 use App\Http\Controllers\Api\MobileDiagnosticController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ReferralPortfolioController;
 use App\Http\Controllers\Api\ReorderRecommendationController;
 use App\Http\Controllers\Api\SalesReturnController;
 use App\Http\Controllers\Api\SettingsController;
@@ -109,6 +110,7 @@ Route::prefix('v1')->group(function () {
 
             Route::get('/targets/current', [TargetController::class, 'current']);
             Route::get('/targets/history', [TargetController::class, 'history']);
+            Route::get('/referrals/me', ReferralPortfolioController::class);
             Route::get('/team/overview', [TeamController::class, 'overview']);
             Route::post('/team/salesmen/{salesman:uuid}/nudge', [TeamController::class, 'nudge']);
             Route::get('/gamification', [GamificationController::class, 'show']);

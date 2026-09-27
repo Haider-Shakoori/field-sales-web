@@ -65,4 +65,94 @@
             </div>
         </section>
     </div>
+
+    <section class="mt-6">
+        <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-bold">{{ __('Referral portfolio') }}</h2>
+                <p class="mt-1 text-sm text-slate-400">
+                    {{ __('Customers originally referred by this salesman. Assignment can change without changing referral ownership.') }}
+                </p>
+            </div>
+            <span class="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                {{ $referralSummary['customers'] }} {{ __('customers') }}
+            </span>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            @foreach([
+                [__('Referred customers'), $referralSummary['customers']],
+                [__('Active customers'), $referralSummary['active_customers']],
+                [__('Orders'), $referralSummary['orders']],
+                [__('Collections'), $referralSummary['collections']],
+                [__('Visits'), $referralSummary['visits']],
+            ] as [$label, $value])
+                <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+                    <p class="text-xs uppercase tracking-wide text-slate-500">{{ $label }}</p>
+                    <p class="mt-2 text-2xl font-bold">{{ number_format($value) }}</p>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="mt-4 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+            @forelse($referredCustomers as $customer)
+                @php
+                    $balance = $referralBalances->get($customer->uuid);
+                    $balances = collect($balance['balances'] ?? []);
+                @endphp
+                <a href="{{ route('admin.customers.show', $customer) }}" class="rounded-2xl border border-white/10 bg-slate-900 p-5 transition hover:border-emerald-400/30 hover:bg-slate-800/80">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="truncate font-semibold">{{ $customer->name }}</p>
+                            <p class="mt-1 text-xs text-slate-500">{{ $customer->code }} · {{ $customer->territory?->name ?? __('No territory') }}</p>
+                        </div>
+                        @if((int) $customer->assigned_salesman_id === (int) $salesman->id)
+                            <span class="shrink-0 rounded-full bg-indigo-500/10 px-2 py-1 text-[10px] font-semibold uppercase text-indigo-300">{{ __('Assigned to me') }}</span>
+                        @elseif($customer->assignedSalesman)
+                            <span class="shrink-0 rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-300">{{ __('Assigned elsewhere') }}</span>
+                        @endif
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+                        <div class="rounded-xl bg-slate-950 p-3">
+                            <p class="text-slate-500">{{ __('Orders') }}</p>
+                            <p class="mt-1 text-lg font-bold">{{ $customer->orders_count }}</p>
+                        </div>
+                        <div class="rounded-xl bg-slate-950 p-3">
+                            <p class="text-slate-500">{{ __('Collections') }}</p>
+                            <p class="mt-1 text-lg font-bold">{{ $customer->collections_count }}</p>
+                        </div>
+                        <div class="rounded-xl bg-slate-950 p-3">
+                            <p class="text-slate-500">{{ __('Visits') }}</p>
+                            <p class="mt-1 text-lg font-bold">{{ $customer->visits_count }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 border-t border-white/10 pt-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Outstanding') }}</p>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            @forelse($balances as $row)
+                                <span class="rounded-lg bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-200">
+                                    {{ $row['currency'] }} {{ number_format((float) $row['outstanding_balance'], 2) }}
+                                </span>
+                            @empty
+                                <span class="text-xs text-emerald-300">{{ __('No credit outstanding') }}</span>
+                            @endforelse
+                        </div>
+                        @if($customer->assignedSalesman && (int) $customer->assigned_salesman_id !== (int) $salesman->id)
+                            <p class="mt-3 text-xs text-slate-500">{{ __('Current assignment') }}: {{ $customer->assignedSalesman->full_name }}</p>
+                        @endif
+                    </div>
+                </a>
+            @empty
+                <div class="rounded-2xl border border-dashed border-white/10 bg-slate-900 p-8 text-sm text-slate-400 lg:col-span-2 2xl:col-span-3">
+                    {{ __('No customers are currently attributed as referrals to this salesman.') }}
+                </div>
+            @endforelse
+        </div>
+
+        @if($referredCustomers->hasPages())
+            <div class="mt-5">{{ $referredCustomers->links() }}</div>
+        @endif
+    </section>
 </x-layouts.app>
