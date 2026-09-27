@@ -3,9 +3,13 @@
 namespace App\Services;
 
 use App\Models\Collection as CustomerCollection;
+use App\Models\Customer;
+use App\Models\CustomerVisit;
 use App\Models\Order;
+use App\Models\RouteCustomer;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection as SupportCollection;
 
 final class ManagementIntelligenceService
 {
@@ -36,12 +40,17 @@ final class ManagementIntelligenceService
             $date,
             $supervisorUuid,
         );
-        $routeExecution = $this->routeExecution->build(
-            $actor,
-            $date,
+        $featureSettings = $this->settings->settingsFor(
+            $actor->tenant,
         );
-        $routeByCode = collect($routeExecution['salesmen'])
-            ->keyBy('employee_code');
+        $tracking = $this->tracking->get($actor->tenant);
+        $routeByCode = $this->routeExecutionSummary(
+            collect($scorecard['rows']),
+            $localDate,
+            $timezone,
+            $tracking,
+            $featureSettings,
+        )->keyBy('employee_code');
         $salesmanIds = collect($scorecard['rows'])
             ->pluck('salesman.id')
             ->filter()
@@ -56,11 +65,6 @@ final class ManagementIntelligenceService
         $pendingCollections = $liveBacklog
             ? $this->pendingCollections($salesmanIds)
             : collect();
-
-        $featureSettings = $this->settings->settingsFor(
-            $actor->tenant,
-        );
-        $tracking = $this->tracking->get($actor->tenant);
         $expectedProgress = $this->expectedRouteProgress(
             $localDate,
             $timezone,
@@ -399,6 +403,272 @@ final class ManagementIntelligenceService
     public function supervisorOptions(User $actor)
     {
         return $this->scorecards->supervisorOptions($actor);
+    }
+
+    /**
+     * Management intelligence needs route execution across an entire team.
+     * Rebuilding the full smart-route planner once per salesman is too expensive
+     * for larger tenants, so this path batches assignments, customers and visits.
+     */
+    private function routeExecutionSummary(
+        SupportCollection $scoreRows,
+        CarbonImmutable $localDate,
+        string $timezone,
+        array $tracking,
+        array $featureSettings,
+    ): SupportCollection {
+        if ($scoreRows->isEmpty()) {
+            return collect();
+        }
+
+        $salesmanIds = $scoreRows
+            ->pluck('salesman.id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $assignments = $scoreRows
+            ->mapWithKeys(fn (array $row) => [
+                $row['salesman']->id => $row['assignment'],
+            ])
+            ->filter();
+
+        $routeIds = $assignments
+            ->pluck('route_id')
+            ->filter()
+            ->unique()
+            ->values();
+        $territoryIds = $assignments
+            ->filter(fn ($assignment) => ! $assignment->route_id && $assignment->territory_id)
+            ->pluck('territory_id')
+            ->filter()
+            ->unique()
+            ->values();
+        $branchIds = $assignments
+            ->filter(fn ($assignment) => ! $assignment->route_id && ! $assignment->territory_id && $assignment->branch_id)
+            ->pluck('branch_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $routeCustomers = $routeIds->isEmpty()
+            ? collect()
+            : RouteCustomer::query()
+                ->with('customer:id,uuid,name,is_active')
+                ->whereIn('route_id', $routeIds)
+                ->orderBy('sequence_number')
+                ->get()
+                ->filter(fn (RouteCustomer $row) => $row->customer?->is_active)
+                ->groupBy('route_id');
+
+        $territoryCustomers = $territoryIds->isEmpty()
+            ? collect()
+            : Customer::active()
+                ->whereIn('territory_id', $territoryIds)
+                ->orderBy('name')
+                ->get(['id', 'uuid', 'name', 'territory_id', 'branch_id'])
+                ->groupBy('territory_id');
+
+        $branchCustomers = $branchIds->isEmpty()
+            ? collect()
+            : Customer::active()
+                ->whereIn('branch_id', $branchIds)
+                ->orderBy('name')
+                ->get(['id', 'uuid', 'name', 'territory_id', 'branch_id'])
+                ->groupBy('branch_id');
+
+        $start = $localDate->utc();
+        $end = $localDate->addDay()->utc();
+        $visits = CustomerVisit::query()
+            ->with('customer:id,uuid,name')
+            ->whereIn('salesman_id', $salesmanIds)
+            ->where('status', 'completed')
+            ->where('checked_in_at', '>=', $start)
+            ->where('checked_in_at', '<', $end)
+            ->get(['id', 'salesman_id', 'customer_id'])
+            ->groupBy('salesman_id');
+
+        $smartRoutesEnabled = (bool) (
+            $featureSettings['smart_routes_enabled'] ?? true
+        );
+        $capacityEnabled = (bool) (
+            $featureSettings['route_enforce_workday_capacity'] ?? true
+        );
+        $bufferMinutes = max(
+            0,
+            (int) ($featureSettings['route_time_buffer_minutes'] ?? 30),
+        );
+        [$workdayStart, $workdayEnd] = $this->workdayWindow(
+            $localDate,
+            $timezone,
+            $tracking,
+        );
+        $capacityEnd = $workdayEnd->subMinutes($bufferMinutes);
+        if ($capacityEnd->lt($workdayStart)) {
+            $capacityEnd = $workdayStart;
+        }
+        $capacityMinutes = max(
+            0,
+            (int) $workdayStart->diffInMinutes($capacityEnd),
+        );
+        $finalized = $this->routeDayFinalized(
+            $localDate,
+            $timezone,
+            (string) ($tracking['workday_end_time'] ?? '17:00'),
+        );
+
+        return $scoreRows->map(function (array $scoreRow) use (
+            $assignments,
+            $routeCustomers,
+            $territoryCustomers,
+            $branchCustomers,
+            $visits,
+            $smartRoutesEnabled,
+            $capacityEnabled,
+            $capacityMinutes,
+            $finalized,
+        ): array {
+            $salesman = $scoreRow['salesman'];
+            $assignment = $assignments->get($salesman->id);
+            $planned = collect();
+            $source = null;
+            $sourceType = null;
+
+            if ($smartRoutesEnabled && $assignment?->route_id) {
+                $planned = collect($routeCustomers->get($assignment->route_id, collect()))
+                    ->map(fn (RouteCustomer $membership) => [
+                        'uuid' => $membership->customer?->uuid,
+                        'name' => $membership->customer?->name,
+                        'minutes' => max(1, (int) $membership->planned_visit_minutes),
+                    ])
+                    ->filter(fn (array $row) => filled($row['uuid']))
+                    ->values();
+                $source = $assignment->route?->name;
+                $sourceType = 'route';
+            } elseif ($smartRoutesEnabled && $assignment?->territory_id) {
+                $planned = collect($territoryCustomers->get($assignment->territory_id, collect()))
+                    ->map(fn (Customer $customer) => [
+                        'uuid' => $customer->uuid,
+                        'name' => $customer->name,
+                        'minutes' => 10,
+                    ])
+                    ->values();
+                $source = $assignment->territory?->name;
+                $sourceType = 'territory';
+            } elseif ($smartRoutesEnabled && $assignment?->branch_id) {
+                $planned = collect($branchCustomers->get($assignment->branch_id, collect()))
+                    ->map(fn (Customer $customer) => [
+                        'uuid' => $customer->uuid,
+                        'name' => $customer->name,
+                        'minutes' => 10,
+                    ])
+                    ->values();
+                $source = $assignment->branch?->name;
+                $sourceType = 'branch';
+            }
+
+            $plannedByUuid = $planned->keyBy('uuid');
+            $salesmanVisits = collect($visits->get($salesman->id, collect()));
+            $completedCustomerUuids = $salesmanVisits
+                ->map(fn (CustomerVisit $visit) => $visit->customer?->uuid)
+                ->filter()
+                ->unique()
+                ->values();
+            $visitedPlanned = $completedCustomerUuids
+                ->intersect($plannedByUuid->keys())
+                ->values();
+            $remainingStops = $planned
+                ->reject(fn (array $stop) => $visitedPlanned->contains($stop['uuid']))
+                ->values();
+            $offRoute = $salesmanVisits
+                ->filter(fn (CustomerVisit $visit) => $visit->customer?->uuid
+                    && ! $plannedByUuid->has($visit->customer->uuid))
+                ->values();
+
+            $assigned = $planned->count();
+            $visited = $visitedPlanned->count();
+            $remaining = $remainingStops->count();
+            $missed = $finalized ? $remaining : 0;
+            $completion = $assigned > 0
+                ? round(($visited / $assigned) * 100, 1)
+                : 0.0;
+
+            $usedMinutes = 0;
+            $overflowStops = 0;
+            foreach ($remainingStops as $stop) {
+                $usedMinutes += max(1, (int) ($stop['minutes'] ?? 10));
+                if (
+                    $capacityEnabled
+                    && $capacityMinutes > 0
+                    && $usedMinutes > $capacityMinutes
+                ) {
+                    $overflowStops++;
+                }
+            }
+
+            $capacityUtilization = $capacityMinutes > 0
+                ? round(($usedMinutes / $capacityMinutes) * 100, 1)
+                : ($usedMinutes > 0 ? 100.0 : 0.0);
+
+            $status = match (true) {
+                ! $smartRoutesEnabled => 'optimization_disabled',
+                $missed > 0 => 'missed_stops',
+                $overflowStops > 0 => 'capacity_risk',
+                $assigned > 0 && $remaining === 0 => 'complete',
+                $visited > 0 => 'in_progress',
+                default => 'not_started',
+            };
+
+            return [
+                'salesman' => $salesman->full_name,
+                'employee_code' => $salesman->employee_code,
+                'optimization_enabled' => $smartRoutesEnabled,
+                'source' => $source,
+                'source_type' => $sourceType,
+                'assigned_stops' => $assigned,
+                'visited_planned_stops' => $visited,
+                'remaining_stops' => $remaining,
+                'missed_stops' => $missed,
+                'off_route_visits' => $offRoute->count(),
+                'off_route_customers' => $offRoute
+                    ->map(fn (CustomerVisit $visit) => $visit->customer?->name)
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all(),
+                'completion_percent' => $completion,
+                'urgent_remaining' => 0,
+                'high_remaining' => 0,
+                'overflow_stops' => $overflowStops,
+                'capacity_utilization_percent' => $capacityUtilization,
+                'route_fits_workday' => $overflowStops === 0,
+                'estimated_finish_at' => null,
+                'execution_status' => $status,
+            ];
+        })->values();
+    }
+
+    private function routeDayFinalized(
+        CarbonImmutable $localDate,
+        string $timezone,
+        string $workdayEnd,
+    ): bool {
+        $now = CarbonImmutable::now($timezone);
+
+        if ($localDate->lt($now->startOfDay())) {
+            return true;
+        }
+
+        if ($localDate->gt($now->startOfDay())) {
+            return false;
+        }
+
+        $end = CarbonImmutable::parse(
+            $localDate->toDateString().' '.$workdayEnd,
+            $timezone,
+        );
+
+        return $now->gte($end);
     }
 
     private function pendingOrders($salesmanIds)
