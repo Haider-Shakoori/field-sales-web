@@ -372,8 +372,12 @@ Route::middleware('auth')->group(function () {
             ->middlewareFor(['create', 'store', 'edit', 'update'], 'permission:visits:manage');
 
         Route::resource('visits', VisitController::class)
-            ->only(['index', 'show'])
-            ->middleware('permission:visits:view');
+            ->only(['index', 'show', 'store'])
+            ->middlewareFor(['index', 'show'], 'permission:visits:view')
+            ->middlewareFor('store', 'permission:visits:manage');
+        Route::delete('/visit-assignments/{assignment}', [VisitController::class, 'destroyAssignment'])
+            ->middleware('permission:visits:manage')
+            ->name('visit-assignments.destroy');
         Route::get('/visits/{visit}/voice-notes/{voiceNote:uuid}/audio', [VisitController::class, 'voiceNoteAudio'])
             ->middleware('permission:visits:view')
             ->name('visits.voice-notes.audio');
