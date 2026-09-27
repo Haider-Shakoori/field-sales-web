@@ -8,7 +8,9 @@ use App\Http\Requests\UpdateSalesmanRequest;
 use App\Models\Salesman;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\OperationalAlertService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -60,6 +62,23 @@ class SalesmanController extends Controller
                 'assignments' => fn ($query) => $query->with(['branch', 'supervisor'])->latest('effective_from'),
             ]),
         ]);
+    }
+
+    public function notify(
+        Request $request,
+        Salesman $salesman,
+        OperationalAlertService $alerts,
+    ): RedirectResponse {
+        Gate::authorize('view', $salesman);
+
+        $validated = $request->validate([
+            'message' => ['required', 'string', 'min:2', 'max:500'],
+        ]);
+
+        $salesman->loadMissing('user');
+        $alerts->nudge($request->user(), $salesman, trim($validated['message']));
+
+        return back()->with('status', 'Notification sent to '.$salesman->full_name.'.');
     }
 
     public function edit(Salesman $salesman): View

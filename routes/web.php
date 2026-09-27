@@ -200,6 +200,10 @@ Route::middleware('auth')->group(function () {
             ->middlewareFor(['index', 'show'], 'permission:sales-team:view')
             ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:sales-team:manage');
 
+        Route::post('/salesmen/{salesman}/notify', [SalesmanController::class, 'notify'])
+            ->middleware('permission:sales-team:view')
+            ->name('salesmen.notify');
+
         Route::resource('supervisors', SupervisorController::class)
             ->middlewareFor(['index', 'show'], 'permission:sales-team:view')
             ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:sales-team:manage');
