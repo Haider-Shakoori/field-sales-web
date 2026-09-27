@@ -40,6 +40,12 @@ class UpdateCustomerRequest extends FormRequest
                 'integer',
                 Rule::exists('price_lists', 'id')->where('tenant_id', $tenantId),
             ],
+            'assigned_salesman_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('salesmen', 'id')->where('tenant_id', $tenantId),
+            ],
+            'referred_by' => ['nullable', 'boolean'],
             'code' => [
                 'required',
                 'string',
@@ -77,6 +83,20 @@ class UpdateCustomerRequest extends FormRequest
             function (Validator $validator): void {
                 $territoryId = $this->integer('territory_id');
                 $branchId = $this->integer('branch_id');
+
+                /** @var Customer $customer */
+                $customer = $this->route('customer');
+
+                if (
+                    $this->boolean('referred_by')
+                    && ! $customer->referred_by_salesman_id
+                    && ! $this->integer('assigned_salesman_id')
+                ) {
+                    $validator->errors()->add(
+                        'assigned_salesman_id',
+                        'Select a salesman when the customer is marked as referred.'
+                    );
+                }
 
                 if (! $territoryId || ! $branchId) {
                     return;
