@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Collection as CustomerCollection;
-use App\Models\Customer;
 use App\Models\CustomerVisit;
 use App\Models\Order;
 use App\Models\RouteCustomer;
@@ -438,19 +437,6 @@ final class ManagementIntelligenceService
             ->filter()
             ->unique()
             ->values();
-        $territoryIds = $assignments
-            ->filter(fn ($assignment) => ! $assignment->route_id && $assignment->territory_id)
-            ->pluck('territory_id')
-            ->filter()
-            ->unique()
-            ->values();
-        $branchIds = $assignments
-            ->filter(fn ($assignment) => ! $assignment->route_id && ! $assignment->territory_id && $assignment->branch_id)
-            ->pluck('branch_id')
-            ->filter()
-            ->unique()
-            ->values();
-
         $routeCustomers = $routeIds->isEmpty()
             ? collect()
             : RouteCustomer::query()
@@ -460,22 +446,6 @@ final class ManagementIntelligenceService
                 ->get()
                 ->filter(fn (RouteCustomer $row) => $row->customer?->is_active)
                 ->groupBy('route_id');
-
-        $territoryCustomers = $territoryIds->isEmpty()
-            ? collect()
-            : Customer::active()
-                ->whereIn('territory_id', $territoryIds)
-                ->orderBy('name')
-                ->get(['id', 'uuid', 'name', 'territory_id', 'branch_id'])
-                ->groupBy('territory_id');
-
-        $branchCustomers = $branchIds->isEmpty()
-            ? collect()
-            : Customer::active()
-                ->whereIn('branch_id', $branchIds)
-                ->orderBy('name')
-                ->get(['id', 'uuid', 'name', 'territory_id', 'branch_id'])
-                ->groupBy('branch_id');
 
         $start = $localDate->utc();
         $end = $localDate->addDay()->utc();
@@ -520,8 +490,6 @@ final class ManagementIntelligenceService
         return $scoreRows->map(function (array $scoreRow) use (
             $assignments,
             $routeCustomers,
-            $territoryCustomers,
-            $branchCustomers,
             $visits,
             $smartRoutesEnabled,
             $capacityEnabled,
@@ -546,23 +514,11 @@ final class ManagementIntelligenceService
                 $source = $assignment->route?->name;
                 $sourceType = 'route';
             } elseif ($smartRoutesEnabled && $assignment?->territory_id) {
-                $planned = collect($territoryCustomers->get($assignment->territory_id, collect()))
-                    ->map(fn (Customer $customer) => [
-                        'uuid' => $customer->uuid,
-                        'name' => $customer->name,
-                        'minutes' => 10,
-                    ])
-                    ->values();
+                // A territory is a coverage scope, not an explicit daily stop list.
                 $source = $assignment->territory?->name;
                 $sourceType = 'territory';
             } elseif ($smartRoutesEnabled && $assignment?->branch_id) {
-                $planned = collect($branchCustomers->get($assignment->branch_id, collect()))
-                    ->map(fn (Customer $customer) => [
-                        'uuid' => $customer->uuid,
-                        'name' => $customer->name,
-                        'minutes' => 10,
-                    ])
-                    ->values();
+                // A branch is a coverage scope, not an explicit daily stop list.
                 $source = $assignment->branch?->name;
                 $sourceType = 'branch';
             }
