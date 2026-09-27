@@ -17,7 +17,7 @@
             }
         })();
     </script>
-    <title>{{ $title ?? 'Field Sales' }}</title>
+    <title>{{ $title ?? 'FieldPulse' }}</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'>F</text></svg>">
     @php
         $cssPath = public_path('css/app.css');
@@ -297,7 +297,7 @@
         <div class="flex items-center gap-3">
             <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-sky-400 text-base font-black text-white">F</span>
             <div>
-                <p class="text-base font-bold leading-tight">Field Sales</p>
+                <p class="text-base font-bold leading-tight">FieldPulse</p>
                 <p class="truncate text-xs text-slate-400">{{ $isPlatformContext ? __('Platform console') : ($tenantName ?? __('Operations Console')) }}</p>
             </div>
         </div>
@@ -315,7 +315,7 @@
         <div class="fp-sidebar-brand flex items-center gap-3 border-b border-white/10 px-5 py-5">
             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-sky-400 text-lg font-black text-white shadow-lg shadow-indigo-500/30">F</span>
             <div class="min-w-0">
-                <p class="text-base font-bold leading-tight">Field Sales</p>
+                <p class="text-base font-bold leading-tight">FieldPulse</p>
                 <p class="truncate text-xs text-slate-400">{{ $isPlatformContext ? __('Platform console') : ($tenantName ?? __('Operations Console')) }}</p>
             </div>
         </div>
@@ -463,7 +463,7 @@
                 <div class="flex items-center gap-3">
                     <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-sky-400 text-lg font-black text-white shadow-lg shadow-indigo-500/30">F</span>
                     <div>
-                        <p class="text-lg font-bold leading-tight">Field Sales</p>
+                        <p class="text-lg font-bold leading-tight">FieldPulse</p>
                         <p class="text-xs text-slate-400">{{ __('Operations Console') }}</p>
                     </div>
                 </div>
