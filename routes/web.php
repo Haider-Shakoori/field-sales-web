@@ -108,6 +108,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/daily-planner', [DailyRoutePlannerController::class, 'index'])
             ->middleware('permission:sales-team:view')
             ->name('daily-planner.index');
+        Route::post('/daily-planner/assign', [DailyRoutePlannerController::class, 'assign'])
+            ->middleware('permission:visits:manage')
+            ->name('daily-planner.assign');
         Route::get('/appointments', [AppointmentController::class, 'index'])
             ->middleware('permission:appointments:view')
             ->name('appointments.index');
@@ -375,6 +378,9 @@ Route::middleware('auth')->group(function () {
             ->only(['index', 'show', 'store'])
             ->middlewareFor(['index', 'show'], 'permission:visits:view')
             ->middlewareFor('store', 'permission:visits:manage');
+        Route::post('/visit-assignments/bulk', [VisitController::class, 'bulkStore'])
+            ->middleware('permission:visits:manage')
+            ->name('visit-assignments.bulk');
         Route::delete('/visit-assignments/{assignment}', [VisitController::class, 'destroyAssignment'])
             ->middleware('permission:visits:manage')
             ->name('visit-assignments.destroy');
