@@ -31,7 +31,7 @@
         toolbar.innerHTML = [
             '<div class="fp-table-tools-main">',
             '  <div class="fp-table-search-wrap"><input type="search" class="fp-table-search" placeholder="Search table..." aria-label="Search table"></div>',
-            '  <label class="fp-table-page-size-label">Show <select class="fp-table-page-size" aria-label="Rows per page"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="100">100</option><option value="all">All</option></select> records</label>',
+            '  <label class="fp-table-page-size-label">Show <select class="fp-table-page-size" aria-label="Rows per page"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="100">100</option></select> records</label>',
             '  <button type="button" class="fp-table-export">Export CSV</button>',
             '</div>',
             '<div class="fp-table-tools-meta">',
@@ -57,13 +57,17 @@
         let query = '';
         let currentPage = 1;
         let perPage = 25;
+        const serverPaginated = Boolean(document.querySelector('nav[role="navigation"]'));
 
         try {
+            const urlValue = new URL(window.location.href).searchParams.get('per_page');
             const stored = localStorage.getItem('fieldpulse-table-page-size');
-            if (stored && ['10', '25', '50', '100', 'all'].includes(stored)) {
-                pageSize.value = stored;
-                perPage = stored === 'all' ? Number.POSITIVE_INFINITY : Number(stored);
-            }
+            const preferred = ['10', '25', '50', '100'].includes(urlValue)
+                ? urlValue
+                : (['10', '25', '50', '100'].includes(stored) ? stored : '25');
+
+            pageSize.value = preferred;
+            perPage = Number(preferred);
         } catch (_) {}
 
         const rowMatches = (row) => !query || row.innerText.toLowerCase().includes(query);
@@ -110,11 +114,25 @@
         });
 
         pageSize?.addEventListener('change', () => {
-            perPage = pageSize.value === 'all' ? Number.POSITIVE_INFINITY : Number(pageSize.value);
+            perPage = Number(pageSize.value);
             currentPage = 1;
+
             try {
                 localStorage.setItem('fieldpulse-table-page-size', pageSize.value);
             } catch (_) {}
+
+            if (serverPaginated) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('per_page', pageSize.value);
+
+                for (const key of Array.from(url.searchParams.keys())) {
+                    if (key === 'page' || key.endsWith('_page')) url.searchParams.delete(key);
+                }
+
+                window.location.assign(url.toString());
+                return;
+            }
+
             render();
         });
 
