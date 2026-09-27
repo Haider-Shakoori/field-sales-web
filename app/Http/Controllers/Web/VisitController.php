@@ -10,6 +10,7 @@ use App\Models\VisitAssignment;
 use App\Models\VisitVoiceNote;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -85,6 +86,89 @@ class VisitController extends Controller
         ]);
 
         return back()->with('success', 'Visit scheduled and will appear in the salesman mobile app.');
+    }
+
+    public function bulkStore(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'salesman_id' => ['required', 'integer', Rule::exists('salesmen', 'id')],
+            'customer_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'customer_ids.*' => ['required', 'integer', 'distinct', Rule::exists('customers', 'id')],
+            'visit_date' => ['required', 'date'],
+            'scheduled_time' => ['nullable', 'date_format:H:i'],
+            'time_interval_minutes' => ['nullable', 'integer', 'min:5', 'max:240'],
+            'purpose' => ['required', Rule::in(['sales', 'collection', 'follow_up', 'merchandising', 'survey', 'other'])],
+            'priority' => ['required', Rule::in(['normal', 'high', 'urgent'])],
+            'expected_duration_minutes' => ['required', 'integer', 'min:5', 'max:480'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $salesman = Salesman::query()->active()->findOrFail($validated['salesman_id']);
+        $customers = Customer::query()
+            ->active()
+            ->whereIn('id', $validated['customer_ids'])
+            ->orderBy('name')
+            ->get();
+
+        abort_unless($customers->count() === count(array_unique($validated['customer_ids'])), 422);
+
+        $created = 0;
+        $skipped = 0;
+        $scheduledAt = filled($validated['scheduled_time'] ?? null)
+            ? now()->startOfDay()->setTimeFromTimeString($validated['scheduled_time'])
+            : null;
+        $interval = (int) ($validated['time_interval_minutes'] ?? $validated['expected_duration_minutes']);
+
+        DB::transaction(function () use (
+            $request,
+            $validated,
+            $salesman,
+            $customers,
+            &$created,
+            &$skipped,
+            &$scheduledAt,
+            $interval,
+        ): void {
+            foreach ($customers as $customer) {
+                $exists = VisitAssignment::query()
+                    ->where('salesman_id', $salesman->id)
+                    ->where('customer_id', $customer->id)
+                    ->whereDate('visit_date', $validated['visit_date'])
+                    ->whereIn('status', ['scheduled', 'in_progress', 'completed'])
+                    ->exists();
+
+                if ($exists) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                VisitAssignment::create([
+                    'salesman_id' => $salesman->id,
+                    'customer_id' => $customer->id,
+                    'visit_date' => $validated['visit_date'],
+                    'scheduled_time' => $scheduledAt?->format('H:i'),
+                    'purpose' => $validated['purpose'],
+                    'priority' => $validated['priority'],
+                    'expected_duration_minutes' => $validated['expected_duration_minutes'],
+                    'notes' => $validated['notes'] ?? null,
+                    'created_by' => $request->user()->id,
+                    'status' => 'scheduled',
+                ]);
+
+                $created++;
+
+                if ($scheduledAt) {
+                    $scheduledAt = $scheduledAt->addMinutes($interval);
+                }
+            }
+        });
+
+        return back()->with(
+            'success',
+            $created.' visit(s) assigned to the salesman.'
+                .($skipped > 0 ? ' '.$skipped.' duplicate visit(s) skipped.' : ''),
+        );
     }
 
     public function show(CustomerVisit $visit): View
