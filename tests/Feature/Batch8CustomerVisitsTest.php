@@ -14,6 +14,7 @@ use App\Models\SalesRoute;
 use App\Models\Tenant;
 use App\Models\Territory;
 use App\Models\User;
+use App\Models\VisitAssignment;
 use App\Models\WorkSession;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
@@ -88,6 +89,65 @@ class Batch8CustomerVisitsTest extends TestCase
             'status' => 'completed',
             'outcome' => 'order_placed',
             'is_planned' => 1,
+        ]);
+    }
+
+    public function test_scheduled_visit_assignment_is_visible_on_mobile_and_completed_with_visit(): void
+    {
+        $actor = $this->actor();
+        $customer = $this->customer($actor);
+        $this->createWorkSession($actor);
+
+        $assignment = app(TenantContext::class)->withTenant(
+            $actor['t'],
+            fn () => VisitAssignment::create([
+                'salesman_id' => $actor['s']->id,
+                'customer_id' => $customer->id,
+                'created_by' => $actor['u']->id,
+                'visit_date' => '2026-09-19',
+                'scheduled_time' => '10:30',
+                'purpose' => 'sales',
+                'priority' => 'high',
+                'expected_duration_minutes' => 15,
+                'status' => 'scheduled',
+            ]),
+        );
+
+        $this->getJson('/api/v1/visits/scheduled', $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $assignment->uuid)
+            ->assertJsonPath('data.0.customer.id', $customer->uuid)
+            ->assertJsonPath('data.0.priority', 'high');
+
+        $visitUuid = (string) Str::uuid();
+
+        $this->postJson('/api/v1/visits/check-in', [
+            'offline_uuid' => $visitUuid,
+            'customer_id' => $customer->uuid,
+            'latitude' => 34.50001,
+            'longitude' => 69.20001,
+            'accuracy' => 8,
+            'checked_in_at' => '2026-09-19T05:00:00Z',
+        ], $this->headers())
+            ->assertCreated()
+            ->assertJsonPath('data.is_planned', true);
+
+        $this->assertDatabaseHas('visit_assignments', [
+            'id' => $assignment->id,
+            'status' => 'in_progress',
+        ]);
+
+        $this->postJson('/api/v1/visits/'.$visitUuid.'/check-out', [
+            'latitude' => 34.50002,
+            'longitude' => 69.20002,
+            'accuracy' => 7,
+            'checked_out_at' => '2026-09-19T05:15:00Z',
+            'outcome' => 'order_placed',
+        ], $this->headers())->assertOk();
+
+        $this->assertDatabaseHas('visit_assignments', [
+            'id' => $assignment->id,
+            'status' => 'completed',
         ]);
     }
 
