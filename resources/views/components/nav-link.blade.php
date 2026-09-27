@@ -3,11 +3,11 @@
 @php
     $base = 'fp-nav-link group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition';
     $state = $active
-        ? 'bg-indigo-500/15 text-indigo-100 ring-1 ring-inset ring-indigo-400/30'
+        ? 'fp-nav-active bg-indigo-500/15 text-indigo-100 ring-1 ring-inset ring-indigo-400/30'
         : 'text-slate-400 hover:bg-white/5 hover:text-slate-100';
 @endphp
 
-<a href="{{ $href }}" {{ $attributes->merge(['class' => $base.' '.$state]) }}>
+<a href="{{ $href }}" @if($active) aria-current="page" @endif {{ $attributes->merge(['class' => $base.' '.$state]) }}>
     @if($icon)
         <svg class="h-4 w-4 shrink-0 {{ $active ? 'text-indigo-300' : 'text-slate-500 transition group-hover:text-slate-300' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
             @switch($icon)
