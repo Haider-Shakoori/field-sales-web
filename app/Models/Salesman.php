@@ -37,6 +37,16 @@ class Salesman extends Model
         return $this->hasMany(SalesmanAssignment::class);
     }
 
+    public function assignedCustomers(): HasMany
+    {
+        return $this->hasMany(Customer::class, 'assigned_salesman_id');
+    }
+
+    public function referredCustomers(): HasMany
+    {
+        return $this->hasMany(Customer::class, 'referred_by_salesman_id');
+    }
+
     public function leads(): HasMany
     {
         return $this->hasMany(Lead::class, 'assigned_salesman_id');
