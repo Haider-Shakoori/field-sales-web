@@ -34,6 +34,12 @@ class StoreCustomerRequest extends FormRequest
                 'integer',
                 Rule::exists('price_lists', 'id')->where('tenant_id', $tenantId),
             ],
+            'assigned_salesman_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('salesmen', 'id')->where('tenant_id', $tenantId),
+            ],
+            'referred_by' => ['nullable', 'boolean'],
             'code' => [
                 'required',
                 'string',
@@ -67,6 +73,13 @@ class StoreCustomerRequest extends FormRequest
             function (Validator $validator): void {
                 $territoryId = $this->integer('territory_id');
                 $branchId = $this->integer('branch_id');
+
+                if ($this->boolean('referred_by') && ! $this->integer('assigned_salesman_id')) {
+                    $validator->errors()->add(
+                        'assigned_salesman_id',
+                        'Select a salesman when the customer is marked as referred.'
+                    );
+                }
 
                 if (! $territoryId || ! $branchId) {
                     return;
