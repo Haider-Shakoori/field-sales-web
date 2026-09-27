@@ -24,8 +24,7 @@ class ExpenseController extends Controller
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->when($category !== '', fn ($query) => $query->where('category', $category))
             ->orderByDesc('spent_at')
-            ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString()
-            ->withQueryString();
+            ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString();
 
         return view('admin.expenses.index', compact('expenses', 'status', 'category'));
     }

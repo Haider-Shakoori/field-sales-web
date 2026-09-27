@@ -28,8 +28,7 @@ class CollectionController extends Controller
                 fn ($query) => $query->where('payment_method', $paymentMethod)
             )
             ->orderByDesc('collected_at')
-            ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString()
-            ->withQueryString();
+            ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString();
 
         return view('admin.collections.index', compact(
             'collections',

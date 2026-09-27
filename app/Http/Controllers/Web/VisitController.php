@@ -22,8 +22,7 @@ class VisitController extends Controller
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->when($flagged, fn ($query) => $query->whereHas('suspiciousFlags', fn ($flags) => $flags->whereNull('reviewed_at')))
             ->orderByDesc('checked_in_at')
-            ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString()
-            ->withQueryString();
+            ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString();
 
         return view('admin.visits.index', compact('visits', 'status', 'flagged'));
     }
