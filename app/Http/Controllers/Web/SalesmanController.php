@@ -24,7 +24,7 @@ class SalesmanController extends Controller
         return view('admin.salesmen.index', [
             'salesmen' => Salesman::with(['user.branch', 'devices', 'assignments' => fn ($query) => $query->current()->with(['branch', 'supervisor'])])
                 ->orderBy('employee_code')
-                ->paginate(25),
+                ->paginate(min(100, max(10, request()->integer('per_page', 25))))->withQueryString(),
         ]);
     }
 

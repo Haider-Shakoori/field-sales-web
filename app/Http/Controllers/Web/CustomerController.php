@@ -36,7 +36,7 @@ class CustomerController extends Controller
                         ->orWhere('phone', 'like', "%{$search}%")->orWhere('contact_person', 'like', "%{$search}%");
                 });
             })
-            ->orderBy('name')->paginate(30)->withQueryString();
+            ->orderBy('name')->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString();
 
         return view('admin.customers.index', [
             'customers' => $customers,
