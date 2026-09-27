@@ -42,6 +42,11 @@ class Customer extends Model
         return $this->belongsTo(Salesman::class, 'assigned_salesman_id');
     }
 
+    public function referringSalesman(): BelongsTo
+    {
+        return $this->belongsTo(Salesman::class, 'referred_by_salesman_id');
+    }
+
     public function priceList(): BelongsTo
     {
         return $this->belongsTo(PriceList::class);
