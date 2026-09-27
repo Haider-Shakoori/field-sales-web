@@ -15,7 +15,14 @@
                 <tbody class="divide-y divide-white/10">
                 @forelse($assignments as $assignment)
                     <tr>
-                        <td class="px-5 py-4">{{ $assignment->salesman?->full_name ?? '—' }}</td>
+                        <td class="px-5 py-4">
+                            <div>{{ $assignment->salesman?->full_name ?? '—' }}</div>
+                            @if($assignment->salesman?->referredCustomers?->isNotEmpty())
+                                <div class="mt-1 text-xs font-medium text-emerald-300">
+                                    {{ $assignment->salesman->referredCustomers->count() }} {{ __('referred customers') }}
+                                </div>
+                            @endif
+                        </td>
                         <td class="px-5 py-4">{{ $assignment->branch?->name ?? 'Unassigned' }}</td>
                         <td class="px-5 py-4">{{ $assignment->supervisor?->full_name ?? 'Unassigned' }}</td>
                         <td class="px-5 py-4">{{ $assignment->effective_from->toDateString() }} → {{ $assignment->effective_to?->toDateString() ?? 'Open' }}</td>
