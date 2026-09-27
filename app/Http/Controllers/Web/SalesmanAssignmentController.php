@@ -25,7 +25,13 @@ class SalesmanAssignmentController extends Controller
         Gate::authorize('viewAny', SalesmanAssignment::class);
 
         return view('admin.salesman-assignments.index', [
-            'assignments' => SalesmanAssignment::with(['salesman', 'branch', 'territory', 'route', 'supervisor'])
+            'assignments' => SalesmanAssignment::with([
+                'salesman.referredCustomers',
+                'branch',
+                'territory',
+                'route',
+                'supervisor',
+            ])
                 ->latest('effective_from')
                 ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString(),
         ]);
@@ -102,8 +108,13 @@ class SalesmanAssignmentController extends Controller
     {
         Gate::authorize('view', $assignment);
 
+        $assignment->load(['salesman.user', 'branch', 'territory', 'route', 'supervisor.user', 'creator']);
+
         return view('admin.salesman-assignments.show', [
-            'assignment' => $assignment->load(['salesman.user', 'branch', 'territory', 'route', 'supervisor.user', 'creator']),
+            'assignment' => $assignment,
+            'referredCustomers' => $assignment->salesman
+                ? $assignment->salesman->referredCustomers()->orderBy('name')->get()
+                : collect(),
         ]);
     }
 
