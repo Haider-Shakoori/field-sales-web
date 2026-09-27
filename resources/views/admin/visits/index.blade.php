@@ -1,8 +1,43 @@
 <x-layouts.app>
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold">Customer visits</h1>
-        <p class="mt-1 text-sm text-slate-400">Check-ins, geofence results, outcomes and suspicious activity review.</p>
+    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold">Customer visits</h1>
+            <p class="mt-1 text-sm text-slate-400">Schedule visits, review check-ins, geofence results, outcomes and suspicious activity.</p>
+        </div>
+        @can('visits:manage')
+            <button type="button" onclick="document.getElementById('add-visit-modal').classList.remove('hidden')" class="rounded-xl bg-indigo-500 px-4 py-3 font-semibold text-white">+ Add visit</button>
+        @endcan
     </div>
+
+    @if(session('success'))
+        <div class="mb-5 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{{ session('success') }}</div>
+    @endif
+    @if($errors->any())
+        <div class="mb-5 rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{{ $errors->first() }}</div>
+    @endif
+
+    @if($upcomingAssignments->isNotEmpty())
+        <div class="mb-5 rounded-2xl border border-white/10 bg-slate-900 p-4">
+            <div class="mb-3 flex items-center justify-between">
+                <div><h2 class="font-semibold">Upcoming assigned visits</h2><p class="text-xs text-slate-400">These appear in the salesman's mobile app on the scheduled date.</p></div>
+                <span class="rounded-full bg-indigo-500/15 px-3 py-1 text-xs text-indigo-200">{{ $upcomingAssignments->count() }} upcoming</span>
+            </div>
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">                @foreach($upcomingAssignments as $assignment)
+                    <div class="rounded-xl border border-white/10 bg-slate-950/60 p-4">
+                        <div class="font-semibold">{{ $assignment->customer?->name ?? 'Customer' }}</div>
+                        <div class="mt-1 text-xs text-slate-400">{{ $assignment->salesman?->full_name ?? $assignment->salesman?->user?->name ?? 'Salesman' }}</div>
+                        <div class="mt-2 text-sm">{{ $assignment->visit_date?->format('Y-m-d') }} @if($assignment->scheduled_time) · {{ substr($assignment->scheduled_time, 0, 5) }} @endif · {{ str($assignment->purpose)->replace('_', ' ')->title() }}</div>
+                        @can('visits:manage')
+                            <form method="POST" action="{{ route('admin.visit-assignments.destroy', $assignment) }}" class="mt-3" onsubmit="return confirm('Cancel this visit assignment?')">
+                                @csrf @method('DELETE')
+                                <button class="text-xs font-semibold text-rose-300">Cancel assignment</button>
+                            </form>
+                        @endcan
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     <form class="mb-5 flex flex-wrap gap-3">
         <select name="status" class="rounded-xl border border-white/10 bg-slate-900 px-4 py-3">
@@ -11,10 +46,8 @@
             <option value="completed" @selected($status === 'completed')>Completed</option>
         </select>
         <label class="flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900 px-4 py-3">
-            <input type="checkbox" name="flagged" value="1" @checked($flagged)>
-            Unreviewed flags only
-        </label>
-        <button class="rounded-xl bg-indigo-500 px-4 py-3 font-semibold">Filter</button>
+            <input type="checkbox" name="flagged" value="1" @checked($flagged)> Unreviewed flags only
+        </label>        <button class="rounded-xl bg-indigo-500 px-4 py-3 font-semibold">Filter</button>
     </form>
 
     <div class="overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
@@ -40,4 +73,26 @@
         </div>
     </div>
     <div class="mt-5">{{ $visits->links() }}</div>
+    @can('visits:manage')
+        <div id="add-visit-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-sm">
+            <div class="mx-auto mt-8 max-w-2xl rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
+                <div class="flex items-center justify-between border-b border-white/10 px-6 py-4">
+                    <div><h2 class="text-lg font-semibold">Assign customer visit</h2><p class="text-xs text-slate-400">This will appear in the salesman's mobile Today list.</p></div>
+                    <button type="button" onclick="document.getElementById('add-visit-modal').classList.add('hidden')" class="rounded-lg bg-white/5 px-3 py-2">✕</button>
+                </div>
+                <form method="POST" action="{{ route('admin.visits.store') }}" class="grid gap-4 p-6 md:grid-cols-2">
+                    @csrf
+                    <label><span class="mb-1 block text-sm">Salesman</span><select name="salesman_id" required class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3"><option value="">Select salesman</option>@foreach($salesmen as $salesman)<option value="{{ $salesman->id }}">{{ $salesman->full_name ?: $salesman->user?->name }}</option>@endforeach</select></label>
+                    <label><span class="mb-1 block text-sm">Customer</span><select name="customer_id" required class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3"><option value="">Select customer</option>@foreach($customers as $customer)<option value="{{ $customer->id }}">{{ $customer->name }}{{ $customer->code ? ' · '.$customer->code : '' }}</option>@endforeach</select></label>
+                    <label><span class="mb-1 block text-sm">Visit date</span><input type="date" name="visit_date" value="{{ now()->toDateString() }}" required class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3"></label>
+                    <label><span class="mb-1 block text-sm">Time (optional)</span><input type="time" name="scheduled_time" class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3"></label>
+                    <label><span class="mb-1 block text-sm">Purpose</span><select name="purpose" class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3"><option value="sales">Sales</option><option value="collection">Collection</option><option value="follow_up">Follow-up</option><option value="merchandising">Merchandising</option><option value="survey">Survey</option><option value="other">Other</option></select></label>
+                    <label><span class="mb-1 block text-sm">Priority</span><select name="priority" class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></label>
+                    <label><span class="mb-1 block text-sm">Expected duration (minutes)</span><input type="number" name="expected_duration_minutes" min="5" max="480" value="15" required class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3"></label>
+                    <label class="md:col-span-2"><span class="mb-1 block text-sm">Notes</span><textarea name="notes" rows="3" class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3"></textarea></label>
+                    <div class="flex justify-end gap-3 md:col-span-2"><button type="button" onclick="document.getElementById('add-visit-modal').classList.add('hidden')" class="rounded-xl bg-white/5 px-4 py-3">Cancel</button><button class="rounded-xl bg-indigo-500 px-5 py-3 font-semibold">Assign visit</button></div>
+                </form>
+            </div>
+        </div>
+    @endcan
 </x-layouts.app>
