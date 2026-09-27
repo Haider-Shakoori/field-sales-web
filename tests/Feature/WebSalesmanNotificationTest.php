@@ -66,10 +66,13 @@ class WebSalesmanNotificationTest extends TestCase
                 ->assertRedirect(route('admin.salesmen.show', $salesman))
                 ->assertSessionHas('status', 'Notification sent to Field Salesman.');
 
-            $notification = OperationalNotification::query()
-                ->where('user_id', $salesUser->id)
-                ->where('type', 'team.supervisor_nudge')
-                ->firstOrFail();
+            $notification = app(TenantContext::class)->withTenant(
+                $tenant,
+                fn () => OperationalNotification::query()
+                    ->where('user_id', $salesUser->id)
+                    ->where('type', 'team.supervisor_nudge')
+                    ->firstOrFail(),
+            );
 
             $this->assertSame('team_messages', $notification->category);
             $this->assertSame('high', $notification->priority);
