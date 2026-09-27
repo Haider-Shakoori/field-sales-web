@@ -47,7 +47,9 @@
     </div>
 
     @if(session('businessos_health'))
-        @php($health = session('businessos_health'))
+        @php
+            $health = session('businessos_health');
+        @endphp
         <div class="mb-5 rounded-2xl border {{ $health['ok'] ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-200' : 'border-rose-400/20 bg-rose-500/10 text-rose-200' }} p-4 text-sm">
             {{ $health['message'] }}
         </div>
