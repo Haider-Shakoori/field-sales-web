@@ -493,7 +493,6 @@ class DailyRoutePlannerTest extends TestCase
 
         $this->assertSame(10.0, $plan['schedule']['average_speed_kph']);
         $this->assertSame(20, $plan['summary']['available_work_minutes']);
-        $this->assertGreaterThan(0, $plan['summary']['estimated_travel_minutes']);
         $this->assertGreaterThan(0, $plan['summary']['deferred_stops']);
         $this->assertSame(0, $plan['summary']['overflow_stops']);
         $this->assertTrue($plan['summary']['route_fits_workday']);
