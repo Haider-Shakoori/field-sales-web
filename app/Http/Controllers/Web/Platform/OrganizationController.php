@@ -32,7 +32,7 @@ class OrganizationController extends Controller
             })
             ->when(in_array($status, self::STATUSES, true), fn ($query) => $query->where('subscription_status', $status))
             ->orderBy('name')
-            ->paginate(20)
+            ->paginate(min(100, max(10, request()->integer('per_page', 20))))->withQueryString()
             ->withQueryString();
 
         return view('admin.organizations.index', [

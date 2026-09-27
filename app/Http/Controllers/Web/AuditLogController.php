@@ -16,7 +16,7 @@ class AuditLogController extends Controller
         return view('admin.audit.index', [
             'logs' => AuditLog::with('actor')
                 ->latest()
-                ->paginate(50),
+                ->paginate(min(100, max(10, request()->integer('per_page', 50))))->withQueryString(),
         ]);
     }
 }

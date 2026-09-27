@@ -22,7 +22,7 @@ class PriceListController extends Controller
         return view('admin.price-lists.index', [
             'priceLists' => PriceList::withCount(['items', 'customers'])
                 ->orderBy('name')
-                ->paginate(30),
+                ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString(),
         ]);
     }
 

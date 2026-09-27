@@ -21,7 +21,7 @@ class NotificationController extends Controller
             ->where('user_id', $user->id)
             ->where('database_visible', true)
             ->latest()
-            ->paginate(30);
+            ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString();
 
         return view('admin.notifications.index', [
             'notifications' => $items,

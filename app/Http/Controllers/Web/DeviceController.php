@@ -19,7 +19,7 @@ class DeviceController extends Controller
         return view('admin.devices.index', [
             'devices' => Device::with(['user', 'salesman'])
                 ->latest('registered_at')
-                ->paginate(30),
+                ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString(),
         ]);
     }
 

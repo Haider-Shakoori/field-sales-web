@@ -16,7 +16,7 @@ class CallActivityController extends Controller
         $activities = CustomerCallActivity::with(['customer', 'salesman.user'])
             ->when($outcome !== '', fn ($query) => $query->where('outcome', $outcome))
             ->orderByDesc('called_at')
-            ->paginate(30)
+            ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString()
             ->withQueryString();
 
         return view('admin.call-activities.index', compact('activities', 'outcome'));
