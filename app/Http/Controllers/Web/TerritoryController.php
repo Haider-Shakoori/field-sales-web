@@ -23,7 +23,7 @@ class TerritoryController extends Controller
             'territories' => Territory::with('branch')
                 ->withCount(['customers', 'routes'])
                 ->orderBy('name')
-                ->paginate(30),
+                ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString(),
             'mapTerritories' => Territory::with('branch')
                 ->whereNotNull('polygon')
                 ->orderBy('name')

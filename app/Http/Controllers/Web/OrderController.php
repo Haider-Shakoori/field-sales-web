@@ -31,7 +31,7 @@ class OrderController extends Controller
                 fn ($query) => $query->where('payment_type', $paymentType)
             )
             ->orderByDesc('ordered_at')
-            ->paginate(30)
+            ->paginate(min(100, max(10, request()->integer('per_page', 30))))->withQueryString()
             ->withQueryString();
 
         return view('admin.orders.index', compact('orders', 'status', 'paymentType'));

@@ -25,7 +25,7 @@ class UserController extends Controller
         return view('admin.users.index', [
             'users' => User::with(['branch', 'roles'])
                 ->orderBy('name')
-                ->paginate(25),
+                ->paginate(min(100, max(10, request()->integer('per_page', 25))))->withQueryString(),
         ]);
     }
 

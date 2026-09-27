@@ -38,7 +38,7 @@ class MobileDiagnosticController extends Controller
         }
 
         return view('admin.mobile-diagnostics.index', [
-            'diagnostics' => $query->paginate(40)->withQueryString(),
+            'diagnostics' => $query->paginate(min(100, max(10, request()->integer('per_page', 40))))->withQueryString(),
             'areas' => MobileDiagnostic::query()
                 ->select('area')
                 ->distinct()
