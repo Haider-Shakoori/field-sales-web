@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Customer;
 use App\Models\Device;
 use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
@@ -134,6 +135,100 @@ class MobileLeadershipModeTest extends TestCase
             ->assertJsonPath('data.hierarchy.0.salesmen.0.employee_code', 'SAL-ASSIGNED')
             ->assertJsonMissing(['employee_code' => 'SAL-OUTSIDE'])
             ->assertJsonMissing(['supervisor_name' => 'Outside Supervisor']);
+    }
+
+    public function test_salesman_web_profile_shows_referred_customer_portfolio(): void
+    {
+        $fixture = $this->fixture();
+
+        app(TenantContext::class)->withTenant(
+            $fixture['tenant'],
+            function () use ($fixture): void {
+                Customer::create([
+                    'tenant_id' => $fixture['tenant']->id,
+                    'assigned_salesman_id' => $fixture['assigned']->id,
+                    'referred_by_salesman_id' => $fixture['assigned']->id,
+                    'code' => 'REF-WEB',
+                    'name' => 'Referred Web Shop',
+                    'geofence_radius_meters' => 100,
+                    'is_active' => true,
+                ]);
+
+                Customer::create([
+                    'tenant_id' => $fixture['tenant']->id,
+                    'assigned_salesman_id' => $fixture['outside']->id,
+                    'referred_by_salesman_id' => $fixture['outside']->id,
+                    'code' => 'REF-OUT',
+                    'name' => 'Outside Referral Shop',
+                    'geofence_radius_meters' => 100,
+                    'is_active' => true,
+                ]);
+            },
+        );
+
+        $this->actingAs($fixture['manager'])
+            ->get(route('admin.salesmen.show', $fixture['assigned']))
+            ->assertOk()
+            ->assertSee('Referral portfolio')
+            ->assertSee('Referred Web Shop')
+            ->assertSee('Orders')
+            ->assertSee('Collections')
+            ->assertSee('Visits')
+            ->assertDontSee('Outside Referral Shop');
+    }
+
+    public function test_salesman_mobile_account_only_returns_his_referred_customers(): void
+    {
+        $fixture = $this->fixture();
+
+        app(TenantContext::class)->withTenant(
+            $fixture['tenant'],
+            function () use ($fixture): void {
+                Customer::create([
+                    'tenant_id' => $fixture['tenant']->id,
+                    'assigned_salesman_id' => $fixture['assigned']->id,
+                    'referred_by_salesman_id' => $fixture['assigned']->id,
+                    'code' => 'REF-MOBILE',
+                    'name' => 'Referred Mobile Shop',
+                    'geofence_radius_meters' => 100,
+                    'is_active' => true,
+                ]);
+
+                Customer::create([
+                    'tenant_id' => $fixture['tenant']->id,
+                    'assigned_salesman_id' => $fixture['outside']->id,
+                    'referred_by_salesman_id' => $fixture['outside']->id,
+                    'code' => 'REF-OTHER',
+                    'name' => 'Other Salesman Referral',
+                    'geofence_radius_meters' => 100,
+                    'is_active' => true,
+                ]);
+            },
+        );
+
+        $headers = $this->deviceHeaders('referral-install', 'referral-device');
+
+        $login = $this->withHeaders($headers)
+            ->postJson('/api/v1/auth/login', [
+                'email' => $fixture['assignedUser']->email,
+                'password' => 'password',
+                'device_uuid' => 'referral-device',
+                'app_version' => '1.0.0',
+            ])
+            ->assertOk();
+
+        $token = $login->json('data.token');
+
+        $this->withHeaders([...$headers, 'Authorization' => 'Bearer '.$token])
+            ->getJson('/api/v1/referrals/me?per_page=10')
+            ->assertOk()
+            ->assertJsonPath('data.salesman.employee_code', 'SAL-ASSIGNED')
+            ->assertJsonPath('data.summary.referred_customers', 1)
+            ->assertJsonPath('data.customers.0.name', 'Referred Mobile Shop')
+            ->assertJsonPath('data.customers.0.orders', 0)
+            ->assertJsonPath('data.customers.0.collections', 0)
+            ->assertJsonPath('data.customers.0.visits', 0)
+            ->assertJsonMissing(['name' => 'Other Salesman Referral']);
     }
 
     private function fixture(): array
