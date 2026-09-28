@@ -376,7 +376,11 @@ class DashboardService
         }
 
         [$start, $end] = $this->window($actor);
-        $bucketSeconds = max(60, (int) config('tenancy.tracking.map_track_bucket_seconds', 300));
+        $bucketSeconds = max(15, (int) config('tenancy.tracking.map_track_bucket_seconds', 30));
+        $gapSeconds = max(
+            $bucketSeconds * 2,
+            (int) config('tenancy.tracking.map_track_gap_seconds', 120),
+        );
         $bucketExpression = DB::connection()->getDriverName() === 'sqlite'
             ? "CAST(strftime('%s', recorded_at) AS INTEGER) / {$bucketSeconds}"
             : "FLOOR(UNIX_TIMESTAMP(recorded_at) / {$bucketSeconds})";
@@ -418,32 +422,52 @@ class DashboardService
         foreach ($sampled as $salesmanId => $rows) {
             $session = $sessions->get($salesmanId);
             $points = [];
+            $segments = [];
+            $segment = [];
             $distanceKm = 0.0;
             $previous = null;
+            $gapCount = 0;
 
             if ($session
                 && $session->start_latitude !== null
                 && $session->start_longitude !== null
                 && $session->start_time !== null
                 && $session->start_time->lte(CarbonImmutable::parse($rows->first()->recorded_at))) {
-                $points[] = [
+                $point = [
                     round((float) $session->start_latitude, 5),
                     round((float) $session->start_longitude, 5),
                     $session->start_time->toISOString(),
                 ];
-                $previous = [round((float) $session->start_latitude, 5), round((float) $session->start_longitude, 5), 0.0];
+                $points[] = $point;
+                $segment[] = $point;
+                $previous = [
+                    $point[0],
+                    $point[1],
+                    0.0,
+                    CarbonImmutable::parse($session->start_time),
+                ];
             }
 
             foreach ($rows as $row) {
+                $recordedAt = CarbonImmutable::parse($row->recorded_at);
                 $point = [
                     round((float) $row->latitude, 5),
                     round((float) $row->longitude, 5),
-                    CarbonImmutable::parse($row->recorded_at)->toISOString(),
+                    $recordedAt->toISOString(),
                 ];
 
                 $accuracy = (float) $row->horizontal_accuracy;
+                $hasGap = $previous !== null
+                    && $previous[3]->diffInSeconds($recordedAt) > $gapSeconds;
 
-                if ($previous !== null && $previous[2] <= 50 && $accuracy <= 50) {
+                if ($hasGap) {
+                    if ($segment !== []) {
+                        $segments[] = $segment;
+                    }
+
+                    $segment = [];
+                    $gapCount++;
+                } elseif ($previous !== null && $previous[2] <= 50 && $accuracy <= 50) {
                     $distanceKm += $this->distanceKm(
                         $previous[0],
                         $previous[1],
@@ -453,7 +477,12 @@ class DashboardService
                 }
 
                 $points[] = $point;
-                $previous = [$point[0], $point[1], $accuracy];
+                $segment[] = $point;
+                $previous = [$point[0], $point[1], $accuracy, $recordedAt];
+            }
+
+            if ($segment !== []) {
+                $segments[] = $segment;
             }
 
             if (count($points) < 2) {
@@ -462,6 +491,9 @@ class DashboardService
 
             $tracks[$salesmanId] = [
                 'points' => $points,
+                'segments' => $segments,
+                'gap_count' => $gapCount,
+                'gap_seconds' => $gapSeconds,
                 'distance_km' => round($distanceKm, 2),
             ];
         }

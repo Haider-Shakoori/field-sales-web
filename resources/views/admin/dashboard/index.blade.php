@@ -329,6 +329,9 @@
                             start: null,
                             lastRecordedAt: null,
                             distanceKm: null,
+                            gapCount: 0,
+                            gapSeconds: 120,
+                            points: [],
                         });
                     }
 
@@ -342,7 +345,18 @@
                         return;
                     }
 
-                    const latlngs = track.points.map((point) => [point[0], point[1]]);
+                    const sourceSegments = Array.isArray(track.segments) && track.segments.length > 0
+                        ? track.segments
+                        : [track.points];
+                    const latlngs = sourceSegments
+                        .map((segment) => segment.map((point) => [point[0], point[1]]))
+                        .filter((segment) => segment.length > 0);
+                    const firstPoint = latlngs[0]?.[0];
+
+                    if (!firstPoint) {
+                        return;
+                    }
+
                     const entry = routeFor(item.salesman_id);
 
                     if (!entry.line) {
@@ -352,7 +366,7 @@
                             opacity: .85,
                             lineJoin: 'round',
                         }).addTo(routeLayer);
-                        entry.start = L.circleMarker(latlngs[0], {
+                        entry.start = L.circleMarker(firstPoint, {
                             radius: 6,
                             color: '#ffffff',
                             weight: 2,
@@ -362,16 +376,23 @@
                         entry.start.bindTooltip(item.salesman_name + ' · start');
                     } else {
                         entry.line.setLatLngs(latlngs);
-                        entry.start.setLatLng(latlngs[0]);
+                        entry.start.setLatLng(firstPoint);
                     }
 
                     entry.lastRecordedAt = track.points[track.points.length - 1][2];
                     entry.distanceKm = track.distance_km;
-                    entry.line.bindTooltip(item.salesman_name + ' · ' + Number(track.distance_km).toFixed(1) + ' km today');
-                    entry.line.bindPopup(popupFor(item, track));
+                    entry.gapCount = Number(track.gap_count ?? 0);
+                    entry.gapSeconds = Number(track.gap_seconds ?? 120);
+                    entry.points = track.points;
+                    entry.line.bindTooltip(
+                        item.salesman_name + ' · ' + Number(track.distance_km).toFixed(1) + ' km today'
+                        + (entry.gapCount > 0 ? ' · ' + entry.gapCount + ' tracking gap' + (entry.gapCount === 1 ? '' : 's') : ''),
+                    );
+                    entry.line.bindPopup(popupFor(item, entry));
 
-                    for (const latlng of latlngs) {
-                        bounds.push(latlng);
+                    const routeBounds = entry.line.getBounds();
+                    if (routeBounds.isValid()) {
+                        bounds.push(routeBounds.getSouthWest(), routeBounds.getNorthEast());
                     }
                 };
 
@@ -386,7 +407,21 @@
                         return;
                     }
 
-                    entry.line.addLatLng([item.location.latitude, item.location.longitude]);
+                    if (entry.lastRecordedAt) {
+                        const gapSeconds = Math.abs(
+                            (new Date(item.location.recorded_at).getTime()
+                                - new Date(entry.lastRecordedAt).getTime()) / 1000,
+                        );
+
+                        if (gapSeconds > entry.gapSeconds) {
+                            return;
+                        }
+                    }
+
+                    const segments = entry.line.getLatLngs();
+                    const target = Array.isArray(segments[0]) ? segments[segments.length - 1] : segments;
+                    target.push(L.latLng(item.location.latitude, item.location.longitude));
+                    entry.line.setLatLngs(segments);
                     entry.lastRecordedAt = item.location.recorded_at;
                 };
 
@@ -485,7 +520,13 @@
 
                     if (track) {
                         box.appendChild(textLine('Route distance', Number(track.distance_km).toFixed(1) + ' km'));
-                        if (track.points.length > 0) {
+                        if (Number(track.gap_count ?? track.gapCount ?? 0) > 0) {
+                            box.appendChild(textLine(
+                                'Tracking gaps',
+                                Number(track.gap_count ?? track.gapCount) + ' · straight-line jumps are not counted',
+                            ));
+                        }
+                        if (Array.isArray(track.points) && track.points.length > 0) {
                             box.appendChild(textLine('Started', track.points[0][2]));
                         }
                     }
