@@ -326,6 +326,78 @@ class Batch13DashboardLiveMapTest extends TestCase
         $this->assertGreaterThan(0, $tracked['track']['distance_km']);
     }
 
+    public function test_live_map_breaks_route_when_gps_points_have_large_time_gap(): void
+    {
+        config([
+            'tenancy.tracking.map_track_bucket_seconds' => 15,
+            'tenancy.tracking.map_track_gap_seconds' => 120,
+        ]);
+
+        [$tenant, $admin] = $this->tenantUser(
+            'track-gap-admin@example.test',
+            ['reports:view', 'tracking:view'],
+            'company-admin',
+            'Track Gap Tenant',
+            'track-gap-tenant',
+        );
+        [$salesman, $device] = $this->salesman($tenant, 'GAP-1', 'Gap');
+
+        app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($tenant, $salesman, $device): void {
+                WorkSession::create([
+                    'tenant_id' => $tenant->id,
+                    'uuid' => (string) Str::uuid(),
+                    'user_id' => $salesman->user_id,
+                    'salesman_id' => $salesman->id,
+                    'device_id' => $device->id,
+                    'date' => today()->toDateString(),
+                    'start_time' => now()->subMinutes(20),
+                    'start_latitude' => 34.5000,
+                    'start_longitude' => 69.1000,
+                    'start_accuracy' => 5,
+                    'status' => 'active',
+                ]);
+
+                foreach ([
+                    [now()->subMinutes(19), 34.5005, 69.1005],
+                    [now()->subMinutes(18), 34.5010, 69.1010],
+                    [now()->subMinutes(4), 34.5300, 69.1400],
+                    [now()->subMinutes(3), 34.5305, 69.1405],
+                ] as [$recordedAt, $latitude, $longitude]) {
+                    LocationHistory::create([
+                        'tenant_id' => $tenant->id,
+                        'user_id' => $salesman->user_id,
+                        'salesman_id' => $salesman->id,
+                        'device_id' => $device->id,
+                        'client_uuid' => (string) Str::uuid(),
+                        'latitude' => $latitude,
+                        'longitude' => $longitude,
+                        'horizontal_accuracy' => 8,
+                        'recorded_at' => $recordedAt,
+                        'received_at' => $recordedAt,
+                    ]);
+                }
+            }
+        );
+
+        $response = $this->actingAs($admin)
+            ->getJson(route('admin.dashboard.live-locations', ['include_tracks' => 1]))
+            ->assertOk();
+
+        $tracked = collect($response->json('data'))
+            ->firstWhere('salesman_id', $salesman->uuid);
+
+        $this->assertSame(1, $tracked['track']['gap_count']);
+        $this->assertSame(2, count($tracked['track']['segments']));
+        $this->assertSame(120, $tracked['track']['gap_seconds']);
+        $this->assertLessThan(
+            1.0,
+            $tracked['track']['distance_km'],
+            'The missing GPS interval must not be counted as travelled distance.',
+        );
+    }
+
     private function tenantUser(
         string $email,
         array $permissions,
