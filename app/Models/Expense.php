@@ -35,6 +35,8 @@ class Expense extends Model
             'fuel_liters' => 'decimal:3',
             'fuel_unit_price' => 'decimal:4',
             'odometer_km' => 'decimal:2',
+            'full_tank' => 'boolean',
+            'receipt_uploaded_at' => 'datetime',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'accuracy' => 'decimal:2',

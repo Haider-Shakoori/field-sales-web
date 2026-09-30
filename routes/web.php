@@ -22,6 +22,7 @@ use App\Http\Controllers\Web\DailyRoutePlannerController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\ExpenseController;
+use App\Http\Controllers\Web\FuelController;
 use App\Http\Controllers\Web\GamificationController;
 use App\Http\Controllers\Web\LeadController;
 use App\Http\Controllers\Web\LiveMapController;
@@ -101,6 +102,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/attendance', [AttendanceController::class, 'index'])
             ->middleware('permission:sales-team:view')
             ->name('attendance.index');
+        Route::get('/fuel', [FuelController::class, 'index'])
+            ->middleware('permission:reports:view')
+            ->name('fuel.index');
+        Route::get('/fuel/{expense}/receipt', [FuelController::class, 'receipt'])
+            ->middleware('permission:reports:view')
+            ->name('fuel.receipt');
         Route::get('/mileage', [MileageController::class, 'index'])
             ->middleware('permission:reports:view')
             ->name('mileage.index');

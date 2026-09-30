@@ -8,6 +8,7 @@ use App\Support\ApiResponse;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ExpenseController extends Controller
@@ -25,6 +26,8 @@ class ExpenseController extends Controller
             'fuel_liters' => ['nullable', 'numeric', 'gt:0', 'max:999999999.999'],
             'fuel_unit_price' => ['nullable', 'numeric', 'gt:0', 'max:999999999999.9999'],
             'odometer_km' => ['nullable', 'numeric', 'min:0', 'max:999999999.99'],
+            'vehicle_reference' => ['nullable', 'string', 'max:120'],
+            'full_tank' => ['nullable', 'boolean'],
             'merchant' => ['nullable', 'string', 'max:160'],
             'reference_number' => ['nullable', 'string', 'max:160'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
@@ -50,6 +53,8 @@ class ExpenseController extends Controller
                 isset($validated['fuel_liters'])
                 || isset($validated['fuel_unit_price'])
                 || isset($validated['odometer_km'])
+                || isset($validated['vehicle_reference'])
+                || isset($validated['full_tank'])
             )
         ) {
             return ApiResponse::error(
@@ -105,6 +110,12 @@ class ExpenseController extends Controller
             'odometer_km' => $validated['category'] === 'fuel'
                 ? ($validated['odometer_km'] ?? null)
                 : null,
+            'vehicle_reference' => $validated['category'] === 'fuel'
+                ? (trim((string) ($validated['vehicle_reference'] ?? '')) ?: null)
+                : null,
+            'full_tank' => $validated['category'] === 'fuel'
+                ? (bool) ($validated['full_tank'] ?? false)
+                : false,
             'merchant' => $validated['merchant'] ?? null,
             'reference_number' => $validated['reference_number'] ?? null,
             'latitude' => $validated['latitude'],
@@ -115,6 +126,34 @@ class ExpenseController extends Controller
         ]);
 
         return ApiResponse::success($this->payload($expense), 201);
+    }
+
+    public function uploadReceipt(Request $request, Expense $expense): JsonResponse
+    {
+        abort_unless($request->user()->hasPermission('expenses:view'), 403);
+        abort_unless((int) $expense->user_id === (int) $request->user()->id, 404);
+        abort_unless($expense->category === 'fuel', 422);
+
+        $validated = $request->validate([
+            'receipt' => ['required', 'image', 'max:5120'],
+        ]);
+
+        $file = $validated['receipt'];
+
+        if ($expense->receipt_path) {
+            Storage::disk('public')->delete($expense->receipt_path);
+        }
+
+        $path = $file->store('fuel-receipts/'.$expense->uuid, 'public');
+
+        $expense->update([
+            'receipt_path' => $path,
+            'receipt_mime_type' => $file->getMimeType(),
+            'receipt_size_bytes' => $file->getSize(),
+            'receipt_uploaded_at' => now(),
+        ]);
+
+        return ApiResponse::success($this->payload($expense->fresh()), 201);
     }
 
     public function history(Request $request): JsonResponse
@@ -181,6 +220,10 @@ class ExpenseController extends Controller
             'odometer_km' => $expense->odometer_km === null
                 ? null
                 : (float) $expense->odometer_km,
+            'vehicle_reference' => $expense->vehicle_reference,
+            'full_tank' => (bool) $expense->full_tank,
+            'receipt_uploaded' => filled($expense->receipt_path),
+            'receipt_uploaded_at' => $expense->receipt_uploaded_at?->toISOString(),
             'merchant' => $expense->merchant,
             'reference_number' => $expense->reference_number,
             'latitude' => (float) $expense->latitude,

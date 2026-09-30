@@ -107,6 +107,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/expenses/history', [ExpenseController::class, 'history']);
             Route::get('/expenses/{expense:uuid}', [ExpenseController::class, 'show']);
             Route::post('/expenses', [ExpenseController::class, 'store']);
+            Route::post('/expenses/{expense:uuid}/receipt', [ExpenseController::class, 'uploadReceipt']);
 
             Route::get('/targets/current', [TargetController::class, 'current']);
             Route::get('/targets/history', [TargetController::class, 'history']);

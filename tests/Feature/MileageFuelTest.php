@@ -13,7 +13,9 @@ use App\Models\User;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -38,6 +40,7 @@ class MileageFuelTest extends TestCase
     public function test_attendance_gps_odometer_and_fuel_flow_produces_mileage_summary(): void
     {
         $actor = $this->salesmanActor();
+        Storage::fake('public');
 
         $startUuid = (string) Str::uuid();
 
@@ -104,6 +107,8 @@ class MileageFuelTest extends TestCase
             'amount' => 450,
             'fuel_liters' => 10,
             'odometer_km' => 1001.5,
+            'vehicle_reference' => 'CAR-01',
+            'full_tank' => true,
             'merchant' => 'Test Fuel',
             'latitude' => 34.5550,
             'longitude' => 69.2000,
@@ -112,7 +117,16 @@ class MileageFuelTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.fuel_liters', 10)
             ->assertJsonPath('data.fuel_unit_price', 45)
-            ->assertJsonPath('data.odometer_km', 1001.5);
+            ->assertJsonPath('data.odometer_km', 1001.5)
+            ->assertJsonPath('data.vehicle_reference', 'CAR-01')
+            ->assertJsonPath('data.full_tank', true)
+            ->assertJsonPath('data.receipt_uploaded', false);
+
+        $this->post('/api/v1/expenses/'.$expenseUuid.'/receipt', [
+            'receipt' => UploadedFile::fake()->create('fuel-receipt.jpg', 120, 'image/jpeg'),
+        ], $this->headers() + ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('data.receipt_uploaded', true);
 
         app(TenantContext::class)->withTenant(
             $actor['tenant'],
@@ -144,6 +158,17 @@ class MileageFuelTest extends TestCase
             ->assertSeeText('Mileage & Fuel')
             ->assertSeeText('CAR-01')
             ->assertSeeText('Test Salesman');
+
+        $this->actingAs($admin, 'web')
+            ->get(route('admin.fuel.index', [
+                'date_from' => '2026-09-25',
+                'date_to' => '2026-09-25',
+            ]))
+            ->assertOk()
+            ->assertSeeText('Fuel Management')
+            ->assertSeeText('CAR-01')
+            ->assertSeeText('Test Fuel')
+            ->assertSeeText('Receipt');
     }
 
     public function test_non_fuel_expense_rejects_fuel_specific_fields(): void
