@@ -91,6 +91,7 @@ class TenantProvisioningService
             'collections:view',
             'collections:manage',
             'expenses:view',
+            'expenses:manage',
             'targets:view',
             'targets:manage',
             'commissions:view',

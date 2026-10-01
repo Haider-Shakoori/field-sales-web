@@ -89,6 +89,8 @@ class ExpenseController extends Controller
             'user_id' => $user->id,
             'salesman_id' => $user->salesman->id,
             'device_id' => $device->id,
+            'entered_by' => $user->id,
+            'entry_source' => 'mobile',
             'expense_number' => 'EXP-'.$spentAt->format('Ymd').'-'.$compactUuid,
             'spent_at' => $spentAt,
             'category' => $validated['category'],

@@ -59,6 +59,11 @@ class Expense extends Model
         return $this->belongsTo(Device::class);
     }
 
+    public function enteredBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'entered_by');
+    }
+
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');

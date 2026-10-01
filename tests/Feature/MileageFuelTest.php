@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\Device;
 use App\Models\Expense;
 use App\Models\LocationHistory;
@@ -10,6 +11,7 @@ use App\Models\Role;
 use App\Models\Salesman;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\WorkSession;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -155,7 +157,7 @@ class MileageFuelTest extends TestCase
                 'date_to' => '2026-09-25',
             ]))
             ->assertOk()
-            ->assertSeeText('Mileage & Fuel')
+            ->assertSeeText('Mileage')
             ->assertSeeText('CAR-01')
             ->assertSeeText('Test Salesman');
 
@@ -169,6 +171,131 @@ class MileageFuelTest extends TestCase
             ->assertSeeText('CAR-01')
             ->assertSeeText('Test Fuel')
             ->assertSeeText('Receipt');
+    }
+
+    public function test_management_can_enter_and_correct_fuel_and_mileage_with_audit(): void
+    {
+        $actor = $this->salesmanActor();
+        Storage::fake('public');
+        $admin = $this->admin($actor['tenant']);
+
+        $this->actingAs($admin, 'web')
+            ->post(route('admin.fuel.store'), [
+                'salesman' => $actor['salesman']->uuid,
+                'spent_at' => '2026-09-25T11:30',
+                'vehicle_reference' => 'CAR-MANAGED',
+                'merchant' => 'Fuel Card Station',
+                'fuel_liters' => 20,
+                'amount' => 1000,
+                'odometer_km' => 1500,
+                'currency' => 'AFN',
+                'full_tank' => 1,
+                'reference_number' => 'CARD-001',
+                'correction_reason' => 'Fuel card transaction was not entered by the driver.',
+            ])
+            ->assertRedirect(route('admin.fuel.index'));
+
+        $expense = app(TenantContext::class)->withTenant(
+            $actor['tenant'],
+            fn () => Expense::query()
+                ->where('entry_source', 'management_web')
+                ->firstOrFail(),
+        );
+
+        $this->assertSame($admin->id, $expense->entered_by);
+        $this->assertSame($actor['salesman']->id, $expense->salesman_id);
+        $this->assertSame('pending', $expense->status);
+        $this->assertNull($expense->latitude);
+        $this->assertNull($expense->longitude);
+
+        app(TenantContext::class)->withTenant(
+            $actor['tenant'],
+            fn () => $expense->update([
+                'status' => 'approved',
+                'reviewed_by' => $admin->id,
+                'reviewed_at' => now(),
+            ]),
+        );
+
+        $this->actingAs($admin, 'web')
+            ->patch(route('admin.fuel.update', $expense), [
+                'spent_at' => '2026-09-25T11:30',
+                'vehicle_reference' => 'CAR-MANAGED',
+                'merchant' => 'Fuel Card Station',
+                'fuel_liters' => 21,
+                'amount' => 1050,
+                'odometer_km' => 1501,
+                'currency' => 'AFN',
+                'full_tank' => 1,
+                'reference_number' => 'CARD-001',
+                'correction_reason' => 'Receipt shows 21 liters, not 20.',
+            ])
+            ->assertRedirect(route('admin.fuel.index'));
+
+        $expense->refresh();
+        $this->assertSame('pending', $expense->status);
+        $this->assertSame('21.000', $expense->fuel_liters);
+        $this->assertSame('Receipt shows 21 liters, not 20.', $expense->correction_reason);
+        $this->assertNull($expense->reviewed_by);
+
+        $session = app(TenantContext::class)->withTenant(
+            $actor['tenant'],
+            fn () => WorkSession::create([
+                'uuid' => (string) Str::uuid(),
+                'user_id' => $actor['user']->id,
+                'salesman_id' => $actor['salesman']->id,
+                'device_id' => $actor['device']->id,
+                'date' => '2026-09-25',
+                'start_time' => '2026-09-25 07:00:00',
+                'end_time' => '2026-09-25 15:00:00',
+                'start_latitude' => 34.55,
+                'start_longitude' => 69.20,
+                'start_accuracy' => 5,
+                'end_latitude' => 34.56,
+                'end_longitude' => 69.21,
+                'end_accuracy' => 5,
+                'status' => 'completed',
+                'duration_minutes' => 480,
+                'vehicle_reference' => 'CAR-OLD',
+                'odometer_start_km' => 2000,
+                'odometer_end_km' => 2050,
+                'gps_distance_km' => 48.5,
+            ]),
+        );
+
+        $this->actingAs($admin, 'web')
+            ->patch(route('admin.mileage.update', $session), [
+                'vehicle_reference' => 'CAR-CORRECTED',
+                'odometer_start_km' => 2001,
+                'odometer_end_km' => 2052,
+                'correction_reason' => 'Verified against the vehicle dashboard photo.',
+            ])
+            ->assertRedirect();
+
+        $session->refresh();
+        $this->assertSame('CAR-CORRECTED', $session->vehicle_reference);
+        $this->assertSame('2001.00', $session->odometer_start_km);
+        $this->assertSame('2052.00', $session->odometer_end_km);
+        $this->assertSame('48.500', $session->gps_distance_km);
+        $this->assertSame('management_mileage_correction', $session->corrections[0]['type'] ?? null);
+
+        app(TenantContext::class)->withTenant(
+            $actor['tenant'],
+            function (): void {
+                $this->assertSame(
+                    1,
+                    AuditLog::query()->where('event', 'fuel.management_created')->count(),
+                );
+                $this->assertSame(
+                    1,
+                    AuditLog::query()->where('event', 'fuel.management_corrected')->count(),
+                );
+                $this->assertSame(
+                    1,
+                    AuditLog::query()->where('event', 'mileage.corrected')->count(),
+                );
+            },
+        );
     }
 
     public function test_non_fuel_expense_rejects_fuel_specific_fields(): void
@@ -282,14 +409,22 @@ class MileageFuelTest extends TestCase
                     'is_system' => false,
                 ]);
 
-                $permission = Permission::firstOrCreate(
-                    ['slug' => 'reports:view'],
-                    [
-                        'name' => 'Reports View',
-                        'group' => 'reports',
-                    ],
+                $permissionSlugs = [
+                    'reports:view',
+                    'expenses:manage',
+                    'attendance:manage',
+                    'audit:view',
+                ];
+                $permissions = collect($permissionSlugs)->map(
+                    fn (string $slug) => Permission::firstOrCreate(
+                        ['slug' => $slug],
+                        [
+                            'name' => str($slug)->replace(':', ' ')->title(),
+                            'group' => str($slug)->before(':'),
+                        ],
+                    ),
                 );
-                $role->permissions()->sync([$permission->id]);
+                $role->permissions()->sync($permissions->pluck('id')->all());
                 $user->syncPrimaryRole($role);
 
                 return $user;

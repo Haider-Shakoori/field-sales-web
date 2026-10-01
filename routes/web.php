@@ -105,12 +105,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/fuel', [FuelController::class, 'index'])
             ->middleware('permission:reports:view')
             ->name('fuel.index');
+        Route::post('/fuel', [FuelController::class, 'store'])
+            ->middleware('permission:expenses:manage')
+            ->name('fuel.store');
+        Route::patch('/fuel/{expense}', [FuelController::class, 'update'])
+            ->middleware('permission:expenses:manage')
+            ->name('fuel.update');
         Route::get('/fuel/{expense}/receipt', [FuelController::class, 'receipt'])
             ->middleware('permission:reports:view')
             ->name('fuel.receipt');
         Route::get('/mileage', [MileageController::class, 'index'])
             ->middleware('permission:reports:view')
             ->name('mileage.index');
+        Route::patch('/mileage/{session}', [MileageController::class, 'update'])
+            ->middleware('permission:attendance:manage')
+            ->name('mileage.update');
 
         Route::get('/daily-planner', [DailyRoutePlannerController::class, 'index'])
             ->middleware('permission:sales-team:view')

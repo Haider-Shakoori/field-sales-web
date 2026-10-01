@@ -1,10 +1,17 @@
-<x-layouts.app>
+<x-layouts.app title="Mileage">
 <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
     <div>
-        <h1 class="text-2xl font-bold tracking-tight">{{ __('Mileage & Fuel') }}</h1>
+        <h1 class="text-2xl font-bold tracking-tight">{{ __('Mileage') }}</h1>
         <p class="mt-1 text-sm text-slate-400">{{ __('Reconcile GPS travel, odometer readings, and approved fuel expenses.') }}</p>
     </div>
+    @if($canManage)
+        <span class="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">Odometer corrections enabled</span>
+    @endif
 </div>
+
+@if(session('status'))
+    <div class="mb-6 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{{ session('status') }}</div>
+@endif
 
 <form method="GET" class="mb-6 grid gap-3 rounded-2xl border border-white/10 bg-slate-900 p-4 md:grid-cols-4">
     <label class="text-sm">
@@ -79,15 +86,19 @@
                     <th class="px-4 py-3 text-right">{{ __('Fuel liters') }}</th>
                     <th class="px-4 py-3 text-right">{{ __('Efficiency') }}</th>
                     <th class="px-4 py-3">{{ __('Fuel cost') }}</th>
+                    @if($canManage)<th class="px-4 py-3">{{ __('Correction') }}</th>@endif
                 </tr>
             </thead>
             <tbody class="divide-y divide-white/5">
                 @forelse($rows as $row)
                     @php($session = $row['session'])
-                    <tr class="hover:bg-white/[0.025]">
+                    <tr class="align-top hover:bg-white/[0.025]">
                         <td class="whitespace-nowrap px-4 py-4">
                             <p class="font-medium">{{ $session->date?->format('Y-m-d') }}</p>
                             <p class="mt-1 text-xs text-slate-500">{{ __(str($session->status)->title()->toString()) }}</p>
+                            @if(collect($session->corrections)->where('type', 'management_mileage_correction')->isNotEmpty())
+                                <span class="mt-1 inline-block rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-300">Corrected</span>
+                            @endif
                         </td>
                         <td class="px-4 py-4">
                             <p class="font-medium">{{ $session->salesman?->full_name }}</p>
@@ -95,7 +106,12 @@
                         </td>
                         <td class="px-4 py-4 text-slate-300">{{ $session->vehicle_reference ?: '—' }}</td>
                         <td class="px-4 py-4 text-right font-mono">{{ number_format($row['gps_distance_km'], 2) }}</td>
-                        <td class="px-4 py-4 text-right font-mono">{{ $row['odometer_distance_km'] === null ? '—' : number_format($row['odometer_distance_km'], 2) }}</td>
+                        <td class="px-4 py-4 text-right font-mono">
+                            {{ $row['odometer_distance_km'] === null ? '—' : number_format($row['odometer_distance_km'], 2) }}
+                            @if($session->odometer_start_km !== null || $session->odometer_end_km !== null)
+                                <div class="mt-1 text-[11px] text-slate-500">{{ $session->odometer_start_km ?? '—' }} → {{ $session->odometer_end_km ?? '—' }}</div>
+                            @endif
+                        </td>
                         <td class="px-4 py-4 text-right font-mono {{ $row['distance_variance_km'] !== null && abs($row['distance_variance_km']) > 5 ? 'text-amber-300' : 'text-slate-400' }}">
                             {{ $row['distance_variance_km'] === null ? '—' : number_format($row['distance_variance_km'], 2) }}
                         </td>
@@ -110,10 +126,40 @@
                                 @endforelse
                             </div>
                         </td>
+                        @if($canManage)
+                            <td class="px-4 py-4">
+                                <details class="min-w-[12rem]">
+                                    <summary class="cursor-pointer font-semibold text-amber-300">{{ __('Correct') }}</summary>
+                                    <form method="POST" action="{{ route('admin.mileage.update', $session) }}" class="mt-3 grid min-w-[30rem] grid-cols-2 gap-2 rounded-xl border border-white/10 bg-slate-950 p-3">
+                                        @csrf
+                                        @method('PATCH')
+                                        <label class="text-xs text-slate-400">
+                                            Vehicle / plate
+                                            <input name="vehicle_reference" maxlength="120" value="{{ $session->vehicle_reference }}" class="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-2 py-2 text-sm text-white">
+                                        </label>
+                                        <div></div>
+                                        <label class="text-xs text-slate-400">
+                                            Start odometer
+                                            <input type="number" step="0.01" min="0" name="odometer_start_km" value="{{ $session->odometer_start_km }}" class="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-2 py-2 text-sm text-white">
+                                        </label>
+                                        <label class="text-xs text-slate-400">
+                                            End odometer
+                                            <input type="number" step="0.01" min="0" name="odometer_end_km" value="{{ $session->odometer_end_km }}" class="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-2 py-2 text-sm text-white">
+                                        </label>
+                                        <label class="col-span-2 text-xs text-slate-400">
+                                            Required reason
+                                            <textarea name="correction_reason" required maxlength="5000" rows="2" class="mt-1 w-full rounded-lg border border-amber-400/20 bg-slate-900 px-2 py-2 text-sm text-white" placeholder="Why is this odometer/vehicle value being corrected?"></textarea>
+                                        </label>
+                                        <p class="col-span-2 text-xs text-slate-500">GPS distance is preserved as the independent reconciliation baseline.</p>
+                                        <button class="col-span-2 rounded-lg bg-amber-500 px-3 py-2 font-semibold text-slate-950">Save audited correction</button>
+                                    </form>
+                                </details>
+                            </td>
+                        @endif
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="px-4 py-12 text-center text-slate-500">{{ __('No mileage records were found for this period.') }}</td>
+                        <td colspan="{{ $canManage ? 10 : 9 }}" class="px-4 py-12 text-center text-slate-500">{{ __('No mileage records were found for this period.') }}</td>
                     </tr>
                 @endforelse
             </tbody>

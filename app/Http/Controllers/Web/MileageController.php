@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Salesman;
+use App\Models\WorkSession;
+use App\Services\AuditLogger;
 use App\Services\MileageService;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -81,6 +84,7 @@ class MileageController extends Controller
         return view('admin.mileage.index', [
             'rows' => $rows,
             'salesmen' => $salesmen,
+            'canManage' => $user->hasPermission('attendance:manage'),
             'filters' => [
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
@@ -96,5 +100,80 @@ class MileageController extends Controller
                 'fuel_cost_by_currency' => $fuelCost,
             ],
         ]);
+    }
+
+    public function update(
+        Request $request,
+        WorkSession $session,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'vehicle_reference' => ['nullable', 'string', 'max:120'],
+            'odometer_start_km' => ['nullable', 'numeric', 'min:0', 'max:999999999.99'],
+            'odometer_end_km' => ['nullable', 'numeric', 'min:0', 'max:999999999.99'],
+            'correction_reason' => ['required', 'string', 'max:5000'],
+        ]);
+
+        $start = $validated['odometer_start_km'] ?? null;
+        $end = $validated['odometer_end_km'] ?? null;
+
+        if ($start !== null && $end !== null && (float) $end < (float) $start) {
+            throw ValidationException::withMessages([
+                'odometer_end_km' => 'End odometer must be greater than or equal to start odometer.',
+            ]);
+        }
+
+        $before = $this->auditValues($session);
+        $after = [
+            'vehicle_reference' => trim((string) ($validated['vehicle_reference'] ?? '')) ?: null,
+            'odometer_start_km' => $start === null ? null : round((float) $start, 2),
+            'odometer_end_km' => $end === null ? null : round((float) $end, 2),
+        ];
+
+        $corrections = is_array($session->corrections)
+            ? $session->corrections
+            : [];
+
+        $corrections[] = [
+            'type' => 'management_mileage_correction',
+            'corrected_at' => now()->toIso8601String(),
+            'user_id' => $request->user()->id,
+            'reason' => trim($validated['correction_reason']),
+            'before' => $before,
+            'after' => $after,
+        ];
+
+        $session->update([
+            ...$after,
+            'corrections' => $corrections,
+        ]);
+
+        $session->refresh();
+        $audit->record(
+            'mileage.corrected',
+            $session,
+            $before,
+            [
+                ...$this->auditValues($session),
+                'correction_reason' => trim($validated['correction_reason']),
+            ],
+        );
+
+        return redirect()
+            ->back()
+            ->with('status', 'Mileage/odometer correction saved and audited.');
+    }
+
+    private function auditValues(WorkSession $session): array
+    {
+        return [
+            'date' => $session->date?->toDateString(),
+            'salesman_id' => $session->salesman_id,
+            'vehicle_reference' => $session->vehicle_reference,
+            'odometer_start_km' => $session->odometer_start_km,
+            'odometer_end_km' => $session->odometer_end_km,
+            'gps_distance_km' => $session->gps_distance_km,
+            'status' => $session->status,
+        ];
     }
 }
