@@ -107,6 +107,12 @@ class LeadController extends Controller
         [$user, $salesman] = $this->salesman($request, 'leads:manage');
         abort_unless((int) $lead->assigned_salesman_id === (int) $salesman->id, 404);
         $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:180'],
+            'contact_person' => ['nullable', 'string', 'max:160'],
+            'phone' => ['nullable', 'string', 'max:60'],
+            'email' => ['nullable', 'email', 'max:191'],
+            'address' => ['nullable', 'string', 'max:5000'],
+            'source' => ['sometimes', Rule::in(Lead::SOURCES)],
             'stage' => ['nullable', Rule::in(Lead::STAGES)],
             'priority' => ['nullable', Rule::in(Lead::PRIORITIES)],
             'estimated_value' => ['nullable', 'numeric', 'min:0'],
@@ -116,15 +122,50 @@ class LeadController extends Controller
             'notes' => ['nullable', 'string', 'max:10000'],
         ]);
         $beforeStage = $lead->stage;
-        $lead->update(array_filter([
-            'priority' => $validated['priority'] ?? null,
-            'estimated_value' => array_key_exists('estimated_value', $validated) ? $validated['estimated_value'] : null,
-            'currency' => isset($validated['currency']) ? strtoupper($validated['currency']) : null,
-            'expected_close_date' => array_key_exists('expected_close_date', $validated) ? $validated['expected_close_date'] : null,
-            'notes' => array_key_exists('notes', $validated) ? $validated['notes'] : null,
-        ], fn ($value) => $value !== null));
-        if (! empty($validated['stage']) && $validated['stage'] !== $beforeStage) {
+        $updates = [];
+
+        if (! empty($validated['name'])) {
+            $updates['name'] = $validated['name'];
+        }
+        if (array_key_exists('contact_person', $validated)) {
+            $updates['contact_person'] = $validated['contact_person'];
+        }
+        if (array_key_exists('phone', $validated)) {
+            $updates['phone'] = $validated['phone'];
+        }
+        if (array_key_exists('email', $validated)) {
+            $updates['email'] = $validated['email'];
+        }
+        if (array_key_exists('address', $validated)) {
+            $updates['address'] = $validated['address'];
+        }
+        if (! empty($validated['source'])) {
+            $updates['source'] = $validated['source'];
+        }
+        if (! empty($validated['priority'])) {
+            $updates['priority'] = $validated['priority'];
+        }
+        if (array_key_exists('estimated_value', $validated)) {
+            $updates['estimated_value'] = $validated['estimated_value'];
+        }
+        if (! empty($validated['currency'])) {
+            $updates['currency'] = strtoupper($validated['currency']);
+        }
+        if (array_key_exists('expected_close_date', $validated)) {
+            $updates['expected_close_date'] = $validated['expected_close_date'];
+        }
+        if (array_key_exists('notes', $validated)) {
+            $updates['notes'] = $validated['notes'];
+        }
+
+        if ($updates !== []) {
+            $lead->update($updates);
+        }
+
+        if (! empty($validated['stage'])) {
             $pipeline->applyStage($lead, $user, $validated['stage'], $validated['lost_reason'] ?? null);
+        } elseif ($lead->stage === 'lost' && array_key_exists('lost_reason', $validated)) {
+            $pipeline->applyStage($lead, $user, 'lost', $validated['lost_reason']);
         }
         $audit->record('lead.updated_mobile', $lead, ['stage' => $beforeStage], ['stage' => $lead->stage]);
 

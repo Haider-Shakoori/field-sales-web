@@ -80,11 +80,63 @@ class LeadPipelineTest extends TestCase
 
         $this->postJson('/api/v1/leads', $payload, $this->headers())->assertCreated()->assertJsonPath('data.id', $uuid)->assertJsonPath('data.stage', 'new');
         $this->postJson('/api/v1/leads', $payload, $this->headers())->assertOk()->assertJsonPath('data.id', $uuid);
-        $this->patchJson('/api/v1/leads/'.$uuid, ['stage' => 'qualified'], $this->headers())->assertOk()->assertJsonPath('data.stage', 'qualified')->assertJsonPath('data.probability', 50);
+        $this->patchJson('/api/v1/leads/'.$uuid, [
+            'name' => 'Mobile Prospect Updated',
+            'contact_person' => 'Farid Ahmad',
+            'phone' => '+93700888888',
+            'email' => 'farid@example.com',
+            'address' => 'Kabul, Afghanistan',
+            'source' => 'referral',
+            'stage' => 'qualified',
+            'priority' => 'high',
+            'estimated_value' => 500,
+            'currency' => 'AFN',
+            'expected_close_date' => '2026-10-15',
+            'notes' => 'Follow up next week.',
+        ], $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Mobile Prospect Updated')
+            ->assertJsonPath('data.contact_person', 'Farid Ahmad')
+            ->assertJsonPath('data.phone', '+93700888888')
+            ->assertJsonPath('data.email', 'farid@example.com')
+            ->assertJsonPath('data.address', 'Kabul, Afghanistan')
+            ->assertJsonPath('data.source', 'referral')
+            ->assertJsonPath('data.stage', 'qualified')
+            ->assertJsonPath('data.probability', 50)
+            ->assertJsonPath('data.priority', 'high')
+            ->assertJsonPath('data.estimated_value', 500)
+            ->assertJsonPath('data.currency', 'AFN')
+            ->assertJsonPath('data.expected_close_date', '2026-10-15')
+            ->assertJsonPath('data.notes', 'Follow up next week.');
+
+        $this->patchJson('/api/v1/leads/'.$uuid, [
+            'stage' => 'lost',
+            'lost_reason' => 'Budget unavailable.',
+        ], $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.stage', 'lost')
+            ->assertJsonPath('data.lost_reason', 'Budget unavailable.');
+
+        $this->patchJson('/api/v1/leads/'.$uuid, [
+            'lost_reason' => 'Decision postponed.',
+        ], $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.stage', 'lost')
+            ->assertJsonPath('data.lost_reason', 'Decision postponed.');
+
+        $this->patchJson('/api/v1/leads/'.$uuid, [
+            'estimated_value' => null,
+            'expected_close_date' => null,
+            'notes' => null,
+        ], $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.estimated_value', null)
+            ->assertJsonPath('data.expected_close_date', null)
+            ->assertJsonPath('data.notes', null);
 
         $activityUuid = (string) Str::uuid();
         $this->postJson('/api/v1/leads/'.$uuid.'/activities', ['offline_uuid' => $activityUuid, 'type' => 'meeting', 'notes' => 'Qualified during shop visit.'], $this->headers())->assertCreated()->assertJsonPath('data.id', $activityUuid);
-        $this->postJson('/api/v1/leads/'.$uuid.'/convert', [], $this->headers())->assertOk()->assertJsonPath('data.stage', 'won')->assertJsonPath('data.converted_customer_name', 'Mobile Prospect');
+        $this->postJson('/api/v1/leads/'.$uuid.'/convert', [], $this->headers())->assertOk()->assertJsonPath('data.stage', 'won')->assertJsonPath('data.converted_customer_name', 'Mobile Prospect Updated');
 
         $this->getJson('/api/v1/leads', $this->headers())->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $uuid);
         $this->assertDatabaseCount('leads', 1);

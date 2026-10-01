@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CallActivityController;
 use App\Http\Controllers\Api\CollectionController;
+use App\Http\Controllers\Api\CustomerFollowUpController;
 use App\Http\Controllers\Api\CustomerStatementController;
 use App\Http\Controllers\Api\DailyRoutePlannerController;
 use App\Http\Controllers\Api\ExpenseController;
@@ -51,6 +52,9 @@ Route::prefix('v1')->group(function () {
             Route::patch('/customers/{customer:uuid}', [MasterDataController::class, 'updateCustomer']);
             Route::get('/customers/{customer:uuid}/statement', CustomerStatementController::class);
             Route::get('/customers/{customer:uuid}/reorder-recommendations', ReorderRecommendationController::class);
+            Route::get('/follow-ups', [CustomerFollowUpController::class, 'index']);
+            Route::post('/customers/{customer:uuid}/follow-ups', [CustomerFollowUpController::class, 'store']);
+            Route::patch('/follow-ups/{followUp:uuid}/status', [CustomerFollowUpController::class, 'updateStatus']);
             Route::get('/territories', [MasterDataController::class, 'territories']);
             Route::get('/routes', [MasterDataController::class, 'routes']);
             Route::get('/routes/{route:uuid}/customers', [MasterDataController::class, 'routeCustomers']);
