@@ -176,8 +176,7 @@ class OrderController extends Controller
 
             if (
                 $stockEnabled
-                && $previousStatus === 'approved'
-                && $validated['status'] === 'cancelled'
+                && in_array($validated['status'], ['rejected', 'cancelled'], true)
             ) {
                 $stock->restoreCancelledOrder($order, $request->user());
             }
