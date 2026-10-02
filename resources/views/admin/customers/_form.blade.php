@@ -227,9 +227,9 @@
         hasInitialLocation ? 17 : 11,
     );
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('{{ config('maps.tile_url') }}', {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors',
+        attribution: @json(config('maps.attribution')),
     }).addTo(map);
 
     const locationIcon = L.divIcon({
