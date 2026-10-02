@@ -213,6 +213,41 @@ class Batch10CollectionsTest extends TestCase
         ]);
     }
 
+    public function test_directly_assigned_customer_can_submit_and_view_collection_balance(): void
+    {
+        $actor = $this->salesmanActor();
+        $customer = app(TenantContext::class)->withTenant(
+            $actor['tenant'],
+            fn () => Customer::create([
+                'code' => 'COL-DIRECT-'.Str::random(5),
+                'name' => 'Directly Assigned Customer',
+                'assigned_salesman_id' => $actor['salesman']->id,
+                'is_active' => true,
+            ])
+        );
+
+        $this->postJson('/api/v1/collections', [
+            'offline_uuid' => (string) Str::uuid(),
+            'customer_id' => $customer->uuid,
+            'collected_at' => '2026-09-19T07:25:00Z',
+            'currency' => 'AFN',
+            'amount' => 50,
+            'payment_method' => 'cash',
+            'latitude' => 34.5553,
+            'longitude' => 69.2075,
+            'accuracy' => 8,
+        ], $this->headers())
+            ->assertCreated()
+            ->assertJsonPath('data.customer_id', $customer->uuid);
+
+        $this->getJson(
+            '/api/v1/collections/balances?customer_id='.$customer->uuid,
+            $this->headers()
+        )
+            ->assertOk()
+            ->assertJsonPath('data.0.customer_id', $customer->uuid);
+    }
+
     public function test_non_cash_collection_requires_reference_number(): void
     {
         $actor = $this->salesmanActor();
