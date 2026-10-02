@@ -27,8 +27,7 @@ class OrderController extends Controller
         PromotionEngine $promotions,
         SalesmanStockService $stock,
         StockSettingsService $stockSettings,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         abort_unless($request->user()->hasPermission('orders:view'), 403);
 
         $validated = $request->validate([
@@ -76,7 +75,7 @@ class OrderController extends Controller
 
         $visit = null;
 
-        if (! empty($validated['visit_id'])) {
+        if (!empty($validated['visit_id'])) {
             $visit = CustomerVisit::where('uuid', $validated['visit_id'])->first();
 
             if (! $visit) {
