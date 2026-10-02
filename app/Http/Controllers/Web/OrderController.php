@@ -153,8 +153,6 @@ class OrderController extends Controller
             'due_date' => $order->due_date?->toDateString(),
         ];
 
-        $previousStatus = $order->status;
-
         $stockEnabled = $stockSettings->enabled(
             $request->user()->loadMissing('tenant')->tenant,
         );
@@ -165,7 +163,6 @@ class OrderController extends Controller
             $request,
             $stock,
             $stockEnabled,
-            $previousStatus,
             $dueDate,
             $audit,
             $before,
@@ -174,10 +171,7 @@ class OrderController extends Controller
                 $stock->applyApprovedOrder($order, $request->user());
             }
 
-            if (
-                $stockEnabled
-                && in_array($validated['status'], ['rejected', 'cancelled'], true)
-            ) {
+            if ($stockEnabled && in_array($validated['status'], ['rejected', 'cancelled'], true)) {
                 $stock->restoreCancelledOrder($order, $request->user());
             }
 
