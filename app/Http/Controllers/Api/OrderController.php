@@ -119,6 +119,7 @@ class OrderController extends Controller
 
         $device = $request->attributes->get('device');
         $pricingAt = $orderedAt->setTimezone($user->tenant->timezone);
+        $stockEnabled = $stockSettings->enabled($user->tenant);
 
         $order = DB::transaction(function () use (
             $validated,
@@ -131,6 +132,8 @@ class OrderController extends Controller
             $pricing,
             $pricingAt,
             $promotions,
+            $stock,
+            $stockEnabled,
         ): Order {
             $subtotal = 0.0;
             $discountTotal = 0.0;
@@ -214,12 +217,12 @@ class OrderController extends Controller
 
             $order->items()->createMany($preparedItems);
 
+            if ($stockEnabled) {
+                $stock->applyApprovedOrder($order, $user);
+            }
+
             return $order;
         });
-
-        if ($stockSettings->enabled($user->tenant)) {
-            $stock->applyApprovedOrder($order, $user);
-        }
 
         return ApiResponse::success(
             $this->payload($order->load($this->relations())),
