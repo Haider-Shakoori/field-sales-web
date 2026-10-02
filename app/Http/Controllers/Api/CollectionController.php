@@ -302,8 +302,9 @@ class CollectionController extends Controller
                 ->latest('effective_from')
                 ->first()
             : null;
+        $salesmanId = $user->salesman?->id;
 
-        $query->where(function (Builder $scope) use ($assignment, $user): void {
+        $query->where(function (Builder $scope) use ($assignment, $salesmanId, $user): void {
             $scope->where('created_by', $user->id);
 
             if ($assignment?->route_id) {
@@ -316,14 +317,24 @@ class CollectionController extends Controller
                 return;
             }
 
+            if ($salesmanId) {
+                $scope->orWhere('assigned_salesman_id', $salesmanId);
+            }
+
             if ($assignment?->territory_id) {
-                $scope->orWhere('territory_id', $assignment->territory_id);
+                $scope->orWhere(function (Builder $legacy) use ($assignment): void {
+                    $legacy->whereNull('assigned_salesman_id')
+                        ->where('territory_id', $assignment->territory_id);
+                });
 
                 return;
             }
 
             if ($assignment?->branch_id) {
-                $scope->orWhere('branch_id', $assignment->branch_id);
+                $scope->orWhere(function (Builder $legacy) use ($assignment): void {
+                    $legacy->whereNull('assigned_salesman_id')
+                        ->where('branch_id', $assignment->branch_id);
+                });
             }
         });
     }
