@@ -125,6 +125,18 @@ class Stage2Batch17OperationsTest extends TestCase
         );
     }
 
+    public function test_scheduler_heartbeat_runs_during_maintenance_mode(): void
+    {
+        $console = file_get_contents(base_path('routes/console.php'));
+
+        $this->assertNotFalse($console);
+        $this->assertStringContainsString(
+            "->name('field-sales:scheduler-heartbeat')",
+            $console,
+        );
+        $this->assertStringContainsString('->evenInMaintenanceMode()', $console);
+    }
+
     public function test_cpanel_shared_hosting_artifacts_are_present(): void
     {
         $this->assertFileExists(base_path('ops/CPANEL_PRODUCTION.md'));
