@@ -15,6 +15,16 @@ Artisan::command('field-sales:about', function (): void {
     $this->info('Field Sales web/backend is ready.');
 });
 
+Artisan::command('field-sales:scheduler-heartbeat', function (): int {
+    Cache::put(
+        'field-sales:scheduler-heartbeat',
+        now()->getTimestamp(),
+        now()->addMinutes(10),
+    );
+
+    return 0;
+});
+
 Artisan::command('field-sales:production-check {--services : Include database and filesystem readiness checks}', function (): int {
     $readiness = app(ProductionReadiness::class);
     $checks = $readiness->configurationChecks();
@@ -157,14 +167,7 @@ Schedule::command('queue:prune-failed --hours=168')
     ->dailyAt('03:30')
     ->withoutOverlapping();
 
-Schedule::call(function (): void {
-    Cache::put(
-        'field-sales:scheduler-heartbeat',
-        now()->getTimestamp(),
-        now()->addMinutes(10),
-    );
-})
-    ->name('field-sales:scheduler-heartbeat')
+Schedule::command('field-sales:scheduler-heartbeat')
     ->everyMinute()
     ->evenInMaintenanceMode()
     ->withoutOverlapping();
