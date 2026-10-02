@@ -998,3 +998,156 @@ class DailyRoutePlannerService
                 ->sum('planned_visit_minutes'),
             'missing_coordinates' => $collection
                 ->filter(fn (array $stop) => ! $this->hasStopCoordinates($stop))
+                ->count(),
+            'eligible_stops' => (int) ($schedule['candidate_stops'] ?? $collection->count()),
+            'planned_today' => $collection->where('visited_today', false)->count(),
+            'deferred_stops' => (int) ($schedule['deferred_stops'] ?? 0),
+            'estimated_travel_minutes' => (int) ($schedule['estimated_travel_minutes'] ?? 0),
+            'estimated_total_minutes' => (int) ($schedule['estimated_total_minutes'] ?? 0),
+            'available_work_minutes' => (int) ($schedule['effective_capacity_minutes'] ?? 0),
+            'capacity_utilization_percent' => (float) ($schedule['capacity_utilization_percent'] ?? 0),
+            'overflow_stops' => (int) ($schedule['overflow_stops'] ?? 0),
+            'route_fits_workday' => (bool) ($schedule['route_fits_workday'] ?? true),
+        ];
+    }
+
+    private function scheduleStops(
+        array $stops,
+        CarbonImmutable $localDate,
+        string $timezone,
+        ?array $startLocation,
+        array $featureSettings,
+        array $trackingSettings,
+    ): array {
+        $speed = max(5.0, (float) ($featureSettings['route_average_speed_kph'] ?? 25));
+        $bufferMinutes = max(0, (int) ($featureSettings['route_time_buffer_minutes'] ?? 30));
+        $capacityEnabled = (bool) ($featureSettings['route_enforce_workday_capacity'] ?? true);
+        $workdayStart = CarbonImmutable::parse(
+            $localDate->toDateString().' '.($trackingSettings['workday_start_time'] ?? '08:00'),
+            $timezone,
+        );
+        $workdayEnd = CarbonImmutable::parse(
+            $localDate->toDateString().' '.($trackingSettings['workday_end_time'] ?? '17:00'),
+            $timezone,
+        );
+
+        if ($workdayEnd->lte($workdayStart)) {
+            $workdayEnd = $workdayEnd->addDay();
+        }
+
+        $planningStart = $workdayStart;
+        $now = CarbonImmutable::now($timezone);
+        if (
+            $startLocation !== null
+            && $localDate->isSameDay($now)
+            && $now->gt($planningStart)
+        ) {
+            $planningStart = $now;
+        }
+
+        $capacityEnd = $workdayEnd->subMinutes($bufferMinutes);
+        if ($capacityEnd->lt($planningStart)) {
+            $capacityEnd = $planningStart;
+        }
+
+        $effectiveCapacity = max(0, (int) $planningStart->diffInMinutes($capacityEnd));
+        $cursor = $planningStart;
+        $travelTotal = 0;
+        $visitTotal = 0;
+        $candidateStops = 0;
+        $deferred = 0;
+        $previous = $startLocation;
+
+        foreach ($stops as &$stop) {
+            if ($stop['visited_today']) {
+                $stop['estimated_travel_minutes'] = 0;
+                $stop['estimated_arrival_at'] = null;
+                $stop['estimated_departure_at'] = null;
+                $stop['capacity_status'] = 'completed';
+
+                continue;
+            }
+
+            $candidateStops++;
+            $distance = $this->distanceBetweenStops($previous, $stop);
+            $travelMinutes = $distance === null
+                ? 0
+                : (int) ceil(((float) $distance / $speed) * 60);
+            $visitMinutes = max(1, (int) ($stop['planned_visit_minutes'] ?? 10));
+            $arrival = $cursor->addMinutes($travelMinutes);
+            $departure = $arrival->addMinutes($visitMinutes);
+            $fits = ! $capacityEnabled || $departure->lte($capacityEnd);
+
+            if (! $fits) {
+                $stop['estimated_travel_minutes'] = $travelMinutes;
+                $stop['estimated_arrival_at'] = null;
+                $stop['estimated_departure_at'] = null;
+                $stop['capacity_status'] = 'deferred';
+                $deferred++;
+
+                continue;
+            }
+
+            $stop['distance_from_previous_km'] = $distance === null
+                ? null
+                : round($distance, 2);
+            $stop['estimated_travel_minutes'] = $travelMinutes;
+            $stop['estimated_arrival_at'] = $arrival->toIso8601String();
+            $stop['estimated_departure_at'] = $departure->toIso8601String();
+            $stop['capacity_status'] = 'fits';
+
+            $travelTotal += $travelMinutes;
+            $visitTotal += $visitMinutes;
+            $cursor = $departure;
+            $previous = $stop;
+        }
+        unset($stop);
+
+        $estimatedTotal = $travelTotal + $visitTotal;
+        $utilization = $effectiveCapacity > 0
+            ? round(($estimatedTotal / $effectiveCapacity) * 100, 1)
+            : ($estimatedTotal > 0 ? 100.0 : 0.0);
+
+        return [
+            $stops,
+            [
+                'workday_start_at' => $workdayStart->toIso8601String(),
+                'planning_start_at' => $planningStart->toIso8601String(),
+                'capacity_end_at' => $capacityEnd->toIso8601String(),
+                'workday_end_at' => $workdayEnd->toIso8601String(),
+                'average_speed_kph' => $speed,
+                'buffer_minutes' => $bufferMinutes,
+                'capacity_enabled' => $capacityEnabled,
+                'effective_capacity_minutes' => $effectiveCapacity,
+                'estimated_travel_minutes' => $travelTotal,
+                'estimated_visit_minutes' => $visitTotal,
+                'estimated_total_minutes' => $estimatedTotal,
+                'capacity_utilization_percent' => $utilization,
+                'candidate_stops' => $candidateStops,
+                'planned_stops' => max(0, $candidateStops - $deferred),
+                'deferred_stops' => $deferred,
+                'overflow_stops' => 0,
+                'route_fits_workday' => true,
+                'distance_estimate' => self::DISTANCE_METHOD,
+            ],
+        ];
+    }
+
+    private function distanceKm(
+        float $lat1,
+        float $lon1,
+        float $lat2,
+        float $lon2,
+    ): float {
+        $earthRadiusKm = 6371.0088;
+        $latDelta = deg2rad($lat2 - $lat1);
+        $lonDelta = deg2rad($lon2 - $lon1);
+
+        $a = sin($latDelta / 2) ** 2
+            + cos(deg2rad($lat1))
+            * cos(deg2rad($lat2))
+            * sin($lonDelta / 2) ** 2;
+
+        return $earthRadiusKm * 2 * atan2(sqrt($a), sqrt(1 - $a));
+    }
+}
