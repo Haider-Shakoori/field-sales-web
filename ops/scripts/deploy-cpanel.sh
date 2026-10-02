@@ -88,6 +88,7 @@ git pull --ff-only "${REMOTE}" "${DEPLOY_REF}"
 "${PHP_BIN}" artisan storage:link --no-interaction || true
 "${PHP_BIN}" artisan optimize:clear
 "${PHP_BIN}" artisan optimize
+"${PHP_BIN}" artisan field-sales:scheduler-heartbeat --no-interaction
 "${PHP_BIN}" artisan field-sales:production-check --services --no-interaction
 "${PHP_BIN}" artisan field-sales:ops-check --no-interaction
 "${PHP_BIN}" artisan queue:restart

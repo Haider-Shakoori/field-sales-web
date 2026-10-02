@@ -131,10 +131,22 @@ class Stage2Batch17OperationsTest extends TestCase
 
         $this->assertNotFalse($console);
         $this->assertStringContainsString(
-            "->name('field-sales:scheduler-heartbeat')",
+            "Schedule::command('field-sales:scheduler-heartbeat')",
             $console,
         );
         $this->assertStringContainsString('->evenInMaintenanceMode()', $console);
+    }
+
+    public function test_scheduler_heartbeat_command_refreshes_readiness(): void
+    {
+        config()->set('operations.monitoring.require_scheduler_heartbeat', true);
+        config()->set('operations.monitoring.scheduler_heartbeat_max_age_seconds', 180);
+        cache()->forget('field-sales:scheduler-heartbeat');
+
+        $this->assertSame(0, Artisan::call('field-sales:scheduler-heartbeat'));
+        $this->assertTrue(
+            app(ProductionReadiness::class)->serviceChecks()['scheduler_heartbeat_is_fresh'],
+        );
     }
 
     public function test_cpanel_shared_hosting_artifacts_are_present(): void
@@ -146,6 +158,7 @@ class Stage2Batch17OperationsTest extends TestCase
         $this->assertNotFalse($script);
         $this->assertStringContainsString('git pull --ff-only', $script);
         $this->assertStringContainsString('field-sales:backup --label=pre-deploy --database-only', $script);
+        $this->assertStringContainsString('field-sales:scheduler-heartbeat --no-interaction', $script);
         $this->assertStringContainsString('field-sales:production-check --services', $script);
         $this->assertStringContainsString('field-sales:ops-check', $script);
     }
