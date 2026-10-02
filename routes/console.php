@@ -166,6 +166,7 @@ Schedule::call(function (): void {
 })
     ->name('field-sales:scheduler-heartbeat')
     ->everyMinute()
+    ->evenInMaintenanceMode()
     ->withoutOverlapping();
 
 Schedule::command('field-sales:backup --label=scheduled')
