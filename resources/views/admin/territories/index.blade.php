@@ -62,9 +62,9 @@
 
         const map = L.map(mapElement).setView([34.5553, 69.2075], 11);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('{{ config('maps.tile_url') }}', {
             maxZoom: 19,
-            attribution: '&copy; OpenStreetMap contributors',
+            attribution: @json(config('maps.attribution')),
         }).addTo(map);
 
         const palette = ['#6366f1', '#0ea5e9', '#14b8a6', '#f59e0b', '#ec4899', '#8b5cf6', '#22c55e', '#f97316'];
