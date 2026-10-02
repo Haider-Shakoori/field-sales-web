@@ -16,7 +16,7 @@
         const tbody = table.tBodies?.[0];
         if (!tbody) return;
 
-        const rows = Array.from(tbody.rows).filter((row) => {
+        let rows = Array.from(tbody.rows).filter((row) => {
             if (!row.cells.length) return false;
             if (row.cells.length === 1 && Number(row.cells[0].colSpan || 1) > 1) return false;
             return true;
@@ -71,6 +71,48 @@
         } catch (_) {}
 
         const rowMatches = (row) => !query || row.innerText.toLowerCase().includes(query);
+        let allPagesLoaded = false;
+        let loadingAllPages = null;
+
+        const loadAllServerRows = async () => {
+            if (!serverPaginated || allPagesLoaded) return;
+            if (loadingAllPages) return loadingAllPages;
+
+            loadingAllPages = (async () => {
+                const links = Array.from(document.querySelectorAll('nav[role="navigation"] a[href]'));
+                const pageNumbers = links.map((link) => {
+                    try { return Number(new URL(link.href).searchParams.get('page') || 1); } catch (_) { return 1; }
+                });
+                const lastPage = Math.max(1, ...pageNumbers);
+                if (lastPage <= 1) { allPagesLoaded = true; return; }
+
+                const current = Number(new URL(window.location.href).searchParams.get('page') || 1);
+                const collected = [...rows];
+                for (let page = 1; page <= lastPage; page += 1) {
+                    if (page === current) continue;
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('page', String(page));
+                    const response = await fetch(url.toString(), {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+                    if (!response.ok) continue;
+                    const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+                    const remoteTable = doc.querySelectorAll('main table')[tableIndex];
+                    const remoteBody = remoteTable?.tBodies?.[0];
+                    if (!remoteBody) continue;
+                    Array.from(remoteBody.rows).forEach((row) => {
+                        if (!row.cells.length || (row.cells.length === 1 && Number(row.cells[0].colSpan || 1) > 1)) return;
+                        collected.push(document.importNode(row, true));
+                    });
+                }
+                const seen = new Set();
+                rows = collected.filter((row) => {
+                    const key = row.innerText.replace(/\s+/g, ' ').trim();
+                    if (seen.has(key)) return false;
+                    seen.add(key); return true;
+                });
+                allPagesLoaded = true;
+            })().finally(() => { loadingAllPages = null; });
+            return loadingAllPages;
+        };
 
         const filteredRows = () => rows.filter(rowMatches);
 
@@ -107,10 +149,19 @@
             }
         };
 
+        let searchTimer = null;
         search?.addEventListener('input', () => {
             query = search.value.trim().toLowerCase();
             currentPage = 1;
-            render();
+            window.clearTimeout(searchTimer);
+            searchTimer = window.setTimeout(async () => {
+                if (query && serverPaginated && !allPagesLoaded) {
+                    count.textContent = 'Searching all records…';
+                    await loadAllServerRows();
+                    rows.forEach((row) => { if (!row.isConnected) tbody.appendChild(row); });
+                }
+                render();
+            }, 180);
         });
 
         pageSize?.addEventListener('change', () => {

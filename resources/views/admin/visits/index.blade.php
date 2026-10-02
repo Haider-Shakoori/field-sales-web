@@ -4,15 +4,15 @@
             <h1 class="text-2xl font-bold">Customer visits</h1>
             <p class="mt-1 text-sm text-slate-400">Schedule visits, review check-ins, geofence results, outcomes and suspicious activity.</p>
         </div>
-        @can('visits:manage')
+        @if(auth()->user()?->hasPermission('visits:manage'))
             <div class="flex flex-wrap gap-2">
-                @can('sales-team:view')
+                @if(auth()->user()?->hasPermission('sales-team:view'))
                     <a href="{{ route('admin.daily-planner.index') }}" class="rounded-xl bg-white/10 px-4 py-3 font-semibold text-slate-100 hover:bg-white/15">Auto schedule</a>
-                @endcan
+                @endif
                 <button type="button" onclick="document.getElementById('bulk-visit-modal').classList.remove('hidden')" class="rounded-xl bg-white/10 px-4 py-3 font-semibold text-slate-100 hover:bg-white/15">Bulk assign</button>
                 <button type="button" onclick="document.getElementById('add-visit-modal').classList.remove('hidden')" class="rounded-xl bg-indigo-500 px-4 py-3 font-semibold text-white">+ Add visit</button>
             </div>
-        @endcan
+        @endif
     </div>
 
     @if(session('success'))
@@ -33,12 +33,12 @@
                         <div class="font-semibold">{{ $assignment->customer?->name ?? 'Customer' }}</div>
                         <div class="mt-1 text-xs text-slate-400">{{ $assignment->salesman?->full_name ?? $assignment->salesman?->user?->name ?? 'Salesman' }}</div>
                         <div class="mt-2 text-sm">{{ $assignment->visit_date?->format('Y-m-d') }} @if($assignment->scheduled_time) · {{ substr($assignment->scheduled_time, 0, 5) }} @endif · {{ str($assignment->purpose)->replace('_', ' ')->title() }}</div>
-                        @can('visits:manage')
+                        @if(auth()->user()?->hasPermission('visits:manage'))
                             <form method="POST" action="{{ route('admin.visit-assignments.destroy', $assignment) }}" class="mt-3" onsubmit="return confirm('Cancel this visit assignment?')">
                                 @csrf @method('DELETE')
                                 <button class="text-xs font-semibold text-rose-300">Cancel assignment</button>
                             </form>
-                        @endcan
+                        @endif
                     </div>
                 @endforeach
             </div>
@@ -79,7 +79,7 @@
         </div>
     </div>
     <div class="mt-5">{{ $visits->links() }}</div>
-    @can('visits:manage')
+    @if(auth()->user()?->hasPermission('visits:manage'))
         <div id="bulk-visit-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-sm">
             <div class="mx-auto mt-8 max-w-3xl rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
                 <div class="flex items-center justify-between border-b border-white/10 px-6 py-4">
@@ -179,7 +179,7 @@
                 </form>
             </div>
         </div>
-    @endcan
+    @endif
     <script>
         function filterBulkVisitCustomers(value) {
             const query = (value || '').trim().toLowerCase();

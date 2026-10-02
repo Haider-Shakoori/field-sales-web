@@ -240,6 +240,14 @@ class DailyRoutePlannerService
                 $localDate,
                 $startUtc,
             );
+            $nextBestAction = $this->nextBestAction(
+                $aging,
+                $customerFollowUps,
+                $visited,
+                $lastVisited,
+                $localDate,
+                $startUtc,
+            );
 
             return [
                 'customer_id' => $customer->uuid,
@@ -263,6 +271,7 @@ class DailyRoutePlannerService
                 'priority_score' => $score,
                 'priority' => $this->priority($score, $visited),
                 'reasons' => $reasons,
+                'next_best_action' => $nextBestAction,
                 'overdue' => $aging,
                 'due_follow_ups' => $customerFollowUps->map(
                     fn (CustomerFollowUp $followUp) => [
@@ -661,6 +670,104 @@ class DailyRoutePlannerService
         }
 
         return [$score, $reasons];
+    }
+
+    private function nextBestAction(
+        array $aging,
+        SupportCollection $followUps,
+        bool $visited,
+        ?CarbonImmutable $lastVisited,
+        CarbonImmutable $localDate,
+        CarbonImmutable $startUtc,
+    ): array {
+        if ($visited) {
+            return [
+                'code' => 'completed',
+                'label' => 'No action needed',
+                'reason' => 'Customer was already visited today.',
+            ];
+        }
+
+        $overdueTotal = collect($aging)->sum(
+            fn (array $row): float => (float) ($row['overdue'] ?? 0),
+        );
+        $paymentFollowUp = $followUps->first(
+            fn (CustomerFollowUp $followUp): bool => $followUp->type === 'payment',
+        );
+
+        if ($overdueTotal > 0 || $paymentFollowUp) {
+            return [
+                'code' => 'collect_payment',
+                'label' => 'Collect or confirm payment',
+                'reason' => $overdueTotal > 0
+                    ? 'Customer has overdue receivables.'
+                    : 'A payment follow-up is due.',
+            ];
+        }
+
+        $overdueFollowUp = $followUps->first(
+            fn (CustomerFollowUp $followUp): bool => $followUp->due_at?->lt($startUtc) ?? false,
+        );
+
+        if ($overdueFollowUp) {
+            return [
+                'code' => 'complete_follow_up',
+                'label' => 'Complete overdue follow-up',
+                'reason' => 'A customer follow-up is overdue.',
+            ];
+        }
+
+        $highPriorityFollowUp = $followUps->first(
+            fn (CustomerFollowUp $followUp): bool => $followUp->priority === 'high',
+        );
+
+        if ($highPriorityFollowUp) {
+            return [
+                'code' => 'protect_opportunity',
+                'label' => 'Handle high-priority follow-up',
+                'reason' => 'A high-priority follow-up is due.',
+            ];
+        }
+
+        if ($followUps->isNotEmpty()) {
+            return [
+                'code' => 'complete_follow_up',
+                'label' => 'Complete scheduled follow-up',
+                'reason' => 'A follow-up is due for this customer.',
+            ];
+        }
+
+        if ($lastVisited === null) {
+            return [
+                'code' => 'first_visit',
+                'label' => 'Complete first relationship visit',
+                'reason' => 'No previous visit is recorded.',
+            ];
+        }
+
+        $daysSinceVisit = $lastVisited->startOfDay()->diffInDays($localDate);
+
+        if ($daysSinceVisit >= 30) {
+            return [
+                'code' => 'reengage',
+                'label' => 'Re-engage customer',
+                'reason' => 'Customer has not been visited in 30+ days.',
+            ];
+        }
+
+        if ($daysSinceVisit >= 14) {
+            return [
+                'code' => 'coverage_visit',
+                'label' => 'Restore visit coverage',
+                'reason' => 'Customer has not been visited in 14+ days.',
+            ];
+        }
+
+        return [
+            'code' => 'sales_visit',
+            'label' => 'Complete regular sales visit',
+            'reason' => 'No urgent exception detected.',
+        ];
     }
 
     private function priority(int $score, bool $visited): string

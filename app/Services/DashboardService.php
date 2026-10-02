@@ -11,6 +11,7 @@ use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
 use App\Models\SupervisorAssignment;
 use App\Models\User;
+use App\Models\VisitAssignment;
 use App\Models\WorkSession;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection as SupportCollection;
@@ -303,11 +304,30 @@ class DashboardService
             ? $this->dailyTracks($actor, $salesmanIds, $localDate)
             : [];
 
+        $visitProgress = VisitAssignment::query()
+            ->whereIn('salesman_id', $salesmanIds)
+            ->whereDate('visit_date', $localDate)
+            ->selectRaw("salesman_id, COUNT(*) as planned_count, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count, SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_count")
+            ->groupBy('salesman_id')
+            ->get()
+            ->keyBy('salesman_id');
+
+        $visitStops = VisitAssignment::query()
+            ->with('customer:id,uuid,name,code,address,latitude,longitude')
+            ->whereIn('salesman_id', $salesmanIds)
+            ->whereDate('visit_date', $localDate)
+            ->orderByRaw('scheduled_time IS NULL')
+            ->orderBy('scheduled_time')
+            ->get()
+            ->groupBy('salesman_id');
+
         return $salesmen->map(function (Salesman $salesman) use (
             $currentBySalesman,
             $onDutyIds,
             $now,
             $tracks,
+            $visitProgress,
+            $visitStops,
         ): array {
             $location = $currentBySalesman->get($salesman->id);
 
@@ -320,6 +340,29 @@ class DashboardService
                 'age_seconds' => null,
                 'on_duty' => $onDutyIds->has($salesman->id),
                 'location' => null,
+                'visits' => [
+                    'planned' => (int) ($visitProgress->get($salesman->id)?->planned_count ?? 0),
+                    'completed' => (int) ($visitProgress->get($salesman->id)?->completed_count ?? 0),
+                    'in_progress' => (int) ($visitProgress->get($salesman->id)?->in_progress_count ?? 0),
+                ],
+                'visit_stops' => collect($visitStops->get($salesman->id, collect()))
+                    ->map(fn (VisitAssignment $assignment): array => [
+                        'id' => $assignment->uuid,
+                        'status' => $assignment->status,
+                        'time' => $assignment->scheduled_time,
+                        'priority' => $assignment->priority,
+                        'purpose' => $assignment->purpose,
+                        'customer' => [
+                            'id' => $assignment->customer?->uuid,
+                            'name' => $assignment->customer?->name,
+                            'code' => $assignment->customer?->code,
+                            'address' => $assignment->customer?->address,
+                            'latitude' => $assignment->customer?->latitude === null ? null : (float) $assignment->customer->latitude,
+                            'longitude' => $assignment->customer?->longitude === null ? null : (float) $assignment->customer->longitude,
+                        ],
+                    ])
+                    ->values()
+                    ->all(),
             ];
 
             if ($location) {

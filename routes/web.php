@@ -23,6 +23,7 @@ use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\ExpenseController;
 use App\Http\Controllers\Web\FuelController;
+use App\Http\Controllers\Web\GamificationBonusController;
 use App\Http\Controllers\Web\GamificationController;
 use App\Http\Controllers\Web\LeadController;
 use App\Http\Controllers\Web\LiveMapController;
@@ -37,6 +38,7 @@ use App\Http\Controllers\Web\Platform\OrganizationController as PlatformOrganiza
 use App\Http\Controllers\Web\PriceListController;
 use App\Http\Controllers\Web\PriceListItemController;
 use App\Http\Controllers\Web\ProductController;
+use App\Http\Controllers\Web\PromotionController;
 use App\Http\Controllers\Web\ReportController;
 use App\Http\Controllers\Web\RoleController;
 use App\Http\Controllers\Web\RouteCustomerController;
@@ -192,6 +194,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/gamification', GamificationController::class)
             ->middleware('permission:reports:view')
             ->name('gamification.index');
+        Route::get('/gamification/bonuses', [GamificationBonusController::class, 'index'])
+            ->middleware('permission:targets:manage')->name('gamification.bonuses.index');
+        Route::patch('/gamification/bonuses/{bonus}', [GamificationBonusController::class, 'update'])
+            ->middleware('permission:targets:manage')->name('gamification.bonuses.update');
 
         Route::get('/scorecards', [SupervisorScorecardController::class, 'index'])
             ->middleware('permission:reports:view')
@@ -287,6 +293,10 @@ Route::middleware('auth')->group(function () {
         Route::resource('products', ProductController::class)
             ->middlewareFor(['index', 'show'], 'permission:catalog:view')
             ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:catalog:manage');
+
+        Route::get('/promotions', [PromotionController::class, 'index'])->middleware('permission:catalog:view')->name('promotions.index');
+        Route::post('/promotions', [PromotionController::class, 'store'])->middleware('permission:catalog:manage')->name('promotions.store');
+        Route::patch('/promotions/{promotion}', [PromotionController::class, 'update'])->middleware('permission:catalog:manage')->name('promotions.update');
 
         Route::resource('price-lists', PriceListController::class)
             ->parameters(['price-lists' => 'priceList'])

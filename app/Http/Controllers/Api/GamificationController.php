@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\GamificationBonus;
 use App\Services\GamificationService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -45,6 +46,7 @@ class GamificationController extends Controller
             'active_days' => $row['active_days'],
             'level' => $row['level'],
             'achievements' => $row['achievements'],
+            'bonuses' => GamificationBonus::query()->where('salesman_id', $row['salesman']->id)->orderByDesc('earned_at')->limit(10)->get(['milestone_percent', 'amount', 'currency', 'status', 'earned_at'])->toArray(),
         ];
     }
 }

@@ -57,6 +57,7 @@ class OrganizationController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'timezone' => ['required', 'timezone'],
             'contact_email' => ['nullable', 'email', 'max:191'],
+            'device_restriction_enabled' => ['sometimes', 'boolean'],
 
             'ai_enabled' => ['sometimes', 'boolean'],
             'ai_allow_customer_data' => ['sometimes', 'boolean'],
@@ -111,6 +112,13 @@ class OrganizationController extends Controller
 
         $old = $tenant->only(['name', 'timezone', 'contact_email', 'settings']);
         $settings = $tenant->settings ?? [];
+
+        $this->setBoolean(
+            $settings,
+            'security.device_restriction_enabled',
+            $validated,
+            'device_restriction_enabled',
+        );
 
         $this->setBoolean(
             $settings,

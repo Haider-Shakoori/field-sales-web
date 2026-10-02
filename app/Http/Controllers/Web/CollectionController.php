@@ -7,6 +7,7 @@ use App\Models\Collection;
 use App\Services\AuditLogger;
 use App\Services\CustomerBalanceService;
 use App\Services\NotificationService;
+use App\Services\TerritoryAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,12 +17,15 @@ use Illuminate\View\View;
 
 class CollectionController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, TerritoryAccessService $access): View
     {
         $status = trim((string) $request->string('status'));
         $paymentMethod = trim((string) $request->string('payment_method'));
 
+        $visibleSalesmanIds = $access->salesmanIds($request->user());
+
         $collections = Collection::with(['customer', 'salesman.user'])
+            ->when($visibleSalesmanIds, fn ($query, $ids) => $query->whereIn('salesman_id', $ids))
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->when(
                 $paymentMethod !== '',

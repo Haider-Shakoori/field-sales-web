@@ -51,6 +51,22 @@
             </div>
         </div>
 
+        <div class="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 p-5">
+            <h2 class="font-semibold text-indigo-100">Gamification milestone rewards</h2>
+            <p class="mt-1 text-xs text-indigo-100/70">Set points and cash bonus for each milestone. Leave both values at 0 to disable that milestone. Rewards are cumulative and each milestone is awarded only once.</p>
+            @php($rewards = old('gamification_rewards', $target->gamification_rewards ?? []))
+            <div class="mt-4 grid gap-4 sm:grid-cols-3">
+                @foreach([80, 100, 120] as $milestone)
+                    <label><span class="mb-1 block text-sm font-semibold text-slate-200">{{ $milestone }}% milestone</span><span class="mb-1 mt-3 block text-xs text-slate-400">Points reward</span>
+                        <input name="reward_{{ $milestone }}" type="number" min="0" step="1" value="{{ old('reward_'.$milestone, $rewards[(string)$milestone] ?? 0) }}" class="fp-input w-full">
+                        <span class="mb-1 mt-3 block text-xs text-slate-400">Cash bonus (AFN)</span>
+                        <input name="bonus_{{ $milestone }}" type="number" min="0" step="0.01" value="{{ old('bonus_'.$milestone, $rewards['bonus_'.$milestone] ?? 0) }}" class="fp-input w-full">
+                    </label>
+                @endforeach
+            </div>
+            <div class="mt-4 rounded-xl border border-white/10 bg-slate-950/40 p-3 text-xs leading-5 text-slate-300"><strong>Example:</strong> On a 100,000 AFN target, 80% is reached at 80,000 AFN. If rewards are configured at 80%, 100% and 120%, reaching 120% earns all three. Cash bonuses follow Earned → Approved → Paid. Achievements such as Target Achiever and Target Crusher are separate.</div>
+        </div>
+
         <div>
             <label class="mb-2 block text-sm text-slate-300">Notes</label>
             <textarea name="notes" rows="4" class="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3">{{ old('notes', $target->notes) }}</textarea>

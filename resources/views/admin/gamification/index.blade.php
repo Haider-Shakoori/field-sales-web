@@ -15,11 +15,21 @@
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 @foreach($rules as $event => $points)
                     <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <p class="text-sm text-slate-400">{{ __(str($event)->replace('_', ' ')->title()) }}</p>
+                        <p class="text-sm text-slate-400">{{ str($event)->replace('_', ' ')->title()->toString() }}</p>
                         <p class="mt-2 text-2xl font-bold text-white">+{{ $points }}</p>
                         <p class="text-xs text-slate-500">verified points</p>
                     </div>
                 @endforeach
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-indigo-400/20 bg-indigo-500/10 p-5">
+                <div><h2 class="font-semibold text-indigo-100">Targets & rewards</h2><p class="mt-1 text-sm text-indigo-100/70">Set salesman targets and milestone bonus points from the existing Targets system.</p></div>
+                @if(auth()->user()?->hasPermission('targets:manage'))
+                    <a href="{{ route('admin.targets.create') }}" class="fp-btn fp-btn-primary">Set target & rewards</a>
+                    <a href="{{ route('admin.gamification.bonuses.index') }}" class="fp-btn fp-btn-secondary">Bonus approvals</a>
+                @else
+                    <a href="{{ route('admin.targets.index') }}" class="fp-btn fp-btn-secondary">View targets</a>
+                @endif
             </div>
 
             <div class="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60">

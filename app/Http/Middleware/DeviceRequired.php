@@ -18,10 +18,35 @@ class DeviceRequired
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+        $restrictionEnabled = (bool) data_get(
+            $user?->tenant?->settings,
+            'security.device_restriction_enabled',
+            true,
+        );
+
         $deviceUuid = $request->header('X-Device-UUID');
         $installationUuid = $request->header('X-Installation-UUID');
         $appVersion = $request->header('X-App-Version');
         $platform = strtolower((string) $request->header('X-Platform'));
+
+        if (! $restrictionEnabled) {
+            // Device restriction being disabled means "do not reject another
+            // registered device"; mobile write endpoints still need a Device
+            // model for ownership/audit foreign keys.
+            if ($user && $installationUuid) {
+                $device = Device::where('user_id', $user->id)
+                    ->where('installation_uuid', $installationUuid)
+                    ->where('is_active', true)
+                    ->whereNull('revoked_at')
+                    ->first();
+
+                if ($device) {
+                    $request->attributes->set('device', $device);
+                }
+            }
+
+            return $next($request);
+        }
 
         if (! $user || ! $deviceUuid || ! $installationUuid || ! $appVersion || ! $platform) {
             return ApiResponse::error(

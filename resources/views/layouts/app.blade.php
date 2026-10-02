@@ -284,7 +284,32 @@
                 padding-right: .5rem;
             }
         }
-    </style>
+            .fp-submit-busy { position: relative; pointer-events: none; }
+        .fp-submit-busy::after { content: ""; width: .9rem; height: .9rem; margin-inline-start: .5rem; border: 2px solid currentColor; border-right-color: transparent; border-radius: 9999px; animation: fp-spin .65s linear infinite; }
+         fp-spin { to { transform: rotate(360deg); } }
+         (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+        .fp-submit-busy { position: relative; pointer-events: none; }
+        .fp-submit-busy::after {
+            content: "";
+            width: .9rem;
+            height: .9rem;
+            margin-inline-start: .5rem;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            border-radius: 9999px;
+            animation: fp-spin .65s linear infinite;
+        }
+        @keyframes fp-spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                scroll-behavior: auto !important;
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important;
+            }
+        }
+</style>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 {{ $fullscreen ? 'overflow-hidden' : '' }}">
 @php
@@ -364,6 +389,7 @@
                 'links' => [
                     ['route' => 'admin.products.index', 'match' => 'admin.products.*', 'label' => 'Products', 'icon' => 'cube', 'can' => 'catalog:view'],
                     ['route' => 'admin.price-lists.index', 'match' => 'admin.price-lists.*', 'label' => 'Price lists', 'icon' => 'tag', 'can' => 'catalog:view'],
+                    ['route' => 'admin.promotions.index', 'match' => 'admin.promotions.*', 'label' => 'Customer bonuses', 'icon' => 'gift', 'can' => 'catalog:view'],
                 ],
             ],
             [
@@ -659,6 +685,21 @@
 
     fullscreenMenu?.addEventListener('click', (event) => {
         if (event.target === fullscreenMenu) closeFullscreenMenu();
+    });
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement) || !form.checkValidity()) return;
+
+        const submitter = event.submitter instanceof HTMLElement
+            ? event.submitter
+            : form.querySelector('button[type="submit"], input[type="submit"]');
+
+        if (!submitter || submitter.dataset.allowMultipleSubmit === 'true') return;
+
+        submitter.classList.add('fp-submit-busy');
+        submitter.setAttribute('aria-busy', 'true');
+        window.setTimeout(() => { submitter.disabled = true; }, 0);
     });
 })();
 </script>

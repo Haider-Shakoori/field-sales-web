@@ -8,6 +8,7 @@ use App\Models\CustomerVisit;
 use App\Models\Salesman;
 use App\Models\VisitAssignment;
 use App\Models\VisitVoiceNote;
+use App\Services\TerritoryAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,12 +19,16 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class VisitController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, TerritoryAccessService $access): View
     {
         $status = trim((string) $request->string('status'));
         $flagged = $request->boolean('flagged');
 
+        $visibleSalesmanIds = $access->salesmanIds($request->user());
+        $visibleTerritoryIds = $access->territoryIds($request->user());
+
         $visits = CustomerVisit::with(['customer', 'salesman.user', 'route'])
+            ->when($visibleSalesmanIds, fn ($query, $ids) => $query->whereIn('salesman_id', $ids))
             ->withCount('suspiciousFlags')
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->when($flagged, fn ($query) => $query->whereHas('suspiciousFlags', fn ($flags) => $flags->whereNull('reviewed_at')))
@@ -32,6 +37,7 @@ class VisitController extends Controller
 
         $salesmen = Salesman::query()
             ->active()
+            ->when($visibleSalesmanIds, fn ($query, $ids) => $query->whereIn('id', $ids))
             ->with('user')
             ->orderBy('first_name')
             ->orderBy('last_name')
@@ -39,11 +45,13 @@ class VisitController extends Controller
 
         $customers = Customer::query()
             ->active()
+            ->when($visibleTerritoryIds, fn ($query, $ids) => $query->whereIn('territory_id', $ids))
             ->orderBy('name')
             ->get(['id', 'uuid', 'name', 'code', 'address', 'latitude', 'longitude', 'assigned_salesman_id']);
 
         $upcomingAssignments = VisitAssignment::query()
             ->with(['customer', 'salesman.user'])
+            ->when($visibleSalesmanIds, fn ($query, $ids) => $query->whereIn('salesman_id', $ids))
             ->whereIn('status', ['scheduled', 'in_progress'])
             ->whereDate('visit_date', '>=', now()->toDateString())
             ->orderBy('visit_date')
