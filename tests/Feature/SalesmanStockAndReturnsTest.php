@@ -109,7 +109,7 @@ class SalesmanStockAndReturnsTest extends TestCase
         ]);
     }
 
-    public function test_insufficient_stock_blocks_approval_and_keeps_order_pending(): void
+    public function test_insufficient_stock_blocks_sale_sync_and_keeps_balance_unchanged(): void
     {
         $actor = $this->actor();
 
@@ -129,22 +129,26 @@ class SalesmanStockAndReturnsTest extends TestCase
             },
         );
 
-        $order = $this->createOrder($actor, 2);
+        $uuid = (string) Str::uuid();
 
-        $this->from(route('admin.orders.show', $order))
-            ->actingAs($actor['admin'])
-            ->patch('/admin/orders/'.$order->id.'/status', ['status' => 'approved'])
-            ->assertRedirect(route('admin.orders.show', $order))
-            ->assertSessionHasErrors('stock');
+        $this->postJson('/api/v1/orders', [
+            'offline_uuid' => $uuid,
+            'customer_id' => $actor['customer']->uuid,
+            'ordered_at' => '2026-09-23T10:30:00Z',
+            'payment_type' => 'cash',
+            'items' => [[
+                'product_id' => $actor['product']->uuid,
+                'quantity' => 2,
+                'discount_percent' => 0,
+            ]],
+        ], $this->headers($actor))
+            ->assertUnprocessable();
 
-        $this->assertDatabaseHas('orders', [
-            'id' => $order->id,
-            'status' => 'pending',
-        ]);
+        $this->assertDatabaseMissing('orders', ['uuid' => $uuid]);
         $this->assertSame(1.0, (float) $this->balance($actor)->sellable_qty);
         $this->assertDatabaseMissing('salesman_stock_movements', [
             'movement_type' => 'sale',
-            'reference_id' => $order->id,
+            'reference_type' => 'order',
         ]);
     }
 

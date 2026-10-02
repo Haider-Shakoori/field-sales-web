@@ -9,6 +9,8 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Services\OrderPricingService;
 use App\Services\PromotionEngine;
+use App\Services\SalesmanStockService;
+use App\Services\StockSettingsService;
 use App\Support\ApiResponse;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -19,8 +21,13 @@ use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
-    public function store(Request $request, OrderPricingService $pricing, PromotionEngine $promotions): JsonResponse
-    {
+    public function store(
+        Request $request,
+        OrderPricingService $pricing,
+        PromotionEngine $promotions,
+        SalesmanStockService $stock,
+        StockSettingsService $stockSettings,
+    ): JsonResponse {
         abort_unless($request->user()->hasPermission('orders:view'), 403);
 
         $validated = $request->validate([
@@ -111,6 +118,7 @@ class OrderController extends Controller
 
         $device = $request->attributes->get('device');
         $pricingAt = $orderedAt->setTimezone($user->tenant->timezone);
+        $stockEnabled = $stockSettings->enabled($user->tenant);
 
         $order = DB::transaction(function () use (
             $validated,
@@ -123,6 +131,8 @@ class OrderController extends Controller
             $pricing,
             $pricingAt,
             $promotions,
+            $stock,
+            $stockEnabled,
         ): Order {
             $subtotal = 0.0;
             $discountTotal = 0.0;
@@ -205,6 +215,10 @@ class OrderController extends Controller
             ]);
 
             $order->items()->createMany($preparedItems);
+
+            if ($stockEnabled) {
+                $stock->applyApprovedOrder($order, $user);
+            }
 
             return $order;
         });
