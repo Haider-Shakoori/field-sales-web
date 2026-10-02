@@ -9,6 +9,8 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Services\OrderPricingService;
 use App\Services\PromotionEngine;
+use App\Services\SalesmanStockService;
+use App\Services\StockSettingsService;
 use App\Support\ApiResponse;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +21,13 @@ use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
-    public function store(Request $request, OrderPricingService $pricing, PromotionEngine $promotions): JsonResponse
+    public function store(
+        Request $request,
+        OrderPricingService $pricing,
+        PromotionEngine $promotions,
+        SalesmanStockService $stock,
+        StockSettingsService $stockSettings,
+    ): JsonResponse
     {
         abort_unless($request->user()->hasPermission('orders:view'), 403);
 
@@ -208,6 +216,10 @@ class OrderController extends Controller
 
             return $order;
         });
+
+        if ($stockSettings->enabled($user->tenant)) {
+            $stock->applyApprovedOrder($order, $user);
+        }
 
         return ApiResponse::success(
             $this->payload($order->load($this->relations())),
