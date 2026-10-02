@@ -4,11 +4,11 @@ namespace App\Services;
 
 use App\Models\Collection as CustomerCollection;
 use App\Models\CustomerVisit;
-use App\Models\GamificationPoint;
 use App\Models\GamificationBonus;
-use App\Models\SalesTarget;
+use App\Models\GamificationPoint;
 use App\Models\Order;
 use App\Models\Salesman;
+use App\Models\SalesTarget;
 use App\Models\Tenant;
 use Illuminate\Support\Collection;
 
@@ -102,7 +102,9 @@ final class GamificationService
                 $progress = $this->targetProgress->payload($target);
                 $rewards = $target->gamification_rewards ?? [];
                 foreach ([80, 100, 120] as $milestone) {
-                    if ((float) $progress['progress_percent'] < $milestone) continue;
+                    if ((float) $progress['progress_percent'] < $milestone) {
+                        continue;
+                    }
                     $points = (int) ($rewards[(string) $milestone] ?? 0);
                     if ($points > 0) {
                         $awarded += $this->award($target->salesman_id, 'target_'.$milestone, SalesTarget::class, $target->id, $points, now());

@@ -2,10 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Product;
 use App\Models\Promotion;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Collection;
 
 final class PromotionEngine
 {

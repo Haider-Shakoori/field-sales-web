@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SalesmanAssignment;
 use App\Models\SupervisorAssignment;
+use App\Models\Territory;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -22,7 +23,7 @@ final class TerritoryAccessService
             $direct = $assignments->pluck('territory_id')->filter();
             $branchIds = $assignments->pluck('branch_id')->filter()->unique();
 
-            $branchTerritories = \App\Models\Territory::query()
+            $branchTerritories = Territory::query()
                 ->whereIn('branch_id', $branchIds)
                 ->pluck('id');
 
@@ -31,7 +32,9 @@ final class TerritoryAccessService
 
         if ($actor->hasAnyRole(['supervisor'])) {
             $supervisor = $actor->supervisor;
-            if (! $supervisor) return collect();
+            if (! $supervisor) {
+                return collect();
+            }
 
             $direct = SupervisorAssignment::query()
                 ->where('supervisor_id', $supervisor->id)
@@ -54,8 +57,12 @@ final class TerritoryAccessService
     public function salesmanIds(User $actor, mixed $date = null): ?Collection
     {
         $territories = $this->territoryIds($actor, $date);
-        if ($territories === null) return null;
-        if ($territories->isEmpty()) return collect();
+        if ($territories === null) {
+            return null;
+        }
+        if ($territories->isEmpty()) {
+            return collect();
+        }
 
         return SalesmanAssignment::query()
             ->current($date ?? today())
@@ -68,6 +75,7 @@ final class TerritoryAccessService
     public function canAccessTerritory(User $actor, ?int $territoryId): bool
     {
         $territories = $this->territoryIds($actor);
+
         return $territories === null || ($territoryId !== null && $territories->contains($territoryId));
     }
 }
