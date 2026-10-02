@@ -251,9 +251,9 @@
     const radius = Number(@json((int) $customer->geofence_radius_meters));
 
     const map = L.map(element).setView([latitude, longitude], 17);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('{{ config('maps.tile_url') }}', {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors',
+        attribution: @json(config('maps.attribution')),
     }).addTo(map);
 
     L.marker([latitude, longitude]).addTo(map).bindPopup(@json($customer->name));
