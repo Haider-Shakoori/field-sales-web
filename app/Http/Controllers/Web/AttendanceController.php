@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Salesman;
 use App\Models\WorkSession;
+use App\Services\TerritoryAccessService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -12,7 +13,7 @@ use Illuminate\View\View;
 
 class AttendanceController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, TerritoryAccessService $access): View
     {
         $validated = $request->validate([
             'date_from' => ['nullable', 'date_format:Y-m-d'],
@@ -37,7 +38,10 @@ class AttendanceController extends Controller
             ]);
         }
 
+        $visibleSalesmanIds = $access->salesmanIds($request->user());
+
         $salesmanOptions = Salesman::query()
+            ->when($visibleSalesmanIds, fn ($query, $ids) => $query->whereIn('id', $ids))
             ->with('user.branch')
             ->orderBy('employee_code')
             ->get();
@@ -119,6 +123,7 @@ class AttendanceController extends Controller
 
         $sessionsQuery = WorkSession::query()
             ->with(['salesman.user.branch'])
+            ->when($visibleSalesmanIds, fn ($query, $ids) => $query->whereIn('salesman_id', $ids))
             ->whereBetween('date', [$dateFrom, $dateTo])
             ->when(
                 $selectedSalesman,

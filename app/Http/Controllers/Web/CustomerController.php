@@ -16,6 +16,7 @@ use App\Services\CustomerBalanceService;
 use App\Services\CustomerReorderRecommendationService;
 use App\Services\FieldIntelligenceSettingsService;
 use App\Services\TerritoryLocator;
+use App\Services\TerritoryAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -24,12 +25,13 @@ use Illuminate\View\View;
 
 class CustomerController extends Controller
 {
-    public function index(Request $request, CustomerBalanceService $balances): View
+    public function index(Request $request, CustomerBalanceService $balances, TerritoryAccessService $access): View
     {
         Gate::authorize('viewAny', Customer::class);
         $search = trim((string) $request->string('search'));
 
         $customers = Customer::with(['branch', 'territory', 'priceList'])
+            ->when($access->territoryIds($request->user()), fn ($query, $ids) => $query->whereIn('territory_id', $ids))
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($nested) use ($search): void {
                     $nested->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%")

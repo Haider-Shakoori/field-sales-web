@@ -9,6 +9,7 @@ use App\Services\CustomerBalanceService;
 use App\Services\NotificationService;
 use App\Services\SalesmanStockService;
 use App\Services\StockSettingsService;
+use App\Services\TerritoryAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,13 +19,16 @@ use Illuminate\View\View;
 
 class OrderController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, TerritoryAccessService $access): View
     {
         $status = trim((string) $request->string('status'));
         $paymentType = trim((string) $request->string('payment_type'));
 
+        $visibleSalesmanIds = $access->salesmanIds($request->user());
+
         $orders = Order::with(['customer', 'salesman.user'])
             ->withCount('items')
+            ->when($visibleSalesmanIds, fn ($query, $ids) => $query->whereIn('salesman_id', $ids))
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->when(
                 $paymentType !== '',

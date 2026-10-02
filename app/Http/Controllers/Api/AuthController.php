@@ -91,6 +91,12 @@ class AuthController extends Controller
             );
         }
 
+        $deviceRestrictionEnabled = (bool) data_get(
+            $user->tenant?->settings,
+            'security.device_restriction_enabled',
+            true,
+        );
+
         $installationUuid = $request->header('X-Installation-UUID');
         $deviceUuid = $request->header('X-Device-UUID') ?: ($validated['device_uuid'] ?? null);
         $appVersion = $request->header('X-App-Version') ?: ($validated['app_version'] ?? null);
@@ -141,7 +147,7 @@ class AuthController extends Controller
             ->when($existing, fn ($query) => $query->whereKeyNot($existing->id))
             ->first();
 
-        if ($other) {
+        if ($other && $deviceRestrictionEnabled) {
             return ApiResponse::error(
                 $user->salesman
                     ? 'Only one active device is allowed for this salesman.'

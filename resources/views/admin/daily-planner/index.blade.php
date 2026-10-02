@@ -22,7 +22,7 @@
             @endforeach
         </select>
         <input type="date" name="date" value="{{ $selectedDate }}" class="rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
-        <button class="rounded-xl bg-indigo-500 px-4 py-3 font-semibold">{{ __('Generate plan') }}</button>
+        <button class="rounded-xl bg-indigo-500 px-4 py-3 font-semibold">{{ __('Preview plan') }}</button>
     </form>
 
     @if(!$selectedSalesman)
@@ -62,18 +62,6 @@
                         {{ __('Approx. straight-line distance') }}:
                         <span class="font-semibold text-slate-100">{{ number_format($plan['approximate_air_distance_km'], 1) }} km</span>
                     </div>
-                    @can('visits:manage')
-                        @if(($plan['summary']['planned_today'] ?? $plan['summary']['remaining']) > 0)
-                            <form method="POST" action="{{ route('admin.daily-planner.assign') }}">
-                                @csrf
-                                <input type="hidden" name="salesman" value="{{ $selectedSalesman->uuid }}">
-                                <input type="hidden" name="date" value="{{ $selectedDate }}">
-                                <button class="rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white">
-                                    {{ __('Assign today’s plan to mobile') }}
-                                </button>
-                            </form>
-                        @endif
-                    @endcan
                 </div>
             </div>
 
@@ -124,6 +112,29 @@
             </div>
         </div>
 
+        @if(auth()->user()?->hasPermission('visits:manage') && ($plan['summary']['planned_today'] ?? $plan['summary']['remaining']) > 0)
+            <div class="mb-5 rounded-2xl border border-indigo-400/20 bg-indigo-500/10 p-5">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h3 class="font-semibold text-indigo-100">{{ __('Ready to send this plan?') }}</h3>
+                        <p class="mt-1 text-sm text-indigo-100/70">
+                            {{ $plan['summary']['planned_today'] ?? $plan['summary']['remaining'] }} {{ __('visit(s)') }} ·
+                            {{ $selectedSalesman->full_name }} ·
+                            {{ \Carbon\CarbonImmutable::parse($selectedDate)->format('d M Y') }}
+                        </p>
+                    </div>
+                    <form method="POST" action="{{ route('admin.daily-planner.assign') }}" onsubmit="return confirm(@js(__('Assign this reviewed plan to the salesman mobile app?')));">
+                        @csrf
+                        <input type="hidden" name="salesman" value="{{ $selectedSalesman->uuid }}">
+                        <input type="hidden" name="date" value="{{ $selectedDate }}">
+                        <button class="rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white">
+                            {{ __('Confirm & assign plan') }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        @endif
+
         @if($execution)
             <div class="mb-5 rounded-2xl border border-white/10 bg-slate-900 p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
@@ -157,6 +168,7 @@
                             <th class="px-5 py-3">{{ __('Customer') }}</th>
                             <th class="px-5 py-3">{{ __('Priority') }}</th>
                             <th class="px-5 py-3">{{ __('Why') }}</th>
+                            <th class="px-5 py-3">{{ __('Next best action') }}</th>
                             <th class="px-5 py-3">{{ __('Financial') }}</th>
                             <th class="px-5 py-3">{{ __('Last visit') }}</th>
                             <th class="px-5 py-3">{{ __('Travel') }}</th>
@@ -197,6 +209,10 @@
                                             <li>• {{ $reason }}</li>
                                         @endforeach
                                     </ul>
+                                </td>
+                                <td class="max-w-xs px-5 py-4">
+                                    <div class="font-semibold text-indigo-200">{{ __($stop['next_best_action']['label']) }}</div>
+                                    <div class="mt-1 text-xs leading-5 text-slate-500">{{ __($stop['next_best_action']['reason']) }}</div>
                                 </td>
                                 <td class="px-5 py-4">
                                     @forelse($stop['overdue'] as $balance)

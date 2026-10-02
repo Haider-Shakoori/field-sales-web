@@ -31,6 +31,7 @@ class SalesTarget extends Model
             'target_value' => 'decimal:4',
             'period_start' => 'date',
             'period_end' => 'date',
+            'gamification_rewards' => 'array',
         ];
     }
 

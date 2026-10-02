@@ -74,6 +74,24 @@
         </section>
 
         <section class="space-y-5 rounded-2xl border border-white/10 bg-slate-900 p-6">
+            <div>
+                <h2 class="font-semibold">{{ __('Mobile device security') }}</h2>
+                <p class="mt-1 text-sm text-slate-400">{{ __('Control whether mobile accounts are restricted to their registered device.') }}</p>
+            </div>
+
+            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                <input type="hidden" name="device_restriction_enabled" value="0">
+                <input type="checkbox" name="device_restriction_enabled" value="1"
+                    @checked((bool) old('device_restriction_enabled', data_get($tenant->settings, 'security.device_restriction_enabled', true)))
+                    class="mt-1 rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500">
+                <span>
+                    <span class="block text-sm font-semibold text-slate-200">{{ __('Restrict each mobile account to its registered device') }}</span>
+                    <span class="mt-1 block text-xs leading-5 text-slate-500">{{ __('When enabled, FieldPulse enforces registered-device headers, device-bound tokens and the one-active-device rule. When disabled, authenticated mobile users may use another device without the one-device restriction.') }}</span>
+                </span>
+            </label>
+        </section>
+
+        <section class="space-y-5 rounded-2xl border border-white/10 bg-slate-900 p-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <h2 class="font-semibold">{{ __('Ask FieldPulse AI policy') }}</h2>

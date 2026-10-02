@@ -45,6 +45,7 @@ class GamificationController extends Controller
             'active_days' => $row['active_days'],
             'level' => $row['level'],
             'achievements' => $row['achievements'],
+            'bonuses' => \App\Models\GamificationBonus::query()->where('salesman_id', $row['salesman']->id)->orderByDesc('earned_at')->limit(10)->get(['milestone_percent','amount','currency','status','earned_at'])->toArray(),
         ];
     }
 }

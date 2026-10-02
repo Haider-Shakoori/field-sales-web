@@ -8,19 +8,24 @@ use App\Http\Requests\UpdateSupervisorRequest;
 use App\Models\Supervisor;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\TerritoryAccessService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SupervisorController extends Controller
 {
-    public function index(): View
+    public function index(Request $request, TerritoryAccessService $access): View
     {
         Gate::authorize('viewAny', Supervisor::class);
 
         return view('admin.supervisors.index', [
             'supervisors' => Supervisor::with(['user.branch', 'assignments' => fn ($query) => $query->current()->with('branch')])
+                ->when($access->territoryIds($request->user()), function ($query, $ids): void {
+                    $query->whereHas('assignments', fn ($assignment) => $assignment->current()->whereIn('territory_id', $ids));
+                })
                 ->orderBy('employee_code')
                 ->paginate(min(100, max(10, request()->integer('per_page', 25))))->withQueryString(),
         ]);

@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CustomerBalanceService;
 use App\Services\OperationalAlertService;
+use App\Services\TerritoryAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -21,12 +22,13 @@ use Illuminate\View\View;
 
 class SalesmanController extends Controller
 {
-    public function index(): View
+    public function index(Request $request, TerritoryAccessService $access): View
     {
         Gate::authorize('viewAny', Salesman::class);
 
         return view('admin.salesmen.index', [
             'salesmen' => Salesman::with(['user.branch', 'devices', 'assignments' => fn ($query) => $query->current()->with(['branch', 'supervisor'])])
+                ->when($access->salesmanIds($request->user()), fn ($query, $ids) => $query->whereIn('id', $ids))
                 ->orderBy('employee_code')
                 ->paginate(min(100, max(10, request()->integer('per_page', 25))))->withQueryString(),
         ]);

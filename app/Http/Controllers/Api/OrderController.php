@@ -8,6 +8,7 @@ use App\Models\CustomerVisit;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\OrderPricingService;
+use App\Services\PromotionEngine;
 use App\Support\ApiResponse;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
-    public function store(Request $request, OrderPricingService $pricing): JsonResponse
+    public function store(Request $request, OrderPricingService $pricing, PromotionEngine $promotions): JsonResponse
     {
         abort_unless($request->user()->hasPermission('orders:view'), 403);
 
@@ -121,6 +122,7 @@ class OrderController extends Controller
             $device,
             $pricing,
             $pricingAt,
+            $promotions,
         ): Order {
             $subtotal = 0.0;
             $discountTotal = 0.0;
@@ -169,6 +171,11 @@ class OrderController extends Controller
                 : null;
             $pricingAdjusted = $clientEstimated !== null
                 && abs($clientEstimated - $grandTotal) >= 0.01;
+
+            $preparedItems = array_merge(
+                $preparedItems,
+                $promotions->bonuses($preparedItems, $grandTotal, $pricingAt),
+            );
 
             $compactUuid = strtoupper(substr(
                 str_replace('-', '', $validated['offline_uuid']),

@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Collection as CustomerCollection;
 use App\Models\CustomerVisit;
 use App\Models\GamificationPoint;
+use App\Models\GamificationBonus;
+use App\Models\SalesTarget;
 use App\Models\Order;
 use App\Models\Salesman;
 use App\Models\Tenant;
@@ -21,6 +23,7 @@ final class GamificationService
 
     public function __construct(
         private readonly FieldIntelligenceSettingsService $settings,
+        private readonly TargetProgressService $targetProgress,
     ) {}
 
     public function enabled(Tenant $tenant): bool
@@ -37,7 +40,6 @@ final class GamificationService
         $awarded = 0;
 
         CustomerVisit::query()
-            ->where('status', 'completed')
             ->whereNotNull('checked_out_at')
             ->chunkById(200, function ($visits) use (&$awarded): void {
                 foreach ($visits as $visit) {
@@ -93,10 +95,32 @@ final class GamificationService
                 }
             });
 
+        SalesTarget::query()
+            ->whereDate('period_start', '<=', now($tenant->timezone)->toDateString())
+            ->get()
+            ->each(function (SalesTarget $target) use (&$awarded): void {
+                $progress = $this->targetProgress->payload($target);
+                $rewards = $target->gamification_rewards ?? [];
+                foreach ([80, 100, 120] as $milestone) {
+                    if ((float) $progress['progress_percent'] < $milestone) continue;
+                    $points = (int) ($rewards[(string) $milestone] ?? 0);
+                    if ($points > 0) {
+                        $awarded += $this->award($target->salesman_id, 'target_'.$milestone, SalesTarget::class, $target->id, $points, now());
+                    }
+                    $bonus = (float) ($rewards['bonus_'.$milestone] ?? 0);
+                    if ($bonus > 0) {
+                        GamificationBonus::firstOrCreate(
+                            ['sales_target_id' => $target->id, 'milestone_percent' => $milestone],
+                            ['salesman_id' => $target->salesman_id, 'amount' => $bonus, 'currency' => $target->currency ?: 'AFN', 'status' => 'earned', 'earned_at' => now()]
+                        );
+                    }
+                }
+            });
+
         return $awarded;
     }
 
-    public function leaderboard(Tenant $tenant, int $days = 30): Collection
+    public function leaderboard(Tenant $tenant, int $days = 30, ?Collection $salesmanIds = null): Collection
     {
         if (! $this->enabled($tenant)) {
             return collect();
@@ -105,6 +129,7 @@ final class GamificationService
         $since = now($tenant->timezone)->subDays($days - 1)->startOfDay()->utc();
 
         $totals = GamificationPoint::query()
+            ->when($salesmanIds, fn ($query, $ids) => $query->whereIn('salesman_id', $ids))
             ->selectRaw('salesman_id, SUM(points) as total_points, COUNT(*) as event_count, COUNT(DISTINCT DATE(earned_at)) as active_days')
             ->where('earned_at', '>=', $since)
             ->groupBy('salesman_id')
@@ -114,6 +139,7 @@ final class GamificationService
 
         return Salesman::query()
             ->active()
+            ->when($salesmanIds, fn ($query, $ids) => $query->whereIn('id', $ids))
             ->whereIn('id', $totals->keys())
             ->get()
             ->map(function (Salesman $salesman) use ($totals): array {
@@ -182,6 +208,8 @@ final class GamificationService
             'Sales Builder' => (int) ($counts['order_approved'] ?? 0) >= 10,
             'Collection Closer' => (int) ($counts['collection_verified'] ?? 0) >= 10,
             'Route Discipline' => (int) ($counts['planned_visit_completed'] ?? 0) >= 20,
+            'Target Achiever' => (int) ($counts['target_100'] ?? 0) >= 1,
+            'Target Crusher' => (int) ($counts['target_120'] ?? 0) >= 1,
         ])->filter()->keys()->all();
     }
 }

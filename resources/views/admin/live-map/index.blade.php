@@ -238,6 +238,7 @@
                 </button>
                 <button id="fit-all" type="button" class="fp-live-map-control">{{ __('Fit all') }}</button>
                 <button id="route-toggle" type="button" class="fp-live-map-control">{{ __('Hide routes') }}</button>
+                <button id="stops-toggle" type="button" class="fp-live-map-control">{{ __('Hide visits') }}</button>
                 <button id="fullscreen-menu-button" type="button" data-fullscreen-menu-open class="fp-live-map-control" aria-haspopup="dialog" aria-controls="fullscreen-nav-modal">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
@@ -311,6 +312,7 @@
             const statusText = document.getElementById('map-status-text');
             const routeToggle = document.getElementById('route-toggle');
             const fitAllButton = document.getElementById('fit-all');
+            const stopsToggle = document.getElementById('stops-toggle');
 
             const map = L.map('live-map', {
                 zoomControl: false,
@@ -328,11 +330,14 @@
             const markers = new Map();
             const routes = new Map();
             const routeLayer = L.layerGroup().addTo(map);
+            const stopLayer = L.layerGroup().addTo(map);
+            const stopMarkers = new Map();
             const filters = {search: '', status: 'all', onDuty: false};
 
             let locations = initialLocations;
             let selectedId = null;
             let routesVisible = true;
+            let stopsVisible = true;
             let routeColorIndex = 0;
             let hasFitted = false;
 
@@ -363,6 +368,41 @@
                 }
 
                 return routes.get(salesmanId);
+            };
+
+            const stopStyle = (status) => {
+                if (status === 'completed') return {color: '#10b981', fillColor: '#10b981'};
+                if (status === 'in_progress') return {color: '#f59e0b', fillColor: '#f59e0b'};
+                return {color: '#6366f1', fillColor: '#6366f1'};
+            };
+
+            const syncVisitStops = (item) => {
+                for (const assignment of (item.visit_stops || [])) {
+                    const customer = assignment.customer || {};
+                    if (customer.latitude == null || customer.longitude == null) continue;
+
+                    const key = item.salesman_id + ':' + assignment.id;
+                    const style = stopStyle(assignment.status);
+                    let marker = stopMarkers.get(key);
+                    if (!marker) {
+                        marker = L.circleMarker([customer.latitude, customer.longitude], {
+                            radius: assignment.status === 'in_progress' ? 8 : 6,
+                            weight: 2,
+                            color: style.color,
+                            fillColor: style.fillColor,
+                            fillOpacity: .85,
+                        }).addTo(stopLayer);
+                        stopMarkers.set(key, marker);
+                    } else {
+                        marker.setLatLng([customer.latitude, customer.longitude]);
+                        marker.setStyle(style);
+                    }
+
+                    const time = assignment.time ? ' · ' + assignment.time : '';
+                    const purpose = assignment.purpose ? '<br><span>' + assignment.purpose + '</span>' : '';
+                    marker.bindTooltip(customer.name + time);
+                    marker.bindPopup('<strong>' + customer.name + '</strong><br>' + (customer.code || '') + '<br>Status: ' + assignment.status + time + purpose);
+                }
             };
 
             const setTrack = (item) => {
@@ -610,6 +650,16 @@
 
                     button.appendChild(top);
 
+                    const progress = document.createElement('div');
+                    progress.className = 'flex w-full items-center gap-2 text-xs';
+                    const planned = Number(item.visits?.planned || 0);
+                    const completed = Number(item.visits?.completed || 0);
+                    const percent = planned > 0 ? Math.min(100, Math.round((completed / planned) * 100)) : 0;
+                    progress.innerHTML = '<span class="text-slate-400">Visits ' + completed + '/' + planned + '</span>'
+                        + '<span class="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10"><span class="block h-full rounded-full bg-indigo-400" style="width:' + percent + '%"></span></span>'
+                        + '<span class="text-slate-500">' + percent + '%</span>';
+                    button.appendChild(progress);
+
                     const meta = document.createElement('div');
                     meta.className = 'flex w-full flex-wrap items-center justify-between gap-2 text-xs text-slate-400';
 
@@ -773,11 +823,22 @@
                 applyRouteVisibility();
             });
 
+            stopsToggle.addEventListener('click', () => {
+                stopsVisible = !stopsVisible;
+                if (stopsVisible) {
+                    if (!map.hasLayer(stopLayer)) map.addLayer(stopLayer);
+                } else if (map.hasLayer(stopLayer)) {
+                    map.removeLayer(stopLayer);
+                }
+                stopsToggle.textContent = stopsVisible ? 'Hide visits' : 'Show visits';
+            });
+
             fitAllButton.addEventListener('click', fitAll);
 
             for (const item of locations) {
                 setTrack(item);
                 syncMarker(item);
+                syncVisitStops(item);
             }
 
             renderList();

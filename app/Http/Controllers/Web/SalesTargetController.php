@@ -7,6 +7,7 @@ use App\Models\Salesman;
 use App\Models\SalesTarget;
 use App\Services\AuditLogger;
 use App\Services\TargetProgressService;
+use App\Services\TerritoryAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,14 +16,16 @@ use Illuminate\View\View;
 
 class SalesTargetController extends Controller
 {
-    public function index(Request $request, TargetProgressService $progress): View
+    public function index(Request $request, TargetProgressService $progress, TerritoryAccessService $access): View
     {
         $salesmanUuid = trim((string) $request->string('salesman'));
         $type = trim((string) $request->string('type'));
 
-        $salesmen = Salesman::active()->orderBy('first_name')->orderBy('last_name')->get();
+        $visibleIds = $access->salesmanIds($request->user());
+        $salesmen = Salesman::active()->when($visibleIds, fn ($q, $ids) => $q->whereIn('id', $ids))->orderBy('first_name')->orderBy('last_name')->get();
 
         $targets = SalesTarget::with(['salesman.user', 'tenant'])
+            ->when($visibleIds, fn ($q, $ids) => $q->whereIn('salesman_id', $ids))
             ->when($salesmanUuid !== '', function ($query) use ($salesmanUuid): void {
                 $query->whereHas('salesman', fn ($salesman) => $salesman->where('uuid', $salesmanUuid));
             })
@@ -42,11 +45,11 @@ class SalesTargetController extends Controller
         ));
     }
 
-    public function create(): View
+    public function create(Request $request, TerritoryAccessService $access): View
     {
         return view('admin.targets.form', [
             'target' => new SalesTarget,
-            'salesmen' => Salesman::active()->orderBy('first_name')->orderBy('last_name')->get(),
+            'salesmen' => Salesman::active()->when($access->salesmanIds($request->user()), fn ($q, $ids) => $q->whereIn('id', $ids))->orderBy('first_name')->orderBy('last_name')->get(),
             'action' => route('admin.targets.store'),
             'method' => 'POST',
         ]);
@@ -67,6 +70,7 @@ class SalesTargetController extends Controller
             'period_start' => $data['period_start'],
             'period_end' => $data['period_end'],
             'notes' => $data['notes'] ?? null,
+            'gamification_rewards' => $this->rewardsFor($data),
             'created_by' => $request->user()->id,
         ]);
 
@@ -126,6 +130,7 @@ class SalesTargetController extends Controller
             'period_start' => $data['period_start'],
             'period_end' => $data['period_end'],
             'notes' => $data['notes'] ?? null,
+            'gamification_rewards' => $this->rewardsFor($data),
         ]);
 
         $audit->record('target.updated', $target, $before, $target->only([
@@ -176,6 +181,12 @@ class SalesTargetController extends Controller
             'period_start' => ['required', 'date'],
             'period_end' => ['required', 'date', 'after_or_equal:period_start'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'reward_80' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'reward_100' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'reward_120' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'bonus_80' => ['nullable', 'numeric', 'min:0'],
+            'bonus_100' => ['nullable', 'numeric', 'min:0'],
+            'bonus_120' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         if (
@@ -197,6 +208,18 @@ class SalesTargetController extends Controller
         }
 
         return $validated;
+    }
+
+    private function rewardsFor(array $data): array
+    {
+        return [
+            '80' => (int) ($data['reward_80'] ?? 0),
+            '100' => (int) ($data['reward_100'] ?? 0),
+            '120' => (int) ($data['reward_120'] ?? 0),
+            'bonus_80' => round((float) ($data['bonus_80'] ?? 0), 4),
+            'bonus_100' => round((float) ($data['bonus_100'] ?? 0), 4),
+            'bonus_120' => round((float) ($data['bonus_120'] ?? 0), 4),
+        ];
     }
 
     private function currencyFor(array $data): ?string
