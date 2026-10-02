@@ -52,15 +52,22 @@ class ReorderRecommendationController extends Controller
             ->current($date)
             ->latest('effective_from')
             ->first();
+        $salesmanId = $user->salesman?->id;
 
         $visible = (int) $customer->created_by === (int) $user->id;
 
         if (! $visible && $assignment?->route_id) {
             $visible = $customer->routeMemberships()->where('route_id', $assignment->route_id)->exists();
-        } elseif (! $visible && $assignment?->territory_id) {
-            $visible = (int) $customer->territory_id === (int) $assignment->territory_id;
-        } elseif (! $visible && $assignment?->branch_id) {
-            $visible = (int) $customer->branch_id === (int) $assignment->branch_id;
+        } else {
+            if (! $visible && $salesmanId) {
+                $visible = (int) $customer->assigned_salesman_id === (int) $salesmanId;
+            }
+
+            if (! $visible && $assignment?->territory_id && $customer->assigned_salesman_id === null) {
+                $visible = (int) $customer->territory_id === (int) $assignment->territory_id;
+            } elseif (! $visible && $assignment?->branch_id && $customer->assigned_salesman_id === null) {
+                $visible = (int) $customer->branch_id === (int) $assignment->branch_id;
+            }
         }
 
         abort_unless($visible, 404);

@@ -12,6 +12,7 @@ use App\Models\Salesman;
 use App\Models\SalesmanAssignment;
 use App\Models\SalesmanStockBalance;
 use App\Models\Tenant;
+use App\Models\Territory;
 use App\Models\User;
 use App\Services\CustomerReorderRecommendationService;
 use App\Services\TenantProvisioningService;
@@ -88,6 +89,37 @@ class CustomerReorderRecommendationTest extends TestCase
             ->assertJsonPath('data.recommendations.0.purchase_count', 2);
     }
 
+    public function test_mobile_api_allows_direct_assignment_when_current_territory_differs(): void
+    {
+        $f = $this->fixture();
+
+        app(TenantContext::class)->withTenant($f['tenant'], function () use ($f): void {
+            $assignedTerritory = Territory::create([
+                'branch_id' => $f['branch']->id,
+                'code' => 'REORDER-A',
+                'name' => 'Assigned Territory',
+                'is_active' => true,
+            ]);
+            $customerTerritory = Territory::create([
+                'branch_id' => $f['branch']->id,
+                'code' => 'REORDER-B',
+                'name' => 'Customer Territory',
+                'is_active' => true,
+            ]);
+
+            $f['assignment']->update(['territory_id' => $assignedTerritory->id]);
+            $f['customer']->update([
+                'assigned_salesman_id' => $f['salesman']->id,
+                'territory_id' => $customerTerritory->id,
+            ]);
+        });
+
+        $this->getJson('/api/v1/customers/'.$f['customer']->uuid.'/reorder-recommendations', $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.customer_id', $f['customer']->uuid)
+            ->assertJsonPath('data.recommendations', []);
+    }
+
     public function test_one_off_purchase_is_not_presented_as_recurring_demand(): void
     {
         $f = $this->fixture();
@@ -151,13 +183,13 @@ class CustomerReorderRecommendationTest extends TestCase
             $salesmanUser = User::create(['uuid' => (string) Str::uuid(), 'branch_id' => $branch->id, 'name' => 'Salesman', 'email' => 'reorder-salesman@example.test', 'password' => Hash::make('password'), 'role' => 'salesman', 'is_active' => true]);
             $salesmanUser->syncPrimaryRole($roles['salesman']);
             $salesman = Salesman::create(['user_id' => $salesmanUser->id, 'employee_code' => 'R-1', 'first_name' => 'Reorder', 'last_name' => 'Salesman', 'is_active' => true]);
-            SalesmanAssignment::create(['salesman_id' => $salesman->id, 'branch_id' => $branch->id, 'effective_from' => today()->subDay(), 'created_by' => $admin->id]);
+            $assignment = SalesmanAssignment::create(['salesman_id' => $salesman->id, 'branch_id' => $branch->id, 'effective_from' => today()->subDay(), 'created_by' => $admin->id]);
             $customer = Customer::create(['branch_id' => $branch->id, 'code' => 'C-R-1', 'name' => 'Repeat Customer', 'created_by' => $admin->id, 'is_active' => true]);
             $product = Product::create(['sku' => 'SKU-R-1', 'name' => 'Repeat Product', 'unit' => 'pcs', 'base_price' => 100, 'currency' => 'AFN', 'is_active' => true]);
             $device = Device::create(['user_id' => $salesmanUser->id, 'salesman_id' => $salesman->id, 'device_uuid' => 'reorder-device', 'installation_uuid' => 'reorder-install', 'is_active' => true]);
             $this->token = $salesmanUser->createToken('mobile-'.$device->uuid)->plainTextToken;
 
-            return compact('tenant', 'branch', 'admin', 'salesmanUser', 'salesman', 'customer', 'product', 'device');
+            return compact('tenant', 'branch', 'admin', 'salesmanUser', 'salesman', 'assignment', 'customer', 'product', 'device');
         });
     }
 
