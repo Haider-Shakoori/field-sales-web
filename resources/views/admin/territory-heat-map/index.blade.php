@@ -275,9 +275,9 @@
                 const currency = @json($filters['currency']);
                 const map = L.map('territory-heat-map').setView([34.5553, 69.2075], 10);
 
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                L.tileLayer('{{ config('maps.tile_url') }}', {
                     maxZoom: 19,
-                    attribution: '&copy; OpenStreetMap contributors',
+                    attribution: @json(config('maps.attribution')),
                 }).addTo(map);
 
                 const bounds = [];
