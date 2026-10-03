@@ -95,6 +95,8 @@ class AuthController extends Controller
             );
         }
 
+        $context->initializeTenant((int) $user->tenant_id);
+
         $devicePolicy = $deviceSettings->get($user->tenant);
         $deviceRestrictionEnabled = $devicePolicy['device_restriction_enabled'];
 
@@ -121,8 +123,6 @@ class AuthController extends Controller
                 'APP_UPGRADE_REQUIRED'
             );
         }
-
-        $context->initializeTenant((int) $user->tenant_id);
 
         $existing = Device::where('user_id', $user->id)
             ->where('installation_uuid', $installationUuid)
