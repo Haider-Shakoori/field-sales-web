@@ -42,7 +42,7 @@ class TrackingSettingsController extends Controller
             'device_restriction_enabled' => 'nullable|boolean',
             'device_approval_required' => 'nullable|boolean',
             'secondary_device_enabled' => 'nullable|boolean',
-            'max_active_devices' => 'required|integer|min:2|max:3',
+            'max_active_devices' => 'nullable|integer|min:2|max:3',
             'lost_device_workflow_enabled' => 'nullable|boolean',
             'device_activity_history_enabled' => 'nullable|boolean',
             'remote_diagnostics_enabled' => 'nullable|boolean',
