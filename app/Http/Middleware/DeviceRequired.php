@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Device;
+use App\Services\DeviceSettingsService;
 use App\Services\MobileAppPolicy;
 use App\Support\ApiResponse;
 use Closure;
@@ -13,16 +14,17 @@ use Symfony\Component\HttpFoundation\Response;
 
 class DeviceRequired
 {
-    public function __construct(private readonly MobileAppPolicy $mobilePolicy) {}
+    public function __construct(
+        private readonly MobileAppPolicy $mobilePolicy,
+        private readonly DeviceSettingsService $deviceSettings,
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        $restrictionEnabled = (bool) data_get(
-            $user?->tenant?->settings,
-            'security.device_restriction_enabled',
-            true,
-        );
+        $restrictionEnabled = $user?->tenant
+            ? $this->deviceSettings->get($user->tenant)['device_restriction_enabled']
+            : true;
 
         $deviceUuid = $request->header('X-Device-UUID');
         $installationUuid = $request->header('X-Installation-UUID');

@@ -23,4 +23,28 @@ class DevicePolicy extends TenantPolicy
         return $this->can($user, 'sales-team:manage')
             && $this->owns($user, $device);
     }
+
+    public function forceLogout(User $user, Device $device): bool
+    {
+        return $this->can($user, 'sales-team:manage')
+            && $this->owns($user, $device);
+    }
+
+    public function approve(User $user, Device $device): bool
+    {
+        return $this->can($user, 'sales-team:manage')
+            && $this->owns($user, $device);
+    }
+
+    public function manageStatus(User $user, Device $device): bool
+    {
+        return $this->can($user, 'sales-team:manage')
+            && $this->owns($user, $device);
+    }
+
+    public function runDeviceAction(User $user, Device $device): bool
+    {
+        return $this->can($user, 'sales-team:manage')
+            && $this->owns($user, $device);
+    }
 }

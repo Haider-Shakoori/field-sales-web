@@ -128,6 +128,84 @@ class NotificationService
         return $notification;
     }
 
+    public function notifyDeviceSafely(
+        Device $device,
+        string $type,
+        string $title,
+        string $message,
+        array $data = [],
+        string $priority = 'normal',
+        bool $databaseVisible = false,
+    ): ?OperationalNotification {
+        try {
+            return $this->notifyDevice(
+                $device,
+                $type,
+                $title,
+                $message,
+                $data,
+                $priority,
+                $databaseVisible,
+            );
+        } catch (Throwable $exception) {
+            Log::warning('Direct device notification failed.', [
+                'tenant_id' => $device->tenant_id,
+                'device_id' => $device->id,
+                'notification_type' => $type,
+                'exception' => $exception,
+            ]);
+
+            return null;
+        }
+    }
+
+    public function notifyDevice(
+        Device $device,
+        string $type,
+        string $title,
+        string $message,
+        array $data = [],
+        string $priority = 'normal',
+        bool $databaseVisible = false,
+    ): OperationalNotification {
+        $notification = OperationalNotification::create([
+            'tenant_id' => $device->tenant_id,
+            'user_id' => $device->user_id,
+            'type' => $type,
+            'category' => 'device_operations',
+            'priority' => $priority,
+            'title' => $title,
+            'message' => $message,
+            'database_visible' => $databaseVisible,
+            'data' => $data ?: null,
+        ]);
+
+        $token = trim((string) $device->push_token);
+
+        $delivery = NotificationDelivery::create([
+            'tenant_id' => $device->tenant_id,
+            'notification_id' => $notification->id,
+            'device_id' => $device->id,
+            'channel' => 'push',
+            'provider' => config('push.provider', 'generic_http'),
+            'status' => ! config('push.enabled')
+                ? 'skipped'
+                : ($token === '' ? 'skipped' : 'pending'),
+            'last_error' => ! config('push.enabled')
+                ? 'Push delivery is disabled.'
+                : ($token === '' ? 'Device push token is missing.' : null),
+        ]);
+
+        if ($delivery->status === 'pending') {
+            SendPushNotification::dispatch(
+                (int) $device->tenant_id,
+                (int) $delivery->id,
+            )->afterCommit();
+        }
+
+        return $notification->load('deliveries');
+    }
+
     public function notifySuspiciousVisit(VisitSuspiciousFlag $flag): void
     {
         $flag->loadMissing(['tenant', 'visit.salesman']);
