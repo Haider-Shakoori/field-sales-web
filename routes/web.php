@@ -242,9 +242,27 @@ Route::middleware('auth')->group(function () {
         Route::get('/devices/{device}', [DeviceController::class, 'show'])
             ->middleware('permission:sales-team:view')
             ->name('devices.show');
+        Route::post('/devices/{device}/approve', [DeviceController::class, 'approve'])
+            ->middleware('permission:sales-team:manage')
+            ->name('devices.approve');
         Route::post('/devices/{device}/force-logout', [DeviceController::class, 'forceLogout'])
             ->middleware('permission:sales-team:manage')
             ->name('devices.force-logout');
+        Route::post('/devices/{device}/management-status', [DeviceController::class, 'markStatus'])
+            ->middleware('permission:sales-team:manage')
+            ->name('devices.management-status');
+        Route::post('/devices/{device}/request-diagnostics', [DeviceController::class, 'requestDiagnostics'])
+            ->middleware('permission:sales-team:manage')
+            ->name('devices.request-diagnostics');
+        Route::post('/devices/{device}/test-push', [DeviceController::class, 'testPush'])
+            ->middleware('permission:sales-team:manage')
+            ->name('devices.test-push');
+        Route::post('/devices/{device}/test-gps-background', [DeviceController::class, 'testGpsBackground'])
+            ->middleware('permission:sales-team:manage')
+            ->name('devices.test-gps-background');
+        Route::post('/devices/{device}/test-sync', [DeviceController::class, 'testSync'])
+            ->middleware('permission:sales-team:manage')
+            ->name('devices.test-sync');
         Route::post('/devices/{device}/revoke', [DeviceController::class, 'revoke'])
             ->middleware('permission:sales-team:manage')
             ->name('devices.revoke');
