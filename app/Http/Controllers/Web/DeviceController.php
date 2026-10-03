@@ -27,8 +27,14 @@ class DeviceController extends Controller
     {
         Gate::authorize('view', $device);
 
+        $device->load(['user', 'salesman', 'revoker']);
+
         return view('admin.devices.show', [
-            'device' => $device->load(['user', 'salesman', 'revoker']),
+            'device' => $device,
+            'recentDiagnostics' => $device->diagnostics()
+                ->latest('occurred_at')
+                ->limit(8)
+                ->get(),
         ]);
     }
 
