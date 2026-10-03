@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Device;
+use App\Services\DeviceActivityService;
 use App\Services\DeviceHealthService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +24,7 @@ class DeviceHealthController extends Controller
     public function store(
         Request $request,
         DeviceHealthService $healthService,
+        DeviceActivityService $activity,
     ): JsonResponse {
         /** @var Device|null $device */
         $device = $request->attributes->get('device');
@@ -57,6 +59,7 @@ class DeviceHealthController extends Controller
             'last_gps_fix_at' => ['nullable', 'date'],
         ]);
 
+        $previousStatus = $device->effectiveHealthStatus();
         $health = $healthService->classify($validated);
 
         $device->forceFill([
@@ -66,6 +69,20 @@ class DeviceHealthController extends Controller
             'health_reported_at' => now(),
             'last_seen_at' => now(),
         ])->save();
+
+        if ($previousStatus !== $health['status']) {
+            $activity->record(
+                $device,
+                'device.health_changed',
+                [
+                    'from' => $previousStatus,
+                    'to' => $health['status'],
+                    'issue_codes' => collect($health['issues'])->pluck('code')->values()->all(),
+                ],
+                $request->user(),
+                $health['status'] === 'critical' ? 'critical' : 'info',
+            );
+        }
 
         return ApiResponse::success($this->payload($device->fresh()));
     }
