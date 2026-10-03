@@ -126,7 +126,17 @@ class Batch13DashboardLiveMapTest extends TestCase
         app(TenantContext::class)->withTenant(
             $tenant,
             function () use ($salesman, $device): void {
-                $device->forceFill(['last_seen_at' => now()->subMinute()])->save();
+                $device->forceFill([
+                    'last_seen_at' => now()->subMinute(),
+                    'health_status' => 'warning',
+                    'health_reported_at' => now()->subMinute(),
+                    'battery_level' => 12,
+                    'network_type' => 'cellular',
+                    'background_tracking_active' => true,
+                    'pending_sync_count' => 4,
+                    'failed_sync_count' => 1,
+                    'blocked_sync_count' => 0,
+                ])->save();
 
                 CurrentLocation::create([
                     'user_id' => $salesman->user_id,
@@ -153,6 +163,10 @@ class Batch13DashboardLiveMapTest extends TestCase
         $this->assertSame('offline', $row['location_freshness']);
         $this->assertGreaterThan(1800, $row['location_age_seconds']);
         $this->assertNotNull($row['last_seen_at']);
+        $this->assertSame('warning', $row['device']['health_status']);
+        $this->assertSame(12, $row['device']['battery_level']);
+        $this->assertSame('cellular', $row['device']['network_type']);
+        $this->assertSame(4, $row['device']['pending_sync_count']);
     }
 
     public function test_supervisor_live_map_only_includes_current_assignments(): void
