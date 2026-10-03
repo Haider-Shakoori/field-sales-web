@@ -18,6 +18,9 @@ class Device extends Model
     {
         return [
             'is_active' => 'boolean',
+            'approved_at' => 'datetime',
+            'is_primary' => 'boolean',
+            'management_status_at' => 'datetime',
             'registered_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'revoked_at' => 'datetime',
@@ -57,14 +60,34 @@ class Device extends Model
         return $this->belongsTo(User::class, 'revoked_by');
     }
 
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function managementActor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'management_status_by');
+    }
+
     public function diagnostics(): HasMany
     {
         return $this->hasMany(MobileDiagnostic::class);
     }
 
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(DeviceActivityLog::class);
+    }
+
     public function isRevoked(): bool
     {
         return ! $this->is_active || $this->revoked_at !== null;
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->approval_status === 'approved';
     }
 
     public function effectiveHealthStatus(): string
