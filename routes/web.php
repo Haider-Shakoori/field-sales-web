@@ -242,6 +242,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/devices/{device}', [DeviceController::class, 'show'])
             ->middleware('permission:sales-team:view')
             ->name('devices.show');
+        Route::post('/devices/{device}/force-logout', [DeviceController::class, 'forceLogout'])
+            ->middleware('permission:sales-team:manage')
+            ->name('devices.force-logout');
         Route::post('/devices/{device}/revoke', [DeviceController::class, 'revoke'])
             ->middleware('permission:sales-team:manage')
             ->name('devices.revoke');
