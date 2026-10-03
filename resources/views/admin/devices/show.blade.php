@@ -32,7 +32,9 @@
     @endif
 
     @if(session('device_test_result'))
-        @php($testResult = session('device_test_result'))
+        @php
+            $testResult = session('device_test_result');
+        @endphp
         <section class="mb-5 rounded-2xl border border-white/10 bg-slate-900 p-5">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <h2 class="font-semibold">{{ session('device_test_name', 'Device test') }}</h2>
@@ -153,14 +155,23 @@
         </section>
     </div>
 
-    @if(auth()->user()->hasPermission('sales-team:manage') && (
-        $deviceSettings['approval_required']
-        || $deviceSettings['lost_device_workflow_enabled']
-        || $deviceSettings['remote_diagnostics_enabled']
-        || $deviceSettings['push_test_enabled']
-        || $deviceSettings['gps_background_test_enabled']
-        || $deviceSettings['sync_test_enabled']
-    ))
+    @php
+        $showOptionalActions = auth()->user()->hasPermission('sales-team:manage')
+            && (
+                $deviceSettings['approval_required']
+                || $deviceSettings['lost_device_workflow_enabled']
+                || $deviceSettings['remote_diagnostics_enabled']
+                || $deviceSettings['push_test_enabled']
+                || $deviceSettings['gps_background_test_enabled']
+                || $deviceSettings['sync_test_enabled']
+            );
+        $lostDeviceStates = [
+            'lost' => 'Mark as lost',
+            'stolen' => 'Mark as stolen',
+        ];
+    @endphp
+
+    @if($showOptionalActions)
         <section class="mt-5 rounded-2xl border border-white/10 bg-slate-900 p-5">
             <div>
                 <h2 class="font-semibold">Optional device actions</h2>
@@ -209,7 +220,7 @@
                     <h3 class="font-medium">Lost or stolen device</h3>
                     <p class="mt-1 text-xs leading-5 text-slate-400">These actions immediately revoke the selected device and invalidate its mobile token.</p>
                     <div class="mt-3 grid gap-3 md:grid-cols-2">
-                        @foreach(['lost' => 'Mark as lost', 'stolen' => 'Mark as stolen'] as $status => $label)
+                        @foreach($lostDeviceStates as $status => $label)
                             <form method="POST" action="{{ route('admin.devices.management-status', $device) }}" class="rounded-xl border border-white/10 bg-slate-950/50 p-3">
                                 @csrf
                                 <input type="hidden" name="status" value="{{ $status }}">
