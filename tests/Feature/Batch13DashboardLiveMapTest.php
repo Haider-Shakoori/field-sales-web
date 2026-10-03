@@ -112,6 +112,49 @@ class Batch13DashboardLiveMapTest extends TestCase
         $this->assertFalse($rows->has($otherSalesman->uuid));
     }
 
+    public function test_live_map_uses_device_heartbeat_when_gps_position_is_stale(): void
+    {
+        [$tenant, $admin] = $this->tenantUser(
+            'heartbeat-admin@example.test',
+            ['reports:view', 'tracking:view'],
+            'company-admin',
+            'Heartbeat Tenant',
+            'heartbeat-tenant',
+        );
+        [$salesman, $device] = $this->salesman($tenant, 'HEART-1', 'Heartbeat');
+
+        app(TenantContext::class)->withTenant(
+            $tenant,
+            function () use ($salesman, $device): void {
+                $device->forceFill(['last_seen_at' => now()->subMinute()])->save();
+
+                CurrentLocation::create([
+                    'user_id' => $salesman->user_id,
+                    'salesman_id' => $salesman->id,
+                    'device_id' => $device->id,
+                    'latitude' => 34.5553,
+                    'longitude' => 69.2075,
+                    'horizontal_accuracy' => 8,
+                    'recorded_at' => now()->subHour(),
+                    'received_at' => now()->subHour(),
+                ]);
+            }
+        );
+
+        $response = $this->actingAs($admin)
+            ->getJson(route('admin.dashboard.live-locations'))
+            ->assertOk();
+
+        $row = collect($response->json('data'))
+            ->firstWhere('salesman_id', $salesman->uuid);
+
+        $this->assertSame('live', $row['freshness']);
+        $this->assertSame('online', $row['status']);
+        $this->assertSame('offline', $row['location_freshness']);
+        $this->assertGreaterThan(1800, $row['location_age_seconds']);
+        $this->assertNotNull($row['last_seen_at']);
+    }
+
     public function test_supervisor_live_map_only_includes_current_assignments(): void
     {
         [$tenant, $supervisorUser] = $this->tenantUser(

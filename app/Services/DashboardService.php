@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Collection;
 use App\Models\CurrentLocation;
 use App\Models\CustomerVisit;
+use App\Models\Device;
 use App\Models\Expense;
 use App\Models\Order;
 use App\Models\Salesman;
@@ -294,6 +295,16 @@ class DashboardService
             ->get()
             ->keyBy('salesman_id');
 
+        $latestDeviceBySalesman = Device::query()
+            ->whereIn('salesman_id', $salesmanIds)
+            ->where('is_active', true)
+            ->whereNull('revoked_at')
+            ->whereNotNull('last_seen_at')
+            ->orderByDesc('last_seen_at')
+            ->get()
+            ->groupBy('salesman_id')
+            ->map(fn ($devices) => $devices->first());
+
         $onDutyIds = WorkSession::query()
             ->whereIn('salesman_id', $salesmanIds)
             ->where('status', 'active')
@@ -323,6 +334,7 @@ class DashboardService
 
         return $salesmen->map(function (Salesman $salesman) use (
             $currentBySalesman,
+            $latestDeviceBySalesman,
             $onDutyIds,
             $now,
             $tracks,
@@ -330,14 +342,38 @@ class DashboardService
             $visitStops,
         ): array {
             $location = $currentBySalesman->get($salesman->id);
+            $device = $latestDeviceBySalesman->get($salesman->id);
+
+            $presenceAt = $device?->last_seen_at;
+            $locationPresenceAt = $location?->received_at ?? $location?->recorded_at;
+
+            if ($locationPresenceAt && (! $presenceAt || $locationPresenceAt->gt($presenceAt))) {
+                $presenceAt = $locationPresenceAt;
+            }
+
+            $presenceAgeSeconds = $presenceAt
+                ? max(0, $presenceAt->diffInSeconds($now))
+                : null;
+            $presenceFreshness = match (true) {
+                $presenceAgeSeconds !== null && $presenceAgeSeconds <= 300 => 'live',
+                $presenceAgeSeconds !== null && $presenceAgeSeconds <= 1800 => 'stale',
+                default => 'offline',
+            };
 
             $payload = [
                 'salesman_id' => $salesman->uuid,
                 'employee_code' => $salesman->employee_code,
                 'salesman_name' => $salesman->full_name,
-                'freshness' => 'offline',
-                'status' => 'offline',
-                'age_seconds' => null,
+                'freshness' => $presenceFreshness,
+                'status' => match ($presenceFreshness) {
+                    'live' => 'online',
+                    'stale' => 'idle',
+                    default => 'offline',
+                },
+                'age_seconds' => $presenceAgeSeconds,
+                'last_seen_at' => $presenceAt?->toISOString(),
+                'location_freshness' => 'offline',
+                'location_age_seconds' => null,
                 'on_duty' => $onDutyIds->has($salesman->id),
                 'location' => null,
                 'visits' => [
@@ -376,13 +412,8 @@ class DashboardService
                     default => 'offline',
                 };
 
-                $payload['freshness'] = $freshness;
-                $payload['status'] = match ($freshness) {
-                    'live' => 'online',
-                    'stale' => 'idle',
-                    default => 'offline',
-                };
-                $payload['age_seconds'] = $ageSeconds;
+                $payload['location_freshness'] = $freshness;
+                $payload['location_age_seconds'] = $ageSeconds;
                 $payload['location'] = [
                     'latitude' => (float) $location->latitude,
                     'longitude' => (float) $location->longitude,
