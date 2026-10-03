@@ -45,7 +45,9 @@
                         <td class="px-5 py-4">
                             <div>{{ $device->device_model ?? 'Mobile device' }}</div>
                             <div class="mt-1 text-xs text-slate-500">{{ trim(($device->platform ?? '').' '.($device->os_version ?? $device->android_version ?? '')) ?: '—' }}</div>
-                            <div class="mt-1 text-xs text-slate-500">App {{ $device->app_version ?? '—' }}</div>
+                            <div class="mt-1 text-xs {{ $mobilePolicy->isSupported($device->app_version) ? 'text-slate-500' : 'text-red-300' }}">
+                                App {{ $device->app_version ?? '—' }} · {{ $mobilePolicy->isSupported($device->app_version) ? 'supported' : 'update required' }}
+                            </div>
                         </td>
                         <td class="px-5 py-4">
                             <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $healthClass }}">{{ str($health)->replace('_', ' ')->title() }}</span>
