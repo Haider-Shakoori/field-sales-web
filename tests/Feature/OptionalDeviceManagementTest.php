@@ -66,6 +66,8 @@ class OptionalDeviceManagementTest extends TestCase
         ], $this->deviceHeaders('device-a', 'install-a'))
             ->assertOk();
 
+        $this->assertDatabaseCount('device_activity_logs', 0);
+
         $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
             'password' => 'password',
@@ -86,6 +88,13 @@ class OptionalDeviceManagementTest extends TestCase
                 'company_admin',
             ),
         );
+
+        $this->actingAs($admin)
+            ->get(route('tracking.edit'))
+            ->assertOk()
+            ->assertSee('Optional device controls')
+            ->assertSee('Require device approval')
+            ->assertSee('Allow secondary devices');
 
         $this->actingAs($admin)
             ->put(route('tracking.update'), [
