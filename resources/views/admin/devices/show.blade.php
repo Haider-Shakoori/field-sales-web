@@ -25,6 +25,37 @@
         </div>
     </div>
 
+    @if(session('status'))
+        <div class="mb-5 rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-4 text-sm text-indigo-200">
+            {{ session('status') }}
+        </div>
+    @endif
+
+    @if(session('device_test_result'))
+        @php($testResult = session('device_test_result'))
+        <section class="mb-5 rounded-2xl border border-white/10 bg-slate-900 p-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="font-semibold">{{ session('device_test_name', 'Device test') }}</h2>
+                <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $testResult['status'] === 'passed' ? 'bg-emerald-500/15 text-emerald-300' : ($testResult['status'] === 'warning' ? 'bg-amber-500/15 text-amber-300' : 'bg-red-500/15 text-red-300') }}">
+                    {{ str($testResult['status'])->title() }}
+                </span>
+            </div>
+            <div class="mt-4 grid gap-2 md:grid-cols-2">
+                @foreach($testResult['checks'] as $check)
+                    <div class="rounded-xl border border-white/10 bg-slate-950/60 p-3 text-sm">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="font-medium">{{ $check['name'] }}</span>
+                            <span class="{{ $check['passed'] ? 'text-emerald-300' : ($check['severity'] === 'critical' ? 'text-red-300' : 'text-amber-300') }}">
+                                {{ $check['passed'] ? 'Pass' : str($check['severity'])->title() }}
+                            </span>
+                        </div>
+                        <p class="mt-1 text-xs text-slate-400">{{ $check['detail'] }}</p>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     <div class="grid gap-5 xl:grid-cols-3">
         <section class="rounded-2xl border border-white/10 bg-slate-900 p-5">
             <h2 class="font-semibold">Device identity</h2>
@@ -36,6 +67,9 @@
                 <dt class="text-slate-400">Manufacturer</dt><dd>{{ $device->manufacturer ?? '—' }}</dd>
                 <dt class="text-slate-400">App version</dt><dd>{{ $device->app_version ?? '—' }}</dd>
                 <dt class="text-slate-400">Version policy</dt><dd class="{{ $mobilePolicy->isSupported($device->app_version) ? '' : 'text-red-300' }}">{{ $mobilePolicy->isSupported($device->app_version) ? 'Supported' : 'Update required' }} · minimum {{ $mobilePolicy->minimumVersion() }}</dd>
+                <dt class="text-slate-400">Device role</dt><dd>{{ $device->is_primary ? 'Primary' : 'Secondary' }}</dd>
+                <dt class="text-slate-400">Approval</dt><dd>{{ str($device->approval_status ?? 'approved')->title() }}</dd>
+                <dt class="text-slate-400">Management status</dt><dd>{{ str($device->management_status ?? 'active')->title() }}</dd>
                 <dt class="text-slate-400">Registered</dt><dd>{{ $device->registered_at?->toDateTimeString() ?? '—' }}</dd>
                 <dt class="text-slate-400">Last seen</dt><dd>{{ $device->last_seen_at?->toDateTimeString() ?? '—' }}</dd>
                 <dt class="text-slate-400">Health reported</dt><dd>{{ $device->health_reported_at?->toDateTimeString() ?? '—' }}</dd>
@@ -119,6 +153,76 @@
         </section>
     </div>
 
+    @if(auth()->user()->hasPermission('sales-team:manage') && (
+        $deviceSettings['approval_required']
+        || $deviceSettings['lost_device_workflow_enabled']
+        || $deviceSettings['remote_diagnostics_enabled']
+        || $deviceSettings['push_test_enabled']
+        || $deviceSettings['gps_background_test_enabled']
+        || $deviceSettings['sync_test_enabled']
+    ))
+        <section class="mt-5 rounded-2xl border border-white/10 bg-slate-900 p-5">
+            <div>
+                <h2 class="font-semibold">Optional device actions</h2>
+                <p class="mt-1 text-sm text-slate-400">Only controls enabled in company settings are shown here.</p>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-2">
+                @if($deviceSettings['approval_required'] && ! $device->isApproved())
+                    <form method="POST" action="{{ route('admin.devices.approve', $device) }}">
+                        @csrf
+                        <button class="rounded-xl bg-emerald-500/20 px-4 py-2.5 text-sm font-semibold text-emerald-200">Approve device</button>
+                    </form>
+                @endif
+
+                @if($deviceSettings['remote_diagnostics_enabled'] && ! $device->isRevoked())
+                    <form method="POST" action="{{ route('admin.devices.request-diagnostics', $device) }}">
+                        @csrf
+                        <button class="rounded-xl bg-indigo-500/20 px-4 py-2.5 text-sm font-semibold text-indigo-200">Request diagnostics</button>
+                    </form>
+                @endif
+
+                @if($deviceSettings['push_test_enabled'] && ! $device->isRevoked())
+                    <form method="POST" action="{{ route('admin.devices.test-push', $device) }}">
+                        @csrf
+                        <button class="rounded-xl bg-sky-500/20 px-4 py-2.5 text-sm font-semibold text-sky-200">Test push notification</button>
+                    </form>
+                @endif
+
+                @if($deviceSettings['gps_background_test_enabled'])
+                    <form method="POST" action="{{ route('admin.devices.test-gps-background', $device) }}">
+                        @csrf
+                        <button class="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-slate-200">Test GPS & background</button>
+                    </form>
+                @endif
+
+                @if($deviceSettings['sync_test_enabled'])
+                    <form method="POST" action="{{ route('admin.devices.test-sync', $device) }}">
+                        @csrf
+                        <button class="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-slate-200">Test sync</button>
+                    </form>
+                @endif
+            </div>
+
+            @if($deviceSettings['lost_device_workflow_enabled'] && ! $device->isRevoked())
+                <div class="mt-5 border-t border-white/10 pt-5">
+                    <h3 class="font-medium">Lost or stolen device</h3>
+                    <p class="mt-1 text-xs leading-5 text-slate-400">These actions immediately revoke the selected device and invalidate its mobile token.</p>
+                    <div class="mt-3 grid gap-3 md:grid-cols-2">
+                        @foreach(['lost' => 'Mark as lost', 'stolen' => 'Mark as stolen'] as $status => $label)
+                            <form method="POST" action="{{ route('admin.devices.management-status', $device) }}" class="rounded-xl border border-white/10 bg-slate-950/50 p-3">
+                                @csrf
+                                <input type="hidden" name="status" value="{{ $status }}">
+                                <textarea name="reason" rows="2" placeholder="Reason or note (optional)" class="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"></textarea>
+                                <button class="mt-2 rounded-lg {{ $status === 'stolen' ? 'bg-red-500/20 text-red-200' : 'bg-amber-500/20 text-amber-200' }} px-3 py-2 text-sm font-semibold" onclick="return confirm('This will immediately revoke the device. Continue?')">{{ $label }}</button>
+                            </form>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        </section>
+    @endif
+
     @if($recentDiagnostics->isNotEmpty())
         <section class="mt-5 rounded-2xl border border-white/10 bg-slate-900 p-5">
             <div class="flex items-center justify-between gap-3">
@@ -136,6 +240,34 @@
                         <p class="mt-2 text-sm text-slate-200">{{ $diagnostic->message }}</p>
                     </div>
                 @endforeach
+            </div>
+        </section>
+    @endif
+
+    @if($deviceSettings['activity_history_enabled'])
+        <section class="mt-5 rounded-2xl border border-white/10 bg-slate-900 p-5">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-semibold">Device activity history</h2>
+                    <p class="mt-1 text-xs text-slate-400">Only important device events are stored while this optional feature is enabled.</p>
+                </div>
+                <span class="text-xs text-slate-500">{{ $deviceActivity->count() }} recent event(s)</span>
+            </div>
+            <div class="mt-4 divide-y divide-white/10">
+                @forelse($deviceActivity as $entry)
+                    <div class="py-3 first:pt-0 last:pb-0">
+                        <div class="flex flex-wrap items-center gap-2 text-xs">
+                            <span class="rounded-full bg-white/10 px-2 py-1">{{ str($entry->event)->replace('.', ' ')->title() }}</span>
+                            <span class="text-slate-500">{{ $entry->occurred_at?->diffForHumans() }}</span>
+                            @if($entry->actor)<span class="text-slate-500">by {{ $entry->actor->name }}</span>@endif
+                        </div>
+                        @if(!empty($entry->context))
+                            <p class="mt-2 break-words text-xs text-slate-400">{{ json_encode($entry->context, JSON_UNESCAPED_SLASHES) }}</p>
+                        @endif
+                    </div>
+                @empty
+                    <p class="text-sm text-slate-400">No device activity has been recorded yet.</p>
+                @endforelse
             </div>
         </section>
     @endif
