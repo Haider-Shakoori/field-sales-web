@@ -510,6 +510,31 @@
                 box.appendChild(line('Status', item.status));
                 box.appendChild(line('On duty', item.on_duty ? 'Yes' : 'No'));
 
+                if (item.device) {
+                    const health = (item.device.health_status || 'unknown').replaceAll('_', ' ');
+                    box.appendChild(line('Device health', health.charAt(0).toUpperCase() + health.slice(1)));
+                    box.appendChild(line('App', item.device.app_version || '—'));
+                    box.appendChild(line(
+                        'Device battery',
+                        item.device.battery_level == null
+                            ? '—'
+                            : item.device.battery_level + '%' + (item.device.is_charging ? ' · charging' : ''),
+                    ));
+                    box.appendChild(line('Device network', item.device.network_type || '—'));
+                    box.appendChild(line(
+                        'Background tracking',
+                        item.device.background_tracking_active == null
+                            ? 'Unknown'
+                            : (item.device.background_tracking_active ? 'Active' : 'Inactive'),
+                    ));
+                    box.appendChild(line(
+                        'Sync',
+                        Number(item.device.pending_sync_count || 0) + ' pending · '
+                            + Number(item.device.failed_sync_count || 0) + ' failed · '
+                            + Number(item.device.blocked_sync_count || 0) + ' blocked',
+                    ));
+                }
+
                 const entry = routes.get(item.salesman_id);
                 if (entry && entry.distanceKm != null) {
                     box.appendChild(line('Route distance', Number(entry.distanceKm).toFixed(1) + ' km'));
@@ -649,6 +674,26 @@
                     top.appendChild(badge);
 
                     button.appendChild(top);
+
+                    if (item.device) {
+                        const health = document.createElement('div');
+                        const healthStatus = item.device.health_status || 'unknown';
+                        const healthClass = healthStatus === 'healthy'
+                            ? 'bg-emerald-500/10 text-emerald-300'
+                            : (healthStatus === 'warning'
+                                ? 'bg-amber-500/10 text-amber-300'
+                                : (healthStatus === 'critical'
+                                    ? 'bg-red-500/10 text-red-300'
+                                    : (healthStatus === 'stale'
+                                        ? 'bg-orange-500/10 text-orange-300'
+                                        : 'bg-slate-700/60 text-slate-400')));
+                        health.className = 'flex w-full flex-wrap items-center gap-2 text-xs';
+                        health.innerHTML = '<span class="rounded-full px-2 py-0.5 ' + healthClass + '">Device '
+                            + healthStatus.replaceAll('_', ' ') + '</span>'
+                            + (item.device.battery_level == null ? '' : '<span class="text-slate-500">Battery ' + item.device.battery_level + '%</span>')
+                            + (item.device.pending_sync_count > 0 ? '<span class="text-slate-500">' + item.device.pending_sync_count + ' pending sync</span>' : '');
+                        button.appendChild(health);
+                    }
 
                     const progress = document.createElement('div');
                     progress.className = 'flex w-full items-center gap-2 text-xs';
