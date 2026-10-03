@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CollectionController;
 use App\Http\Controllers\Api\CustomerFollowUpController;
 use App\Http\Controllers\Api\CustomerStatementController;
 use App\Http\Controllers\Api\DailyRoutePlannerController;
+use App\Http\Controllers\Api\DeviceHealthController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GamificationController;
 use App\Http\Controllers\Api\GpsController;
@@ -45,6 +46,8 @@ Route::prefix('v1')->group(function () {
         Route::middleware('device.required')->group(function () {
             Route::get('/auth/me', [AuthController::class, 'me']);
             Route::put('/device/push-token', [AuthController::class, 'updatePushToken']);
+            Route::get('/device/health', [DeviceHealthController::class, 'show']);
+            Route::post('/device/health', [DeviceHealthController::class, 'store']);
             Route::post('/mobile/diagnostics', [MobileDiagnosticController::class, 'store']);
 
             Route::get('/customers', [MasterDataController::class, 'customers']);
