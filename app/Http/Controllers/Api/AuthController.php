@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Device;
 use App\Models\User;
+use App\Services\DeviceActivityService;
+use App\Services\DeviceSettingsService;
 use App\Services\MobileAppPolicy;
 use App\Support\ApiResponse;
 use App\Tenancy\TenantContext;
@@ -17,6 +19,8 @@ class AuthController extends Controller
         Request $request,
         TenantContext $context,
         MobileAppPolicy $mobilePolicy,
+        DeviceSettingsService $deviceSettings,
+        DeviceActivityService $deviceActivity,
     ) {
         $validated = $request->validate([
             'email' => ['required', 'email'],
@@ -91,11 +95,8 @@ class AuthController extends Controller
             );
         }
 
-        $deviceRestrictionEnabled = (bool) data_get(
-            $user->tenant?->settings,
-            'security.device_restriction_enabled',
-            true,
-        );
+        $devicePolicy = $deviceSettings->get($user->tenant);
+        $deviceRestrictionEnabled = $devicePolicy['device_restriction_enabled'];
 
         $installationUuid = $request->header('X-Installation-UUID');
         $deviceUuid = $request->header('X-Device-UUID') ?: ($validated['device_uuid'] ?? null);
@@ -136,7 +137,7 @@ class AuthController extends Controller
             );
         }
 
-        $other = Device::query()
+        $activeDevices = Device::query()
             ->when(
                 $user->salesman,
                 fn ($query) => $query->where('salesman_id', $user->salesman->id),
@@ -145,20 +146,32 @@ class AuthController extends Controller
             ->where('is_active', true)
             ->whereNull('revoked_at')
             ->when($existing, fn ($query) => $query->whereKeyNot($existing->id))
-            ->first();
+            ->orderByDesc('is_primary')
+            ->orderByDesc('last_seen_at')
+            ->get();
 
-        if ($other && $deviceRestrictionEnabled) {
+        $other = $activeDevices->first();
+        $maxActiveDevices = $devicePolicy['secondary_device_enabled']
+            ? $devicePolicy['max_active_devices']
+            : 1;
+
+        if ($deviceRestrictionEnabled
+            && ! $existing
+            && $activeDevices->count() >= $maxActiveDevices) {
             return ApiResponse::error(
-                $user->salesman
-                    ? 'Only one active device is allowed for this salesman.'
-                    : 'Only one active mobile device is allowed for this user.',
+                $maxActiveDevices === 1
+                    ? ($user->salesman
+                        ? 'Only one active device is allowed for this salesman.'
+                        : 'Only one active mobile device is allowed for this user.')
+                    : 'The maximum number of active devices has been reached.',
                 422,
                 [
                     'active_device' => [
-                        'id' => $other->uuid,
-                        'model' => $other->device_model,
-                        'last_seen_at' => $other->last_seen_at?->toIso8601String(),
+                        'id' => $other?->uuid,
+                        'model' => $other?->device_model,
+                        'last_seen_at' => $other?->last_seen_at?->toIso8601String(),
                     ],
+                    'max_active_devices' => $maxActiveDevices,
                 ],
                 'DEVICE_LIMIT_REACHED'
             );
@@ -211,6 +224,43 @@ class AuthController extends Controller
             ]
         );
 
+        if ($device->wasRecentlyCreated) {
+            $device->forceFill([
+                'approval_status' => $devicePolicy['approval_required']
+                    ? 'pending'
+                    : 'approved',
+                'approved_at' => $devicePolicy['approval_required']
+                    ? null
+                    : now(),
+                'approved_by' => null,
+                'is_primary' => $activeDevices->isEmpty(),
+                'management_status' => 'active',
+            ])->save();
+        }
+
+        if ($devicePolicy['approval_required'] && ! $device->isApproved()) {
+            $deviceActivity->record(
+                $device,
+                'device.approval_requested',
+                ['app_version' => $appVersion],
+                $user,
+                'warning',
+            );
+
+            return ApiResponse::error(
+                'This device is waiting for administrator approval.',
+                403,
+                [
+                    'device' => [
+                        'id' => $device->uuid,
+                        'model' => $device->device_model,
+                        'approval_status' => $device->approval_status,
+                    ],
+                ],
+                'DEVICE_APPROVAL_REQUIRED'
+            );
+        }
+
         $permissions = $user->roles
             ->flatMap(fn ($role) => $role->permissions->pluck('slug'))
             ->unique()
@@ -222,6 +272,17 @@ class AuthController extends Controller
         $tokenName = 'mobile-'.$device->uuid;
         $user->tokens()->where('name', $tokenName)->delete();
         $token = $user->createToken($tokenName, $permissions)->plainTextToken;
+
+        $deviceActivity->record(
+            $device,
+            $device->wasRecentlyCreated ? 'device.registered' : 'device.login',
+            [
+                'platform' => $platform,
+                'app_version' => $appVersion,
+                'is_primary' => $device->is_primary,
+            ],
+            $user,
+        );
 
         return ApiResponse::success([
             'token' => $token,
