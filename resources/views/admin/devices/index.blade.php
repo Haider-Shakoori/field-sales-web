@@ -48,6 +48,19 @@
                             <div class="mt-1 text-xs {{ $mobilePolicy->isSupported($device->app_version) ? 'text-slate-500' : 'text-red-300' }}">
                                 App {{ $device->app_version ?? '—' }} · {{ $mobilePolicy->isSupported($device->app_version) ? 'supported' : 'update required' }}
                             </div>
+                            @if($deviceSettings['secondary_device_enabled'] || $deviceSettings['approval_required'] || $deviceSettings['lost_device_workflow_enabled'])
+                                <div class="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+                                    @if($deviceSettings['secondary_device_enabled'])
+                                        <span class="rounded-full bg-white/10 px-2 py-0.5">{{ $device->is_primary ? 'Primary' : 'Secondary' }}</span>
+                                    @endif
+                                    @if($deviceSettings['approval_required'])
+                                        <span class="rounded-full {{ $device->isApproved() ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300' }} px-2 py-0.5">{{ str($device->approval_status)->title() }}</span>
+                                    @endif
+                                    @if($deviceSettings['lost_device_workflow_enabled'] && ($device->management_status ?? 'active') !== 'active')
+                                        <span class="rounded-full bg-red-500/10 px-2 py-0.5 text-red-300">{{ str($device->management_status)->title() }}</span>
+                                    @endif
+                                </div>
+                            @endif
                         </td>
                         <td class="px-5 py-4">
                             <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $healthClass }}">{{ str($health)->replace('_', ' ')->title() }}</span>
