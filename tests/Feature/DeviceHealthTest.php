@@ -143,9 +143,9 @@ class DeviceHealthTest extends TestCase
             ->assertOk()
             ->assertSee('Health summary')
             ->assertSee('Healthy')
-            ->assertSee('Battery & Android background')
-            ->assertSee('Location & tracking')
-            ->assertSee('Sync & storage');
+            ->assertSeeText('Battery & Android background')
+            ->assertSeeText('Location & tracking')
+            ->assertSeeText('Sync & storage');
     }
 
     public function test_health_status_becomes_stale_when_heartbeat_is_old(): void
