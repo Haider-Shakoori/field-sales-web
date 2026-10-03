@@ -148,6 +148,46 @@ class DeviceHealthTest extends TestCase
             ->assertSeeText('Sync & storage');
     }
 
+    public function test_admin_can_require_reauthentication_without_revoking_device(): void
+    {
+        [$tenant, $user, $device, $token] = $this->mobileFixture('remote-logout');
+
+        $admin = $this->tenantScope(
+            $tenant,
+            fn () => $this->userWithRole(
+                $tenant,
+                'admin@remote-logout.test',
+                ['sales-team:view', 'sales-team:manage'],
+                'company_admin',
+            )
+        );
+
+        $this->actingAs($admin, 'web')
+            ->post(route('admin.devices.force-logout', $device))
+            ->assertRedirect();
+
+        $fresh = $this->tenantScope($tenant, fn () => $device->fresh());
+
+        $this->assertTrue($fresh->is_active);
+        $this->assertNull($fresh->revoked_at);
+        $this->assertNull($fresh->push_token);
+        $this->assertDatabaseHas('audit_logs', [
+            'tenant_id' => $tenant->id,
+            'event' => 'device.force_logout',
+            'subject_id' => $device->id,
+        ]);
+
+        auth()->logout();
+        auth('sanctum')->forgetUser();
+        app('auth')->forgetGuards();
+
+        $this->withToken($token)
+            ->getJson('/api/v1/auth/me', $this->deviceHeaders($device))
+            ->assertUnauthorized();
+
+        $this->assertSame($user->id, $fresh->user_id);
+    }
+
     public function test_health_status_becomes_stale_when_heartbeat_is_old(): void
     {
         [$tenant, , $device] = $this->mobileFixture('stale-health');
