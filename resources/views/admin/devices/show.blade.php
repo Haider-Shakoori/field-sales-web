@@ -35,6 +35,7 @@
                 <dt class="text-slate-400">Platform</dt><dd>{{ trim(($device->platform ?? '').' '.($device->os_version ?? $device->android_version ?? '')) ?: '—' }}</dd>
                 <dt class="text-slate-400">Manufacturer</dt><dd>{{ $device->manufacturer ?? '—' }}</dd>
                 <dt class="text-slate-400">App version</dt><dd>{{ $device->app_version ?? '—' }}</dd>
+                <dt class="text-slate-400">Version policy</dt><dd class="{{ $mobilePolicy->isSupported($device->app_version) ? '' : 'text-red-300' }}">{{ $mobilePolicy->isSupported($device->app_version) ? 'Supported' : 'Update required' }} · minimum {{ $mobilePolicy->minimumVersion() }}</dd>
                 <dt class="text-slate-400">Registered</dt><dd>{{ $device->registered_at?->toDateTimeString() ?? '—' }}</dd>
                 <dt class="text-slate-400">Last seen</dt><dd>{{ $device->last_seen_at?->toDateTimeString() ?? '—' }}</dd>
                 <dt class="text-slate-400">Health reported</dt><dd>{{ $device->health_reported_at?->toDateTimeString() ?? '—' }}</dd>
@@ -145,6 +146,14 @@
             <p class="mt-2 text-sm text-slate-400">Revoked {{ $device->revoked_at?->toDateTimeString() }} by {{ $device->revoker?->name ?? 'system' }}.</p>
             @if($device->revocation_reason)<p class="mt-3 rounded-xl bg-slate-950 p-3 text-sm">{{ $device->revocation_reason }}</p>@endif
         @elseif(auth()->user()->hasPermission('sales-team:manage'))
+            <div class="mb-6 border-b border-white/10 pb-6">
+                <h2 class="font-semibold">Remote sign-out</h2>
+                <p class="mt-2 text-sm text-slate-400">Invalidate this device's current mobile token without revoking the installation. The user must sign in again on the same phone.</p>
+                <form method="POST" action="{{ route('admin.devices.force-logout', $device) }}" class="mt-4">
+                    @csrf
+                    <button class="rounded-xl bg-amber-500/20 px-4 py-2.5 font-semibold text-amber-200" onclick="return confirm('Sign this device out remotely?')">Require reauthentication</button>
+                </form>
+            </div>
             <h2 class="font-semibold">Revoke device</h2>
             <p class="mt-2 text-sm text-slate-400">Revoking stops this installation from using its current token. The user can register another device afterward.</p>
             <form method="POST" action="{{ route('admin.devices.revoke', $device) }}" class="mt-4 max-w-xl space-y-3">
