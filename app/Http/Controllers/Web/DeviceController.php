@@ -25,9 +25,35 @@ class DeviceController extends Controller
     ): View {
         Gate::authorize('viewAny', Device::class);
 
+        $activeDevices = Device::query()
+            ->where('is_active', true)
+            ->whereNull('revoked_at')
+            ->get([
+                'pending_sync_count',
+                'failed_sync_count',
+                'blocked_sync_count',
+                'last_sync_at',
+            ]);
+
+        $attentionDevices = $activeDevices->filter(
+            fn (Device $device): bool => (int) $device->pending_sync_count > 0
+                || (int) $device->failed_sync_count > 0
+                || (int) $device->blocked_sync_count > 0
+                || $device->last_sync_at === null
+                || $device->last_sync_at->lt(now()->subMinutes(30)),
+        );
+
         return view('admin.devices.index', [
             'mobilePolicy' => $mobilePolicy,
             'deviceSettings' => $deviceSettings->get(request()->user()->tenant),
+            'syncSummary' => [
+                'active' => $activeDevices->count(),
+                'healthy' => max(0, $activeDevices->count() - $attentionDevices->count()),
+                'attention' => $attentionDevices->count(),
+                'pending' => (int) $activeDevices->sum('pending_sync_count'),
+                'failed' => (int) $activeDevices->sum('failed_sync_count'),
+                'blocked' => (int) $activeDevices->sum('blocked_sync_count'),
+            ],
             'devices' => Device::with(['user', 'salesman'])
                 ->latest('registered_at')
                 ->paginate(min(100, max(10, request()->integer('per_page', 30))))
