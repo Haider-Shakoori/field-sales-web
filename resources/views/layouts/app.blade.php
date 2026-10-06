@@ -284,11 +284,6 @@
                 padding-right: .5rem;
             }
         }
-            .fp-submit-busy { position: relative; pointer-events: none; }
-        .fp-submit-busy::after { content: ""; width: .9rem; height: .9rem; margin-inline-start: .5rem; border: 2px solid currentColor; border-right-color: transparent; border-radius: 9999px; animation: fp-spin .65s linear infinite; }
-         fp-spin { to { transform: rotate(360deg); } }
-         (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
-
         .fp-submit-busy { position: relative; pointer-events: none; }
         .fp-submit-busy::after {
             content: "";
@@ -438,7 +433,7 @@
 
     <label for="sidebar-toggle" aria-hidden="true" class="fixed inset-0 z-30 hidden bg-slate-950/70 backdrop-blur-sm peer-checked:block lg:hidden"></label>
 
-    <aside class="fp-sidebar fixed inset-y-0 z-40 flex w-72 flex-col border-white/10 bg-slate-900/70 backdrop-blur-xl transition-transform duration-200">
+    <aside class="fp-sidebar fixed inset-y-0 z-40 flex w-72 flex-col border-white/10 bg-slate-950/90 shadow-2xl shadow-black/25 backdrop-blur-xl transition-all duration-200">
         <div class="fp-sidebar-brand flex items-center gap-3 border-b border-white/10 px-5 py-5">
             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-sky-400 text-lg font-black text-white shadow-lg shadow-indigo-500/30">F</span>
             <div class="min-w-0">
@@ -598,7 +593,37 @@
         </nav>
     @endunless
 
-    <main class="{{ $fullscreen ? 'h-screen w-screen overflow-hidden p-0' : 'mx-auto max-w-7xl p-4 sm:p-6 lg:p-8' }}">
+    <main class="{{ $fullscreen ? 'h-screen w-screen overflow-hidden p-0' : 'mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8' }}">
+        @if($currentUser && ! $fullscreen)
+            @php
+                $routeLabel = str(request()->route()?->getName() ?? 'dashboard')
+                    ->replace('admin.', '')
+                    ->replace(['.index', '.show', '.create', '.edit'], '')
+                    ->replace(['.', '-'], ' ')
+                    ->title();
+            @endphp
+            <div class="mb-6 hidden items-center justify-between gap-4 lg:flex">
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        <span class="fp-status-dot"></span>
+                        <span>{{ $isPlatformContext ? __('Platform') : ($tenantName ?? __('Organization')) }}</span>
+                    </div>
+                    <p class="mt-1 truncate text-sm font-medium text-slate-300">{{ $routeLabel }}</p>
+                </div>
+                <div class="fp-toolbar">
+                    <span class="fp-toolbar-chip">
+                        <svg class="h-4 w-4 text-sky-300" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/>
+                            <circle cx="12" cy="12" r="9"/>
+                        </svg>
+                        {{ now()->setTimezone($currentUser->tenant?->timezone ?? config('app.timezone'))->format('D, M j · H:i') }}
+                    </span>
+                    <span class="fp-toolbar-chip border-l border-white/10">
+                        {{ str($currentUser->role)->replace('_', ' ')->title() }}
+                    </span>
+                </div>
+            </div>
+        @endif
         @if(session('status'))
             <div class="mb-5 flex items-start gap-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-emerald-200">
                 <svg class="mt-0.5 h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
