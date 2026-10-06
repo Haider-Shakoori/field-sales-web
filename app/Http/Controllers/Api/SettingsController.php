@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\DeviceSettingsService;
 use App\Services\FieldIntelligenceSettingsService;
 use App\Services\TrackingSettingsService;
 use App\Support\ApiResponse;
@@ -24,9 +25,50 @@ class SettingsController extends Controller
         Request $request,
         FieldIntelligenceSettingsService $settings,
     ): JsonResponse {
-        $values = $settings->settingsFor($request->user()->tenant);
+        return ApiResponse::success(
+            $this->featurePayload($settings->settingsFor($request->user()->tenant)),
+        );
+    }
+
+    public function sync(
+        Request $request,
+        TrackingSettingsService $trackingSettings,
+        FieldIntelligenceSettingsService $featureSettings,
+        DeviceSettingsService $deviceSettings,
+    ): JsonResponse {
+        $tenant = $request->user()->loadMissing('tenant')->tenant;
+        $tracking = $trackingSettings->get($tenant);
+        $features = $this->featurePayload($featureSettings->settingsFor($tenant));
+        $device = $deviceSettings->get($tenant);
+
+        $versionPayload = [
+            'tracking' => $tracking,
+            'features' => $features,
+            'device' => $device,
+        ];
+
+        $updatedAt = collect([
+            $tracking['updated_at'] ?? null,
+            $device['updated_at'] ?? null,
+            $tenant->updated_at?->toISOString(),
+        ])->filter()->map(fn ($value) => (string) $value)->sort()->last();
 
         return ApiResponse::success([
+            'configuration_version' => hash(
+                'sha256',
+                json_encode($versionPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ),
+            'server_time' => now()->toISOString(),
+            'updated_at' => $updatedAt,
+            'tracking' => $tracking,
+            'features' => $features,
+            'device' => $device,
+        ]);
+    }
+
+    private function featurePayload(array $values): array
+    {
+        return [
             'smart_routes_enabled' => $values['smart_routes_enabled'],
             'route_nearby_radius_km' => $values['route_nearby_radius_km'],
             'route_max_opportunities' => $values['route_max_opportunities'],
@@ -40,6 +82,6 @@ class SettingsController extends Controller
             'territory_stale_attention_percent' => $values['territory_stale_attention_percent'],
             'territory_geometry_audit_enabled' => $values['territory_geometry_audit_enabled'],
             'gamification_enabled' => $values['gamification_enabled'],
-        ]);
+        ];
     }
 }
