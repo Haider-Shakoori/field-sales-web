@@ -42,6 +42,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/gps/history', [GpsController::class, 'history']);
         Route::get('/settings/attendance-tracking', [SettingsController::class, 'show']);
         Route::get('/settings/features', [SettingsController::class, 'features']);
+        Route::get('/settings/sync', [SettingsController::class, 'sync']);
 
         Route::middleware('device.required')->group(function () {
             Route::get('/auth/me', [AuthController::class, 'me']);

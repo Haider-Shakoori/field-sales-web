@@ -29,6 +29,24 @@ class DashboardService
         $salesmanIds = $this->visibleSalesmanIds($actor, $localDate);
         $locations ??= $this->liveLocations($actor, $salesmanIds);
 
+        $mobileDevices = Device::query()
+            ->whereIn('salesman_id', $salesmanIds)
+            ->where('is_active', true)
+            ->whereNull('revoked_at')
+            ->get([
+                'pending_sync_count',
+                'failed_sync_count',
+                'blocked_sync_count',
+                'last_sync_at',
+            ]);
+        $syncAttention = $mobileDevices->filter(
+            fn (Device $device): bool => (int) $device->pending_sync_count > 0
+                || (int) $device->failed_sync_count > 0
+                || (int) $device->blocked_sync_count > 0
+                || $device->last_sync_at === null
+                || $device->last_sync_at->lt(now()->subMinutes(30)),
+        );
+
         return [
             'local_date' => $localDate,
             'timezone' => $this->clock->timezone($actor->tenant),
@@ -103,6 +121,19 @@ class DashboardService
                         ->whereBetween('spent_at', [$start, $end]),
                     'amount',
                 ),
+            ],
+            'mobile_sync' => [
+                'devices' => $mobileDevices->count(),
+                'healthy' => max(0, $mobileDevices->count() - $syncAttention->count()),
+                'attention' => $syncAttention->count(),
+                'pending' => (int) $mobileDevices->sum('pending_sync_count'),
+                'failed' => (int) $mobileDevices->sum('failed_sync_count'),
+                'blocked' => (int) $mobileDevices->sum('blocked_sync_count'),
+                'last_sync_at' => $mobileDevices
+                    ->pluck('last_sync_at')
+                    ->filter()
+                    ->sortByDesc(fn ($value) => $value->getTimestamp())
+                    ->first()?->toISOString(),
             ],
         ];
     }
