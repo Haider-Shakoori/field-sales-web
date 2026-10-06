@@ -1,3 +1,4 @@
+# Compiles and verifies the production Tailwind artifact.
 name: web-css
 
 on:
