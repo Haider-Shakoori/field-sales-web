@@ -1,15 +1,28 @@
 <x-layouts.app>
-    <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div class="fp-page-header">
         <div>
-            <p class="font-semibold text-indigo-400">{{ $tenant->name }}</p>
-            <h1 class="mt-1 text-3xl font-bold">Attendance, GPS & device policy</h1>
-            <p class="mt-2 text-slate-400">
-                Tenant timezone:
-                <span class="text-slate-200">{{ $settings['timezone'] }}</span>
+            <div class="fp-page-eyebrow">{{ $tenant->name }}</div>
+            <h1 class="fp-page-title">Attendance, GPS & device policy</h1>
+            <p class="fp-page-subtitle">
+                Configure the rules used by FieldPulse mobile. Online phones pull these settings during every sync cycle.
             </p>
+            <div class="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+                <span class="fp-badge bg-white/5">Timezone {{ $settings['timezone'] }}</span>
+                <span class="fp-badge bg-emerald-500/10 text-emerald-300">Privacy-first</span>
+            </div>
         </div>
-        <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-            Privacy-first · device controls are optional
+        <a href="{{ route('admin.devices.index') }}" class="fp-btn-secondary">
+            View mobile sync health
+        </a>
+    </div>
+
+    <div class="mb-6 flex items-start gap-3 rounded-2xl border border-indigo-400/20 bg-indigo-500/10 p-4 text-sm text-indigo-100">
+        <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-300"></span>
+        <div>
+            <div class="font-semibold">Web policy is the source of truth</div>
+            <p class="mt-1 text-xs leading-5 text-indigo-200/80">
+                Tracking rules, feature switches and device policy are cached on each phone for offline use and refreshed automatically whenever mobile sync runs online.
+            </p>
         </div>
     </div>
 
@@ -23,7 +36,7 @@
         @csrf
         @method('PUT')
 
-        <section class="space-y-5 rounded-3xl border border-white/10 bg-slate-900 p-6">
+        <section class="fp-settings-section">
             <h2 class="text-xl font-bold">Work day</h2>
 
             <label class="block">
@@ -57,7 +70,7 @@
             </label>
         </section>
 
-        <section class="space-y-5 rounded-3xl border border-white/10 bg-slate-900 p-6">
+        <section class="fp-settings-section">
             <h2 class="text-xl font-bold">Location tracking</h2>
 
             <input type="hidden" name="gps_tracking_enabled" value="0">
@@ -114,7 +127,7 @@
             </div>
         </section>
 
-        <section class="space-y-6 rounded-3xl border border-white/10 bg-slate-900 p-6 lg:col-span-2">
+        <section class="fp-settings-section lg:col-span-2">
             <div>
                 <div class="flex flex-wrap items-center gap-3">
                     <h2 class="text-xl font-bold">Optional device controls</h2>
@@ -126,7 +139,7 @@
             </div>
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <div class="fp-setting-tile">
                     <input type="hidden" name="device_restriction_enabled" value="0">
                     <label class="flex items-start gap-3">
                         <input type="checkbox" name="device_restriction_enabled" value="1" @checked($deviceSettings['device_restriction_enabled']) class="mt-1">
@@ -137,7 +150,7 @@
                     </label>
                 </div>
 
-                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <div class="fp-setting-tile">
                     <input type="hidden" name="device_approval_required" value="0">
                     <label class="flex items-start gap-3">
                         <input type="checkbox" name="device_approval_required" value="1" @checked($deviceSettings['approval_required']) class="mt-1">
@@ -148,7 +161,7 @@
                     </label>
                 </div>
 
-                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <div class="fp-setting-tile">
                     <input type="hidden" name="secondary_device_enabled" value="0">
                     <label class="flex items-start gap-3">
                         <input type="checkbox" name="secondary_device_enabled" value="1" @checked($deviceSettings['secondary_device_enabled']) class="mt-1">
@@ -166,7 +179,7 @@
                     </label>
                 </div>
 
-                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <div class="fp-setting-tile">
                     <input type="hidden" name="lost_device_workflow_enabled" value="0">
                     <label class="flex items-start gap-3">
                         <input type="checkbox" name="lost_device_workflow_enabled" value="1" @checked($deviceSettings['lost_device_workflow_enabled']) class="mt-1">
@@ -177,7 +190,7 @@
                     </label>
                 </div>
 
-                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <div class="fp-setting-tile">
                     <input type="hidden" name="device_activity_history_enabled" value="0">
                     <label class="flex items-start gap-3">
                         <input type="checkbox" name="device_activity_history_enabled" value="1" @checked($deviceSettings['activity_history_enabled']) class="mt-1">
@@ -188,7 +201,7 @@
                     </label>
                 </div>
 
-                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <div class="fp-setting-tile">
                     <input type="hidden" name="remote_diagnostics_enabled" value="0">
                     <label class="flex items-start gap-3">
                         <input type="checkbox" name="remote_diagnostics_enabled" value="1" @checked($deviceSettings['remote_diagnostics_enabled']) class="mt-1">
@@ -199,7 +212,7 @@
                     </label>
                 </div>
 
-                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <div class="fp-setting-tile">
                     <input type="hidden" name="push_test_enabled" value="0">
                     <label class="flex items-start gap-3">
                         <input type="checkbox" name="push_test_enabled" value="1" @checked($deviceSettings['push_test_enabled']) class="mt-1">
@@ -210,7 +223,7 @@
                     </label>
                 </div>
 
-                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <div class="fp-setting-tile">
                     <input type="hidden" name="gps_background_test_enabled" value="0">
                     <label class="flex items-start gap-3">
                         <input type="checkbox" name="gps_background_test_enabled" value="1" @checked($deviceSettings['gps_background_test_enabled']) class="mt-1">
@@ -221,7 +234,7 @@
                     </label>
                 </div>
 
-                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <div class="fp-setting-tile">
                     <input type="hidden" name="sync_test_enabled" value="0">
                     <label class="flex items-start gap-3">
                         <input type="checkbox" name="sync_test_enabled" value="1" @checked($deviceSettings['sync_test_enabled']) class="mt-1">
@@ -234,8 +247,11 @@
             </div>
         </section>
 
-        <div class="flex justify-end lg:col-span-2">
-            <button class="rounded-xl bg-indigo-500 px-6 py-3 font-semibold hover:bg-indigo-400">Save policy</button>
+        <div class="sticky bottom-4 z-20 flex justify-end lg:col-span-2">
+            <div class="fp-toolbar shadow-2xl shadow-black/30">
+                <span class="hidden px-2 text-xs text-slate-400 sm:inline">Changes apply on the next mobile online sync.</span>
+                <button class="fp-btn-primary px-6">Save & publish policy</button>
+            </div>
         </div>
     </form>
 </x-layouts.app>
