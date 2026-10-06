@@ -1,95 +1,120 @@
 <x-layouts.app>
     <link rel="stylesheet" href="{{ asset('vendor/leaflet/leaflet.css') }}">
 
-    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div class="fp-page-header">
         <div>
-            <h1 class="text-2xl font-bold">{{ $variant['title'] }}</h1>
-            <p class="mt-1 text-sm text-slate-400">{{ $variant['subtitle'] }}</p>
-            <p class="mt-1 text-xs text-slate-500">
-                {{ $summary['local_date'] }} · {{ $summary['timezone'] }}
-            </p>
+            <div class="fp-page-eyebrow">Operations overview</div>
+            <h1 class="fp-page-title">{{ $variant['title'] }}</h1>
+            <p class="fp-page-subtitle">{{ $variant['subtitle'] }}</p>
+            <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span>{{ $summary['local_date'] }}</span>
+                <span>•</span>
+                <span>{{ $summary['timezone'] }}</span>
+                <span>•</span>
+                <span>{{ $summary['salesmen']['on_duty'] }} on duty</span>
+            </div>
         </div>
-        <div class="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-slate-300">
-            Pending approvals:
-            <span class="font-semibold">{{ $summary['orders']['pending_count'] + $summary['collections']['pending_count'] + $summary['expenses']['pending_count'] }}</span>
+        <div class="fp-toolbar">
+            <a href="{{ route('admin.devices.index') }}" class="fp-toolbar-chip hover:bg-white/10">
+                <span class="fp-status-dot"></span>
+                Mobile sync
+            </a>
+            <span class="fp-toolbar-chip border-l border-white/10">
+                {{ $summary['orders']['pending_count'] + $summary['collections']['pending_count'] + $summary['expenses']['pending_count'] }} approvals pending
+            </span>
         </div>
     </div>
 
-    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
-            <div class="text-sm text-slate-400">Salesmen</div>
-            <div class="mt-2 text-3xl font-bold">{{ $summary['salesmen']['total'] }}</div>
+    <section class="fp-kpi-grid">
+        <div class="fp-kpi-card">
+            <div class="fp-kpi-label">Salesmen</div>
+            <div class="fp-kpi-value">{{ $summary['salesmen']['total'] }}</div>
             <div class="mt-3 flex flex-wrap gap-2 text-xs">
-                <span class="rounded-full bg-emerald-500/15 px-2.5 py-1 text-emerald-300">Online {{ $summary['salesmen']['live'] }}</span>
-                <span class="rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-300">Idle {{ $summary['salesmen']['stale'] }}</span>
-                <span class="rounded-full bg-slate-700 px-2.5 py-1 text-slate-300">Offline {{ $summary['salesmen']['offline'] }}</span>
+                <span class="fp-badge bg-emerald-500/15 text-emerald-300">Online {{ $summary['salesmen']['live'] }}</span>
+                <span class="fp-badge bg-amber-500/15 text-amber-300">Idle {{ $summary['salesmen']['stale'] }}</span>
+                <span class="fp-badge bg-white/5 text-slate-300">Offline {{ $summary['salesmen']['offline'] }}</span>
             </div>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
-            <div class="text-sm text-slate-400">Visits today</div>
-            <div class="mt-2 text-3xl font-bold">{{ $summary['visits']['completed'] }}</div>
-            <div class="mt-3 text-xs text-slate-400">Active now: {{ $summary['visits']['active'] }}</div>
+        <div class="fp-kpi-card">
+            <div class="fp-kpi-label">Visits today</div>
+            <div class="fp-kpi-value">{{ $summary['visits']['completed'] }}</div>
+            <div class="fp-kpi-meta">{{ $summary['visits']['active'] }} active right now</div>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
-            <div class="text-sm text-slate-400">Approved orders today</div>
-            <div class="mt-2 text-3xl font-bold">{{ $summary['orders']['approved_count'] }}</div>
-            <div class="mt-3 space-y-1 text-xs text-slate-300">
+        <div class="fp-kpi-card">
+            <div class="fp-kpi-label">Approved orders</div>
+            <div class="fp-kpi-value">{{ $summary['orders']['approved_count'] }}</div>
+            <div class="fp-kpi-meta">
                 @forelse($summary['orders']['totals'] as $total)
-                    <div>{{ number_format($total['total'], 2) }} {{ $total['currency'] }}</div>
+                    <span class="mr-2">{{ number_format($total['total'], 2) }} {{ $total['currency'] }}</span>
                 @empty
-                    <div class="text-slate-500">No approved sales yet</div>
+                    No approved sales yet
                 @endforelse
             </div>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
-            <div class="text-sm text-slate-400">Verified collections today</div>
-            <div class="mt-2 text-3xl font-bold">{{ $summary['collections']['verified_count'] }}</div>
-            <div class="mt-3 space-y-1 text-xs text-slate-300">
-                @forelse($summary['collections']['totals'] as $total)
-                    <div>{{ number_format($total['total'], 2) }} {{ $total['currency'] }}</div>
-                @empty
-                    <div class="text-slate-500">No verified collections yet</div>
-                @endforelse
+        <div class="fp-kpi-card">
+            <div class="fp-kpi-label">Mobile sync health</div>
+            <div class="fp-kpi-value">{{ $summary['mobile_sync']['healthy'] }}/{{ $summary['mobile_sync']['devices'] }}</div>
+            <div class="fp-kpi-meta">
+                @if($summary['mobile_sync']['attention'] > 0)
+                    <span class="text-amber-300">{{ $summary['mobile_sync']['attention'] }} devices need attention</span>
+                @else
+                    <span class="text-emerald-300">All reporting devices are current</span>
+                @endif
             </div>
         </div>
     </section>
 
-    <section class="mt-6 grid gap-4 lg:grid-cols-3">
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
-            <div class="text-sm text-slate-400">Approved expenses today</div>
-            <div class="mt-2 text-2xl font-bold">{{ $summary['expenses']['approved_count'] }}</div>
-            <div class="mt-3 space-y-1 text-sm text-slate-300">
-                @forelse($summary['expenses']['totals'] as $total)
+    <section class="mt-6 grid gap-4 lg:grid-cols-4">
+        <div class="fp-surface p-5">
+            <div class="fp-kpi-label">Collections</div>
+            <div class="mt-2 text-2xl font-bold">{{ $summary['collections']['verified_count'] }}</div>
+            <div class="fp-kpi-meta">
+                @forelse($summary['collections']['totals'] as $total)
                     <div>{{ number_format($total['total'], 2) }} {{ $total['currency'] }}</div>
                 @empty
-                    <div class="text-slate-500">No approved expenses yet</div>
+                    No verified collections yet
                 @endforelse
             </div>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
-            <div class="text-sm text-slate-400">On duty</div>
-            <div class="mt-2 text-2xl font-bold">{{ $summary['salesmen']['on_duty'] }}</div>
-            <p class="mt-3 text-sm text-slate-400">Salesmen with an active work session.</p>
+        <div class="fp-surface p-5">
+            <div class="fp-kpi-label">Expenses</div>
+            <div class="mt-2 text-2xl font-bold">{{ $summary['expenses']['approved_count'] }}</div>
+            <div class="fp-kpi-meta">
+                @forelse($summary['expenses']['totals'] as $total)
+                    <div>{{ number_format($total['total'], 2) }} {{ $total['currency'] }}</div>
+                @empty
+                    No approved expenses yet
+                @endforelse
+            </div>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
-            <div class="text-sm text-slate-400">Review queue</div>
-            <div class="mt-3 grid grid-cols-3 gap-3 text-center">
+        <div class="fp-surface p-5">
+            <div class="fp-kpi-label">Sync queue</div>
+            <div class="mt-2 text-2xl font-bold">{{ $summary['mobile_sync']['pending'] }}</div>
+            <div class="fp-kpi-meta">
+                {{ $summary['mobile_sync']['failed'] }} failed ·
+                <span class="{{ $summary['mobile_sync']['blocked'] > 0 ? 'text-red-300' : '' }}">{{ $summary['mobile_sync']['blocked'] }} blocked</span>
+            </div>
+        </div>
+
+        <div class="fp-surface p-5">
+            <div class="fp-kpi-label">Review queue</div>
+            <div class="mt-3 grid grid-cols-3 gap-2 text-center">
                 <div class="rounded-xl bg-white/5 p-3">
                     <div class="text-xl font-bold">{{ $summary['orders']['pending_count'] }}</div>
-                    <div class="mt-1 text-xs text-slate-400">Orders</div>
+                    <div class="mt-1 text-[11px] text-slate-500">Orders</div>
                 </div>
                 <div class="rounded-xl bg-white/5 p-3">
                     <div class="text-xl font-bold">{{ $summary['collections']['pending_count'] }}</div>
-                    <div class="mt-1 text-xs text-slate-400">Collections</div>
+                    <div class="mt-1 text-[11px] text-slate-500">Collections</div>
                 </div>
                 <div class="rounded-xl bg-white/5 p-3">
                     <div class="text-xl font-bold">{{ $summary['expenses']['pending_count'] }}</div>
-                    <div class="mt-1 text-xs text-slate-400">Expenses</div>
+                    <div class="mt-1 text-[11px] text-slate-500">Expenses</div>
                 </div>
             </div>
         </div>
@@ -98,7 +123,7 @@
     @if($visibility['orders'] || $visibility['visits'])
         <section class="mt-6 grid gap-4 xl:grid-cols-2">
             @if($visibility['orders'])
-                <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+                <div class="fp-surface p-5">
                     <div class="mb-4">
                         <h2 class="font-semibold">Sales trend</h2>
                         <p class="mt-1 text-xs text-slate-400">Approved order value for the last {{ $analytics['days'] }} days, separated by currency.</p>
@@ -110,7 +135,7 @@
             @endif
 
             @if($visibility['visits'])
-                <div class="rounded-2xl border border-white/10 bg-slate-900 p-5">
+                <div class="fp-surface p-5">
                     <div class="mb-4">
                         <h2 class="font-semibold">Visit completion</h2>
                         <p class="mt-1 text-xs text-slate-400">Started versus completed visits for the last {{ $analytics['days'] }} days.</p>
@@ -124,7 +149,7 @@
     @endif
 
     @if($visibility['tracking'])
-        <section class="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+        <section class="mt-6 overflow-hidden fp-surface">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
                 <div>
                     <h2 class="font-semibold">Live salesman map</h2>
@@ -145,7 +170,7 @@
             </div>
         </section>
 
-        <section class="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+        <section class="mt-6 overflow-hidden fp-surface">
             <div class="border-b border-white/10 px-5 py-4">
                 <h2 class="font-semibold">Salesman status</h2>
                 <p class="mt-1 text-xs text-slate-400">Current field availability and latest reported device position.</p>
