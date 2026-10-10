@@ -3,10 +3,10 @@
 return [
     'tile_url' => env(
         'MAP_TILE_URL_TEMPLATE',
-        'https://maps.fieldpulse.businessos.af/styles/afghanistan/{z}/{x}/{y}.png',
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     ),
     'attribution' => env(
         'MAP_TILE_ATTRIBUTION',
-        '© OpenStreetMap contributors · Geofabrik · BusinessOS',
+        '© OpenStreetMap contributors',
     ),
 ];
