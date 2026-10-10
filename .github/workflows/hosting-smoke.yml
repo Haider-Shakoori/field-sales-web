@@ -59,4 +59,18 @@ jobs:
             exit 1
           fi
 
-          echo "cPanel readiness and deployed CSS match the GitHub release."
+          # Confirm BusinessOS publicly advertises the web release without
+          # mistakenly publishing Android before the mobile rollout.
+          curl --fail --silent --show-error --location --retry 2 --max-time 25 \
+            "https://businessos.af/apps/fieldpulse" -o /tmp/fieldpulse-product.html
+          grep -q "Web live" /tmp/fieldpulse-product.html || {
+            echo "::error::BusinessOS still does not show the live FieldPulse web status."
+            exit 1
+          }
+          if grep -q "Active development" /tmp/fieldpulse-product.html; then
+            echo "::error::Legacy FieldPulse development status remains published."
+            exit 1
+          fi
+          echo "- BusinessOS FieldPulse status: Web live" >> "${GITHUB_STEP_SUMMARY}"
+
+          echo "cPanel readiness, deployed CSS, and public FieldPulse launch status verified."
