@@ -1,0 +1,55 @@
+# Compiles and verifies the production Tailwind artifact.
+name: web-css
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  css:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.head.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build production CSS
+        run: npm run build:css
+
+      - name: Upload compiled CSS
+        uses: actions/upload-artifact@v4
+        with:
+          name: fieldpulse-web-css
+          path: public/css/app.css
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Commit compiled CSS on branch pushes
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          if git diff --quiet -- public/css/app.css; then
+            echo "Compiled CSS is already current."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/css/app.css
+          git commit -m "build: refresh compiled web CSS"
+          git push origin HEAD:"${GITHUB_REF_NAME}"
+
+      - name: Verify compiled CSS is committed
+        if: github.event_name == 'pull_request'
+        run: git diff --exit-code -- public/css/app.css
