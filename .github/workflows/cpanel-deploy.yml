@@ -1,0 +1,82 @@
+name: Deploy FieldPulse to existing cPanel
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type DEPLOY to update fieldpulse.businessos.af (never the VPS)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fieldpulse-cpanel-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production-cpanel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify explicit confirmation and cPanel connection inputs
+        shell: bash
+        env:
+          CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
+          CPANEL_SSH_PRIVATE_KEY: ${{ secrets.CPANEL_SSH_PRIVATE_KEY }}
+          CPANEL_SSH_KNOWN_HOSTS: ${{ secrets.CPANEL_SSH_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          test "${{ inputs.confirmation }}" = "DEPLOY" || {
+            echo "::error::Deployment requires explicit confirmation DEPLOY."; exit 1;
+          }
+          for key in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_PRIVATE_KEY CPANEL_SSH_KNOWN_HOSTS; do
+            test -n "${!key}" || { echo "::error::Missing ${key} GitHub Actions secret."; exit 1; }
+          done
+
+      - name: Run existing rollback-aware cPanel deployment script over SSH
+        shell: bash
+        env:
+          CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
+          CPANEL_SSH_PRIVATE_KEY: ${{ secrets.CPANEL_SSH_PRIVATE_KEY }}
+          CPANEL_SSH_KNOWN_HOSTS: ${{ secrets.CPANEL_SSH_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          install -m 700 -d "${HOME}/.ssh"
+          printf '%s\n' "${CPANEL_SSH_PRIVATE_KEY}" > "${HOME}/.ssh/fieldpulse_deploy_key"
+          chmod 600 "${HOME}/.ssh/fieldpulse_deploy_key"
+          printf '%s\n' "${CPANEL_SSH_KNOWN_HOSTS}" > "${HOME}/.ssh/known_hosts"
+          chmod 600 "${HOME}/.ssh/known_hosts"
+
+          ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=20 -o BatchMode=yes \
+            -i "${HOME}/.ssh/fieldpulse_deploy_key" \
+            "${CPANEL_SSH_USER}@${CPANEL_SSH_HOST}" 'bash -se' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /home/businessos/fieldpulse.businessos.af
+          test -f artisan && test -f ops/scripts/deploy-cpanel.sh
+          bash ops/scripts/deploy-cpanel.sh main
+          echo "Hosted FieldPulse Git commit: $(git rev-parse HEAD)"
+          REMOTE
+
+      - name: Verify cPanel health and deployed stylesheet
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          base="https://fieldpulse.businessos.af"
+          for path in up ready; do
+            curl --fail --silent --show-error --location --retry 3 --retry-delay 3 --max-time 25 \
+              "${base}/${path}" >/dev/null
+          done
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 3 --max-time 25 \
+            "${base}/css/app.css?release=${GITHUB_SHA}" -o /tmp/fieldpulse-live.css
+          cmp -s public/css/app.css /tmp/fieldpulse-live.css || {
+            echo "::error::Production CSS and checked-out release differ after deployment."; exit 1;
+          }
+          echo "Deployed FieldPulse to its original cPanel hosting, with healthy /up and /ready and matching CSS." >> "${GITHUB_STEP_SUMMARY}"

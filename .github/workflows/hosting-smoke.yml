@@ -1,0 +1,62 @@
+name: FieldPulse cPanel production smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 2 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fieldpulse-cpanel-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify hosted Laravel and CSS match this release
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          base="https://fieldpulse.businessos.af"
+
+          # HTTP failures, invalid certificates and timeouts all fail the release gate.
+          for path in up ready; do
+            echo "Checking ${base}/${path}"
+            curl --fail --silent --show-error --location --retry 2 --max-time 25 \
+              "${base}/${path}" -o "/tmp/fieldpulse-${path}"
+          done
+
+          curl --fail --silent --show-error --location --retry 2 --max-time 25 \
+            "${base}/" -o /tmp/fieldpulse-home.html
+          test -s /tmp/fieldpulse-home.html || { echo "Homepage returned an empty response."; exit 1; }
+
+          curl --fail --silent --show-error --location --retry 2 --max-time 25 \
+            "${base}/css/app.css?release=${GITHUB_SHA}" -o /tmp/fieldpulse-live.css
+          test -s /tmp/fieldpulse-live.css || { echo "Hosted compiled CSS is empty."; exit 1; }
+
+          local_sha="$(sha256sum public/css/app.css | awk '{print $1}')"
+          hosted_sha="$(sha256sum /tmp/fieldpulse-live.css | awk '{print $1}')"
+          {
+            echo "## cPanel live verification"
+            echo "- Web release SHA: \`${GITHUB_SHA}\`"
+            echo "- Host: \`${base}\`"
+            echo "- /up: HTTP 200"
+            echo "- /ready: HTTP 200"
+            echo "- Homepage: reachable"
+            echo "- GitHub compiled CSS SHA-256: \`${local_sha}\`"
+            echo "- Hosted compiled CSS SHA-256: \`${hosted_sha}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          if [[ "${local_sha}" != "${hosted_sha}" ]]; then
+            echo "::error::Hosting compiled CSS does not match the current GitHub main release. Deploy main to cPanel, then rerun this check."
+            exit 1
+          fi
+
+          echo "cPanel readiness and deployed CSS match the GitHub release."
