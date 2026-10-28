@@ -167,6 +167,41 @@
         html[data-theme="light"] [class*="bg-red-500"].text-white,
         html[data-theme="light"] [class*="bg-sky-500"].text-white { color: #fff !important; }
 
+        /* Shared table treatment: all admin tables, including non-fp-table views. */
+        html[data-theme="light"] main table { color: #1e293b; border-color: #e2e8f0; }
+        html[data-theme="light"] main table thead { background-color: #f1f5f9 !important; color: #475569 !important; }
+        html[data-theme="light"] main table thead th { color: #475569 !important; border-color: #e2e8f0 !important; }
+        html[data-theme="light"] main table tbody { color: #1e293b; }
+        html[data-theme="light"] main table tbody tr { border-color: #e2e8f0 !important; }
+        html[data-theme="light"] main table tbody tr:hover { background-color: #eef2ff !important; }
+        html[data-theme="light"] main table td { border-color: #e2e8f0 !important; }
+        html[data-theme="light"] main table [class~="text-white"],
+        html[data-theme="light"] main table [class~="text-slate-100"],
+        html[data-theme="light"] main table [class~="text-slate-200"] { color: #1e293b !important; }
+        html[data-theme="light"] main table [class~="text-slate-300"],
+        html[data-theme="light"] main table [class~="text-slate-400"],
+        html[data-theme="light"] main table [class~="text-slate-500"] { color: #64748b !important; }
+        html[data-theme="light"] main table [class~="divide-white/10"] > :not([hidden]) ~ :not([hidden]),
+        html[data-theme="light"] main table [class~="divide-white/5"] > :not([hidden]) ~ :not([hidden]) { border-color: #e2e8f0 !important; }
+        html[data-theme="light"] main table [class~="bg-white/5"] { background-color: #f1f5f9 !important; }
+        html[data-theme="light"] main table a { color: #4338ca; }
+        html[data-theme="light"] main table .fp-btn-primary,
+        html[data-theme="light"] main table [class*="bg-indigo-500"].text-white,
+        html[data-theme="light"] main table [class*="bg-indigo-600"].text-white { color: #fff !important; }
+        html[data-theme="light"] main table [class*="text-emerald-"] { color: #047857 !important; }
+        html[data-theme="light"] main table [class*="text-rose-"],
+        html[data-theme="light"] main table [class*="text-red-"] { color: #be123c !important; }
+        html[data-theme="light"] main table [class*="text-amber-"] { color: #92400e !important; }
+        html[data-theme="light"] main table [class*="text-sky-"] { color: #0369a1 !important; }
+        html[data-theme="light"] main table [class*="text-indigo-"] { color: #4338ca !important; }
+        html[data-theme="light"] main table button,
+        html[data-theme="light"] main table select,
+        html[data-theme="light"] main table input { color-scheme: light; }
+        @media print {
+            html[data-theme="light"] main table thead { background-color: transparent !important; }
+            html[data-theme="light"] main table tbody tr:hover { background-color: transparent !important; }
+        }
+
         .fp-table-tools {
             display: flex;
             flex-wrap: wrap;
