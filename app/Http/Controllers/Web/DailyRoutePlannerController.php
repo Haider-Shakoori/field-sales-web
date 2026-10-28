@@ -27,6 +27,8 @@ class DailyRoutePlannerController extends Controller
         $validated = $request->validate([
             'salesman' => ['required', 'uuid'],
             'date' => ['required', 'date_format:Y-m-d'],
+            'excluded_customers' => ['sometimes', 'array'],
+            'excluded_customers.*' => ['required', 'uuid', 'distinct'],
         ]);
 
         $salesman = Salesman::query()
@@ -42,7 +44,9 @@ class DailyRoutePlannerController extends Controller
             ]);
         }
 
+        $excluded = collect($validated['excluded_customers'] ?? [])->all();
         $stops = collect($plan['stops'] ?? [])
+            ->reject(fn (array $stop): bool => in_array($stop['customer_id'] ?? null, $excluded, true))
             ->where('visited_today', false)
             ->values();
         $customers = Customer::query()
