@@ -133,7 +133,7 @@
             </div>
         </div>
 
-        @if(auth()->user()?->hasPermission('visits:manage') && ($plan['summary']['planned_today'] ?? $plan['summary']['remaining']) > 0)
+        @if(auth()->user()?->hasPermission('visits:manage') && !($hasAssignedPlan ?? false) && ($plan['summary']['planned_today'] ?? $plan['summary']['remaining']) > 0)
             <div class="mb-5 rounded-2xl border border-indigo-400/20 bg-indigo-500/10 p-5">
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <div>
@@ -155,6 +155,10 @@
                     </form>
                 </div>
             </div>
+        @endif
+
+        @if($hasAssignedPlan ?? false)
+            <div class="mb-5 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-300">{{ __('Assigned plan — showing the visits actually sent to the salesman. Removed customers are not included.') }}</div>
         @endif
 
         @if($execution)
@@ -269,7 +273,7 @@
                                 </td>
                                 @if(auth()->user()?->hasPermission('visits:manage'))
                                     <td class="px-5 py-4">
-                                        @unless($stop['visited_today'])
+                                        @unless($stop['visited_today'] || ($hasAssignedPlan ?? false))
                                             <button type="button" data-planner-remove="{{ $stop['customer_id'] }}" class="rounded-lg border border-rose-400/30 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/10">{{ __('Remove') }}</button>
                                         @endunless
                                     </td>
