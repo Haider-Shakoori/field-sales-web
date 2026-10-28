@@ -151,11 +151,63 @@ class DailyRoutePlannerController extends Controller
             ? CarbonImmutable::parse($validated['date'], $timezone)->startOfDay()
             : CarbonImmutable::now($timezone)->startOfDay();
 
+        // Once a plan has been sent, preview the persisted visit assignments rather
+        // than regenerating a proposal that includes previously excluded customers.
+        $assignedVisits = $salesman
+            ? VisitAssignment::query()
+                ->with('customer')
+                ->where('salesman_id', $salesman->id)
+                ->whereDate('visit_date', $date->toDateString())
+                ->where('notes', 'Auto-scheduled from Daily Planner.')
+                ->whereIn('status', ['scheduled', 'in_progress', 'completed'])
+                ->orderBy('scheduled_time')
+                ->get()
+            : collect();
+        $plan = $salesman ? $planner->planFor($salesman, $date) : null;
+        if ($plan && $assignedVisits->isNotEmpty()) {
+            $byCustomer = $assignedVisits->keyBy('customer_id');
+            $uuids = $assignedVisits->pluck('customer.uuid')->filter()->all();
+            $originalStops = collect($plan['stops'] ?? [])->keyBy('customer_id');
+            $plan['stops'] = $assignedVisits->map(function (VisitAssignment $assignment) use ($originalStops): array {
+                $customer = $assignment->customer;
+                $stop = $originalStops->get($customer?->uuid, []);
+
+                return array_merge([
+                    'customer_id' => $customer?->uuid,
+                    'customer_code' => $customer?->code ?? '—',
+                    'customer_name' => $customer?->name ?? '—',
+                    'address' => $customer?->address,
+                    'recommended_order' => null,
+                    'route_sequence' => null,
+                    'planned_visit_minutes' => $assignment->expected_duration_minutes ?? 10,
+                    'priority' => $assignment->priority ?? 'normal',
+                    'reasons' => ['Assigned visit'],
+                    'next_best_action' => ['label' => 'Visit customer', 'reason' => 'Already assigned to salesman'],
+                    'overdue' => [],
+                    'last_visited_at' => null,
+                    'distance_from_previous_km' => null,
+                    'estimated_travel_minutes' => null,
+                    'estimated_arrival_at' => null,
+                    'capacity_status' => 'scheduled',
+                ], $stop, [
+                    'visited_today' => $assignment->status === 'completed' || ($stop['visited_today'] ?? false),
+                    'priority' => $assignment->priority ?? 'normal',
+                ]);
+            })->values()->all();
+            foreach ($plan['stops'] as $index => &$stop) {
+                $stop['recommended_order'] = $index + 1;
+            }
+            unset($stop);
+            $plan['summary']['planned_today'] = count($plan['stops']);
+            $plan['summary']['remaining'] = collect($plan['stops'])->where('visited_today', false)->count();
+        }
+
         return view('admin.daily-planner.index', [
             'salesmen' => $salesmen,
             'selectedSalesman' => $salesman,
             'selectedDate' => $date->toDateString(),
-            'plan' => $salesman ? $planner->planFor($salesman, $date) : null,
+            'plan' => $plan,
+            'hasAssignedPlan' => $assignedVisits->isNotEmpty(),
             'execution' => $salesman
                 ? collect($execution->build(
                     $user,
