@@ -1,4 +1,25 @@
 <x-layouts.app>
+    <style>
+        html[data-theme="light"] .fp-daily-planner { color: #0f172a; }
+        html[data-theme="light"] .fp-daily-planner [class~="text-indigo-100/70"],
+        html[data-theme="light"] .fp-daily-planner [class~="text-amber-200/80"] { color: #475569 !important; }
+        html[data-theme="light"] .fp-daily-planner [class~="text-indigo-100"],
+        html[data-theme="light"] .fp-daily-planner [class~="text-indigo-200"],
+        html[data-theme="light"] .fp-daily-planner [class~="text-indigo-300"] { color: #3730a3 !important; }
+        html[data-theme="light"] .fp-daily-planner [class~="text-slate-400"],
+        html[data-theme="light"] .fp-daily-planner [class~="text-slate-500"] { color: #475569 !important; }
+        html[data-theme="light"] .fp-daily-planner [class~="text-amber-200"],
+        html[data-theme="light"] .fp-daily-planner [class~="text-amber-300"] { color: #92400e !important; }
+        html[data-theme="light"] .fp-daily-planner [class~="text-rose-200"],
+        html[data-theme="light"] .fp-daily-planner [class~="text-rose-300"] { color: #be123c !important; }
+        html[data-theme="light"] .fp-daily-planner [class~="text-emerald-200"],
+        html[data-theme="light"] .fp-daily-planner [class~="text-emerald-300"] { color: #047857 !important; }
+        html[data-theme="light"] .fp-daily-planner [class~="bg-slate-950/70"] { background: #f1f5f9 !important; }
+        html[data-theme="light"] .fp-daily-planner input,
+        html[data-theme="light"] .fp-daily-planner select { background-color: #fff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+        html[data-theme="light"] .fp-daily-planner button.bg-indigo-500 { color: #fff !important; }
+    </style>
+    <div class="fp-daily-planner">
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold">{{ __('Daily planner') }}</h1>
@@ -282,4 +303,5 @@
             });
         })();
     </script>
+    </div>
 </x-layouts.app>
