@@ -134,22 +134,38 @@
         }
 
 
-        /* Light theme must cover the translucent and gradient surfaces used throughout the console. */
-        html[data-theme="light"] [class*="bg-slate-950/"],
-        html[data-theme="light"] [class*="bg-slate-900/"] { background-color: #ffffff !important; }
-        html[data-theme="light"] [class*="bg-slate-800/"],
-        html[data-theme="light"] [class*="bg-slate-700/"] { background-color: #f1f5f9 !important; }
-        html[data-theme="light"] [class*="border-white/"] { border-color: #dbe4ee !important; }
-        html[data-theme="light"] [class*="text-slate-100"],
-        html[data-theme="light"] [class*="text-slate-200"] { color: #1e293b !important; }
+        /* Semantic light surfaces: avoid recoloring every translucent utility, which
+           breaks status badges, charts, alerts, and colored action buttons. */
+        html[data-theme="light"] .fp-card,
+        html[data-theme="light"] .fp-surface,
+        html[data-theme="light"] .fp-toolbar,
+        html[data-theme="light"] .fp-settings-section,
+        html[data-theme="light"] .fp-kpi-card { background: #fff !important; border-color: #dbe4ee !important; box-shadow: 0 6px 24px rgba(15,23,42,.06) !important; }
+        html[data-theme="light"] .fp-setting-tile { background: #f8fafc !important; border-color: #dbe4ee !important; }
+        html[data-theme="light"] .fp-sidebar { background: #fff !important; color: #0f172a; border-color: #dbe4ee !important; }
+        html[data-theme="light"] .fp-sidebar [class~="bg-white/5"],
+        html[data-theme="light"] .fp-sidebar [class~="bg-white/10"] { background: #f1f5f9 !important; }
+        html[data-theme="light"] .fp-sidebar [class~="text-indigo-200"] { color: #4338ca !important; }
+        html[data-theme="light"] .fp-page-title,
+        html[data-theme="light"] .fp-kpi-value,
+        html[data-theme="light"] .fp-section-title { color: #0f172a !important; }
+        html[data-theme="light"] .fp-page-eyebrow { color: #4338ca !important; }
+        html[data-theme="light"] .fp-btn-primary { background: #4f46e5 !important; color: #fff !important; }
+        html[data-theme="light"] .fp-btn-danger { background: #fff1f2 !important; color: #be123c !important; }
+        html[data-theme="light"] .fp-btn-secondary { background: #e2e8f0 !important; color: #1e293b !important; }
+        html[data-theme="light"] .fp-input { background: #fff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+        html[data-theme="light"] select option { background: #fff; color: #0f172a; }
         html[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]),
         html[data-theme="light"] select,
         html[data-theme="light"] textarea { color-scheme: light; }
-        html[data-theme="light"] .fp-sidebar { background-color: #ffffff !important; color: #0f172a; }
-        html[data-theme="light"] .fp-sidebar .fp-nav-active { color: #3730a3 !important; }
-        html[data-theme="light"] .fp-sidebar [class*="bg-white/"] { background-color: #f1f5f9 !important; }
-        html[data-theme="light"] .fp-sidebar [class*="text-indigo-200"] { color: #4338ca !important; }
-        html[data-theme="light"] .fp-sidebar [class*="text-slate-400"] { color: #64748b !important; }
+        html[data-theme="light"] tbody tr:hover { background: rgba(99,102,241,.04); }
+        /* Colored buttons and semantic badges retain their intended contrast. */
+        html[data-theme="light"] [class*="bg-indigo-500"].text-white,
+        html[data-theme="light"] [class*="bg-indigo-600"].text-white,
+        html[data-theme="light"] [class*="bg-emerald-500"].text-white,
+        html[data-theme="light"] [class*="bg-rose-500"].text-white,
+        html[data-theme="light"] [class*="bg-red-500"].text-white,
+        html[data-theme="light"] [class*="bg-sky-500"].text-white { color: #fff !important; }
 
         .fp-table-tools {
             display: flex;
