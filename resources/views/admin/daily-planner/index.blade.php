@@ -118,15 +118,16 @@
                     <div>
                         <h3 class="font-semibold text-indigo-100">{{ __('Ready to send this plan?') }}</h3>
                         <p class="mt-1 text-sm text-indigo-100/70">
-                            {{ $plan['summary']['planned_today'] ?? $plan['summary']['remaining'] }} {{ __('visit(s)') }} ·
+                            <span id="fp-planner-count">{{ $plan['summary']['planned_today'] ?? $plan['summary']['remaining'] }}</span> {{ __('visit(s)') }} ·
                             {{ $selectedSalesman->full_name }} ·
                             {{ \Carbon\CarbonImmutable::parse($selectedDate)->format('d M Y') }}
                         </p>
                     </div>
-                    <form method="POST" action="{{ route('admin.daily-planner.assign') }}" onsubmit="return confirm(@js(__('Assign this reviewed plan to the salesman mobile app?')));">
+                    <form id="fp-planner-assign" method="POST" action="{{ route('admin.daily-planner.assign') }}" onsubmit="return confirm(@js(__('Assign this reviewed plan to the salesman mobile app?')));">
                         @csrf
                         <input type="hidden" name="salesman" value="{{ $selectedSalesman->uuid }}">
                         <input type="hidden" name="date" value="{{ $selectedDate }}">
+                        <div id="fp-planner-exclusions"></div>
                         <button class="rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white">
                             {{ __('Confirm & assign plan') }}
                         </button>
@@ -173,11 +174,12 @@
                             <th class="px-5 py-3">{{ __('Last visit') }}</th>
                             <th class="px-5 py-3">{{ __('Travel') }}</th>
                             <th class="px-5 py-3">{{ __('ETA / capacity') }}</th>
+                            @if(auth()->user()?->hasPermission('visits:manage'))<th class="px-5 py-3">{{ __('Action') }}</th>@endif
                         </tr>
                         </thead>
                         <tbody class="divide-y divide-white/10">
                         @foreach($plan['stops'] as $stop)
-                            <tr class="{{ $stop['visited_today'] ? 'opacity-60' : '' }}">
+                            <tr data-planner-customer="{{ $stop['customer_id'] }}" class="{{ $stop['visited_today'] ? 'opacity-60' : '' }}">
                                 <td class="px-5 py-4">
                                     <div class="text-lg font-bold">#{{ $stop['recommended_order'] }}</div>
                                     @if($stop['route_sequence'] !== null && $stop['recommended_order'] !== $stop['route_sequence'])
@@ -244,6 +246,13 @@
                                         <span class="text-slate-500">—</span>
                                     @endif
                                 </td>
+                                @if(auth()->user()?->hasPermission('visits:manage'))
+                                    <td class="px-5 py-4">
+                                        @unless($stop['visited_today'])
+                                            <button type="button" data-planner-remove="{{ $stop['customer_id'] }}" class="rounded-lg border border-rose-400/30 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/10">{{ __('Remove') }}</button>
+                                        @endunless
+                                    </td>
+                                @endif
                             </tr>
                         @endforeach
                         </tbody>
@@ -252,4 +261,25 @@
             </div>
         @endif
     @endif
+    <script>
+        (() => {
+            const form = document.getElementById('fp-planner-assign');
+            const exclusions = document.getElementById('fp-planner-exclusions');
+            const count = document.getElementById('fp-planner-count');
+            if (!form || !exclusions) return;
+            document.querySelectorAll('[data-planner-remove]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const id = button.dataset.plannerRemove;
+                    if (!id || exclusions.querySelector('[value="' + id + '"]')) return;
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'excluded_customers[]';
+                    input.value = id;
+                    exclusions.appendChild(input);
+                    button.closest('tr')?.remove();
+                    if (count) count.textContent = String(Math.max(0, Number(count.textContent) - 1));
+                });
+            });
+        })();
+    </script>
 </x-layouts.app>
