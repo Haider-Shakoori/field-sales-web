@@ -109,6 +109,30 @@
             color: #64748b !important;
         }
 
+        /* Readable content text across all pages, without overriding colored controls. */
+        html[data-theme="light"] main :is(h1,h2,h3,h4,h5,h6,p,dt,dd,label,span,div,a,li)[class~="text-slate-50"],
+        html[data-theme="light"] main :is(h1,h2,h3,h4,h5,h6,p,dt,dd,label,span,div,a,li)[class~="text-slate-100"],
+        html[data-theme="light"] main :is(h1,h2,h3,h4,h5,h6,p,dt,dd,label,span,div,a,li)[class~="text-white"] { color: #0f172a !important; }
+        html[data-theme="light"] main [class~="text-indigo-100"],
+        html[data-theme="light"] main [class~="text-indigo-200"],
+        html[data-theme="light"] main [class~="text-indigo-300"] { color: #4338ca !important; }
+        html[data-theme="light"] main [class~="text-emerald-200"],
+        html[data-theme="light"] main [class~="text-emerald-300"] { color: #047857 !important; }
+        html[data-theme="light"] main [class~="text-amber-200"],
+        html[data-theme="light"] main [class~="text-amber-300"] { color: #92400e !important; }
+        html[data-theme="light"] main [class~="text-rose-200"],
+        html[data-theme="light"] main [class~="text-rose-300"] { color: #be123c !important; }
+        html[data-theme="light"] main [class~="text-sky-200"],
+        html[data-theme="light"] main [class~="text-sky-300"] { color: #0369a1 !important; }
+        html[data-theme="light"] main [class~="bg-slate-900/60"],
+        html[data-theme="light"] main [class~="bg-slate-900/65"],
+        html[data-theme="light"] main [class~="bg-slate-900/50"],
+        html[data-theme="light"] main [class~="bg-slate-950/70"],
+        html[data-theme="light"] main [class~="bg-slate-950/50"] { background-color: #fff !important; }
+        /* Restore white text on genuinely dark/solid colored actions and labels. */
+        html[data-theme="light"] :is(button,a,span,div)[class~="text-white"]:is([class*="bg-indigo-"],[class*="bg-blue-"],[class*="bg-emerald-"],[class*="bg-rose-"],[class*="bg-red-"],[class*="bg-sky-"]) { color: #fff !important; }
+        html[data-theme="light"] main .fp-btn-primary { color: #fff !important; }
+
         /* Keep the active sidebar item readable in both themes. */
         .fp-nav-active {
             color: #e0e7ff !important;
