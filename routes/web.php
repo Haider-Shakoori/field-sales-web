@@ -435,6 +435,9 @@ Route::middleware('auth')->group(function () {
             ->middleware('permission:visits:view')
             ->name('visits.voice-notes.audio');
 
+        Route::get('/audit-logs/export', [AuditLogController::class, 'export'])
+            ->middleware('permission:audit:view')
+            ->name('audit.export');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])
             ->middleware('permission:audit:view')
             ->name('audit.index');
