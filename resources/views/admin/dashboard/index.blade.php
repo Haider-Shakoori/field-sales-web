@@ -120,6 +120,43 @@
         </div>
     </section>
 
+    </div>
+    <div data-dashboard-panel="customers" hidden>
+        <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <a href="{{ route('admin.customers.index') }}" class="fp-surface p-5"><h2 class="font-semibold">Customer directory</h2><p class="mt-2 text-sm text-slate-400">View assigned customers and customer details</p></a>
+            <a href="{{ route('admin.daily-planner.index') }}" class="fp-surface p-5"><h2 class="font-semibold">Customer visit planning</h2><p class="mt-2 text-sm text-slate-400">Review daily customer routes and assignments</p></a>
+            <a href="{{ route('admin.visits.index') }}" class="fp-surface p-5"><h2 class="font-semibold">Unvisited customers</h2><p class="mt-2 text-sm text-slate-400">Review visit records and identify missing visits</p></a>
+        </section>
+    </div>
+    <div data-dashboard-panel="visits" hidden>
+        <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="fp-surface p-5"><p class="text-sm text-slate-400">Completed visits today</p><p class="mt-2 text-3xl font-bold">{{ $summary['visits']['completed'] }}</p></div>
+            <div class="fp-surface p-5"><p class="text-sm text-slate-400">Active visits</p><p class="mt-2 text-3xl font-bold">{{ $summary['visits']['active'] }}</p></div>
+            <a href="{{ route('admin.daily-planner.index') }}" class="fp-surface p-5"><h2 class="font-semibold">Daily Planner</h2><p class="mt-2 text-sm text-slate-400">View assigned and pending customer stops</p></a>
+        </section>
+    </div>
+    <div data-dashboard-panel="sales" hidden>
+        <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="fp-surface p-5"><p class="text-sm text-slate-400">Approved orders today</p><p class="mt-2 text-3xl font-bold">{{ $summary['orders']['approved_count'] }}</p></div>
+            <div class="fp-surface p-5"><p class="text-sm text-slate-400">Pending order approvals</p><p class="mt-2 text-3xl font-bold">{{ $summary['orders']['pending_count'] }}</p></div>
+            <a href="{{ route('admin.orders.index') }}" class="fp-surface p-5"><h2 class="font-semibold">Orders</h2><p class="mt-2 text-sm text-slate-400">Review orders and approval statuses</p></a>
+        </section>
+    </div>
+    <div data-dashboard-panel="team" hidden>
+        <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="fp-surface p-5"><p class="text-sm text-slate-400">Salesmen</p><p class="mt-2 text-3xl font-bold">{{ $summary['salesmen']['total'] }}</p></div>
+            <div class="fp-surface p-5"><p class="text-sm text-slate-400">On duty</p><p class="mt-2 text-3xl font-bold">{{ $summary['salesmen']['on_duty'] }}</p></div>
+            <div class="fp-surface p-5"><p class="text-sm text-slate-400">Online</p><p class="mt-2 text-3xl font-bold">{{ $summary['salesmen']['live'] }}</p></div>
+        </section>
+    </div>
+    <div data-dashboard-panel="finance" hidden>
+        <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="fp-surface p-5"><p class="text-sm text-slate-400">Verified collections today</p><p class="mt-2 text-3xl font-bold">{{ $summary['collections']['verified_count'] }}</p></div>
+            <div class="fp-surface p-5"><p class="text-sm text-slate-400">Approved expenses today</p><p class="mt-2 text-3xl font-bold">{{ $summary['expenses']['approved_count'] }}</p></div>
+            <div class="fp-surface p-5"><p class="text-sm text-slate-400">Pending financial reviews</p><p class="mt-2 text-3xl font-bold">{{ $summary['collections']['pending_count'] + $summary['expenses']['pending_count'] }}</p></div>
+        </section>
+    </div>
+    <div data-dashboard-panel="analytics" hidden>
     @if($visibility['orders'] || $visibility['visits'])
         <section class="mt-6 grid gap-4 xl:grid-cols-2">
             @if($visibility['orders'])
@@ -246,6 +283,31 @@
         </div>
     </section>
 
+    </div>
+    <script>
+        (() => {
+            const buttons = [...document.querySelectorAll('[data-dashboard-tab]')];
+            const panels = [...document.querySelectorAll('[data-dashboard-panel]')];
+            const select = (key) => {
+                buttons.forEach(button => {
+                    const active = button.dataset.dashboardTab === key;
+                    button.setAttribute('aria-selected', String(active));
+                    button.classList.toggle('bg-indigo-500', active);
+                    button.classList.toggle('text-white', active);
+                    button.classList.toggle('bg-slate-900', !active);
+                    button.classList.toggle('text-slate-300', !active);
+                });
+                panels.forEach(panel => {
+                    panel.hidden = panel.dataset.dashboardPanel !== key && !(panel.dataset.dashboardPanel === 'analytics' && key === 'overview');
+                });
+                history.replaceState(null, '', location.pathname + location.search + '#' + key);
+                window.dispatchEvent(new Event('resize'));
+            };
+            buttons.forEach(button => button.addEventListener('click', () => select(button.dataset.dashboardTab)));
+            const initial = location.hash.slice(1);
+            select(buttons.some(button => button.dataset.dashboardTab === initial) ? initial : 'overview');
+        })();
+    </script>
     @if($visibility['orders'] || $visibility['visits'])
         <script src="{{ asset('vendor/chartjs/chart.umd.min.js') }}"></script>
         <script>
