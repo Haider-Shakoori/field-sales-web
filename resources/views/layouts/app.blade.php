@@ -133,6 +133,24 @@
             color: #4f46e5 !important;
         }
 
+
+        /* Light theme must cover the translucent and gradient surfaces used throughout the console. */
+        html[data-theme="light"] [class*="bg-slate-950/"],
+        html[data-theme="light"] [class*="bg-slate-900/"] { background-color: #ffffff !important; }
+        html[data-theme="light"] [class*="bg-slate-800/"],
+        html[data-theme="light"] [class*="bg-slate-700/"] { background-color: #f1f5f9 !important; }
+        html[data-theme="light"] [class*="border-white/"] { border-color: #dbe4ee !important; }
+        html[data-theme="light"] [class*="text-slate-100"],
+        html[data-theme="light"] [class*="text-slate-200"] { color: #1e293b !important; }
+        html[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]),
+        html[data-theme="light"] select,
+        html[data-theme="light"] textarea { color-scheme: light; }
+        html[data-theme="light"] .fp-sidebar { background-color: #ffffff !important; color: #0f172a; }
+        html[data-theme="light"] .fp-sidebar .fp-nav-active { color: #3730a3 !important; }
+        html[data-theme="light"] .fp-sidebar [class*="bg-white/"] { background-color: #f1f5f9 !important; }
+        html[data-theme="light"] .fp-sidebar [class*="text-indigo-200"] { color: #4338ca !important; }
+        html[data-theme="light"] .fp-sidebar [class*="text-slate-400"] { color: #64748b !important; }
+
         .fp-table-tools {
             display: flex;
             flex-wrap: wrap;
@@ -667,6 +685,20 @@
     };
 
     applyThemeLabel();
+
+    // Scroll only the navigation container, never the entire page.
+    const sidebarNav = document.querySelector('.fp-sidebar-nav');
+    const activeNavLink = sidebarNav?.querySelector('a[aria-current="page"], .fp-nav-active');
+    if (sidebarNav && activeNavLink) {
+        const revealActiveLink = () => {
+            const navRect = sidebarNav.getBoundingClientRect();
+            const linkRect = activeNavLink.getBoundingClientRect();
+            if (linkRect.bottom > navRect.bottom || linkRect.top < navRect.top) {
+                sidebarNav.scrollTop += linkRect.top - navRect.top - (sidebarNav.clientHeight - linkRect.height) / 2;
+            }
+        };
+        requestAnimationFrame(revealActiveLink);
+    }
 
     themeToggle?.addEventListener('click', () => {
         const next = root.dataset.theme === 'light' ? 'dark' : 'light';
